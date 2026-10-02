@@ -165,6 +165,9 @@ body:not(.sem-sessao) #login{display:none!important}
 .pin.ok{background:#1d7a45}.pin.nao{background:#b3341f}
 .leaflet-container{font:13px var(--f-body)}
 .rota-nota{font-size:12.5px;color:var(--muted);margin-top:6px}
+.folha-btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:8px 14px;font-weight:600;cursor:pointer;font:600 14px var(--f-body)}
+.folha-btn.mini{padding:3px 10px;font-size:12.5px;vertical-align:middle;margin-left:6px}
+.folha-btn[disabled]{opacity:.6}
 </style>
 </head>
 <body class="sem-sessao">
@@ -322,7 +325,7 @@ function render(){
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
     const r=d.resumo||{};
-    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
+    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
       ots.map(o=>{const c=o.campos, ok=realizada(o);
         return `<button class="ot" data-d="${esc(d.data)}" data-o="${esc(o.id)}">
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
@@ -521,7 +524,7 @@ function desenharFicha(){
   let h="";
   if(TAB==="det"){
     const loc = r.lat&&r.lng ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : (c.Morada?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.Morada)}`:null);
-    h+=`<div class="acoes">${loc?`<a href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
+    h+=`<div class="acoes">${o.folha?`<button class="folha-btn" data-f="${esc(o.folha)}">📄 Folha de obra</button>`:""}${loc?`<a href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
     if(!realizada(o)||r.reagendada) h+=`<div class="bloco"><h4>Improdutividade</h4><dl><dt>Motivo</dt><dd>${esc(r.motivo||"—")}</dd>${r.reagendada?`<dt>Reagendada para</dt><dd>${esc(r.reagendada)}</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Agendamento prévio</h4><dl><dt>Situação</dt><dd>${esc(r.agendamento||"—")}</dd><dt>Evidência</dt><dd>${esc(r.evidencia||"—")}</dd>${r.km_estrada!=null?`<dt>Desde a OT anterior</dt><dd>${r.km_estrada} km · ≈${fMin(r.min_conducao)} de condução</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Detalhes da OT</h4><dl>`+CAMPOS.filter(k=>c[k]).map(k=>`<dt>${esc(k)}</dt><dd><span class="${MONO.has(k)?"mono":""}">${esc(c[k])}</span>${COPIAVEIS.has(k)?`<button class="copiar" data-v="${esc(c[k])}">Copiar</button>`:""}</dd>`).join("")+`</dl></div>`;
@@ -541,6 +544,23 @@ function desenharFicha(){
     catch{ const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents(b.previousElementSibling||b); s.removeAllRanges(); s.addRange(rg); toast("Texto selecionado — copie com Ctrl+C"); }
   });
 }
+
+// ---------- folhas de obra (PDF no Supabase Storage, bucket privado)
+async function abrirFolha(caminho, btn){
+  const txt=btn?.textContent; if(btn){ btn.disabled=true; btn.textContent="A abrir…"; }
+  const janela = /Android|iPhone|iPad/i.test(navigator.userAgent) ? null : window.open("", "_blank");
+  try{
+    const t=await token(); if(!t) throw new Error("Sessão terminada. Entre de novo.");
+    const r=await fetch(`${SUPA_URL}/storage/v1/object/authenticated/folhas/${caminho.split("/").map(encodeURIComponent).join("/")}`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
+    if(!r.ok) throw new Error(r.status===404||r.status===400?"Folha ainda não enviada para a nuvem.":"Erro "+r.status);
+    const url=URL.createObjectURL(new Blob([await r.blob()],{type:"application/pdf"}));
+    if(janela){ janela.location=url; }
+    else { const a=document.createElement("a"); a.href=url; a.download=caminho.split("/").pop(); document.body.appendChild(a); a.click(); a.remove(); }
+    setTimeout(()=>URL.revokeObjectURL(url),120000);
+  }catch(e){ if(janela) janela.close(); toast(e.message==="Failed to fetch"?"Sem internet.":e.message); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=txt; } }
+}
+document.addEventListener("click",e=>{ const b=e.target.closest(".folha-btn"); if(b){ e.preventDefault(); e.stopPropagation(); abrirFolha(b.dataset.f,b); } }, true);
 
 // ---------- dados (Supabase: login + leitura protegida por RLS; sem bibliotecas externas)
 const SUPA_URL="https://bkgcidryvwafdbiagata.supabase.co", SUPA_KEY="sb_publishable_H1EabITuWmtxVq9U0ddx6Q_D2MpwMYb", CHAVE_SESSAO="cr-consulta-sessao";
