@@ -15,6 +15,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 /* Layout: app de campo — barra fixa com pesquisa, dias em secções, ficha da OT em painel (lateral no PC, ecrã inteiro no telemóvel) */
 :root{
@@ -157,6 +159,12 @@ dl > :nth-last-child(-n+2){border-bottom:0}
 body.sem-sessao main > :not(#login), body.sem-sessao .busca, body.sem-sessao .sinc, body.sem-sessao #btnSair, body.sem-sessao #btnAtual{display:none!important}
 body:not(.sem-sessao) #login{display:none!important}
 .sinc{font-size:12px;color:var(--muted);white-space:nowrap}
+.mapa{height:380px;border-radius:10px;border:1px solid var(--line);z-index:0}
+@media (max-width:600px){.mapa{height:300px}}
+.pin{width:28px;height:28px;border-radius:50%;color:#fff;font:700 13px var(--f-body);display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+.pin.ok{background:#1d7a45}.pin.nao{background:#b3341f}
+.leaflet-container{font:13px var(--f-body)}
+.rota-nota{font-size:12.5px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body class="sem-sessao">
@@ -415,26 +423,53 @@ function desenharTab(){
     <td class="n">${o.km!=null?o.km.toLocaleString("pt-PT"):""}</td><td class="n">${o.espera!=null?fMin(o.espera):""}</td></tr>`).join("");
 }
 $("#rDia").onchange=()=>desenharPercurso();
+let MAPA=null, ROTA_PEDIDO=0;
+const ROTAS={};  // cache de rotas por estrada (OSRM)
 function desenharPercurso(){
   const d=REL?.porDia.find(x=>x.data===$("#rDia").value); const box=$("#percurso");
+  if(MAPA){ MAPA.remove(); MAPA=null; }
   if(!d){ box.innerHTML='<div class="vazio">Sem dados.</div>'; $("#lnkMaps").hidden=true; return; }
   $("#lnkMaps").hidden=!d.maps; $("#lnkMaps").href=d.maps||"#";
   const p=d.ots.filter(o=>o.lat&&o.lng);
   if(p.length<1){ box.innerHTML='<div class="vazio">As OTs deste dia não têm localização.</div>'; return; }
+  const lista=(kms,porEstrada)=>`<ol style="margin:8px 0 0;padding-left:22px;font-size:13.5px;display:flex;flex-direction:column;gap:3px">`+
+    p.map((o,i)=>{ const km=kms?kms[i]:o.km; return `<li><b>${esc(hhmm(o.ini))}</b> ${esc(o.cliente||"")} <span style="color:var(--muted)">${i===0?"· primeira OT":(km!=null?`· ${km.toLocaleString("pt-PT",{maximumFractionDigits:1})} km ${porEstrada?"por estrada":"(estimado)"} desde a anterior`:"")}</span></li>`; }).join("")+`</ol>`;
+  if(typeof L==="undefined") return desenharPercursoSvg(d,p,box,lista());
+  box.innerHTML=`<div class="mapa" id="mapaOt"></div><div class="rota-nota" id="rotaNota">A calcular o percurso por estrada…</div><div id="rotaLista">${lista()}</div>`;
+  MAPA=L.map("mapaOt",{scrollWheelZoom:false});
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAPA);
+  const pts=p.map(o=>[o.lat,o.lng]);
+  const reta=L.polyline(pts,{color:"#1f7f8c",weight:3,dashArray:"6 8",opacity:.8}).addTo(MAPA);
+  p.forEach((o,i)=>L.marker([o.lat,o.lng],{icon:L.divIcon({className:"",html:`<div class="pin ${o.ok?"ok":"nao"}">${i+1}</div>`,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:1000-i})
+    .addTo(MAPA).bindPopup(`<b>${i+1}. ${esc(hhmm(o.ini))}–${esc(hhmm(o.fim))}</b><br>${esc(o.cliente||"")}<br>${esc(o.estado||"")}${o.morada?"<br><span style='color:#666'>"+esc(o.morada)+"</span>":""}`));
+  MAPA.fitBounds(L.latLngBounds(pts).pad(.2),{maxZoom:15});
+  if(p.length<2){ $("#rotaNota").textContent=""; return; }
+  // percurso real por estrada (servico publico OSRM); se falhar fica a linha reta
+  const chave=pts.map(x=>x.join(",")).join(";"), meu=++ROTA_PEDIDO;
+  const usar=r=>{ if(meu!==ROTA_PEDIDO||!MAPA) return;
+    reta.setStyle({opacity:.25});
+    L.polyline(r.geo,{color:"#1f7f8c",weight:5,opacity:.85}).addTo(MAPA);
+    const kms=[null,...r.legs.map(m=>m/1000)], tot=r.legs.reduce((a,b)=>a+b,0)/1000;
+    $("#rotaNota").textContent=`Percurso por estrada: ${tot.toLocaleString("pt-PT",{maximumFractionDigits:1})} km · cerca de ${Math.round(r.dur/60)} min de condução (OpenStreetMap/OSRM). A tracejado: linha reta.`;
+    $("#rotaLista").innerHTML=lista(kms,true); };
+  if(ROTAS[chave]) return usar(ROTAS[chave]);
+  fetch(`https://router.project-osrm.org/route/v1/driving/${p.map(o=>o.lng+","+o.lat).join(";")}?overview=full&geometries=geojson`)
+    .then(r=>r.json()).then(j=>{ if(j.code!=="Ok") throw 0;
+      const rt=j.routes[0]; ROTAS[chave]={geo:rt.geometry.coordinates.map(c=>[c[1],c[0]]),legs:rt.legs.map(l=>l.distance),dur:rt.duration}; usar(ROTAS[chave]); })
+    .catch(()=>{ if(meu===ROTA_PEDIDO&&$("#rotaNota")) $("#rotaNota").textContent="Sem percurso por estrada neste momento. A linha mostra a ligação direta entre OTs (km estimados)."; });
+}
+function desenharPercursoSvg(d,p,box,listaHtml){
   const lat0=p.reduce((s,o)=>s+o.lat,0)/p.length, k=Math.cos(lat0*Math.PI/180);
   const xs=p.map(o=>o.lng*k), ys=p.map(o=>-o.lat);
   const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
   const W=560, H=340, pad=46, esc2=Math.min((W-2*pad)/((maxX-minX)||1e-6),(H-2*pad)/((maxY-minY)||1e-6));
   const px=i=>pad+(xs[i]-minX)*esc2+((W-2*pad)-(maxX-minX)*esc2)/2, py=i=>pad+(ys[i]-minY)*esc2+((H-2*pad)-(maxY-minY)*esc2)/2;
-  // escala: 1 km
   const kmPx=esc2*(1/111.32);
   let s=`<svg class="percurso" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Percurso do dia">`;
   s+=`<polyline points="${p.map((o,i)=>`${px(i)},${py(i)}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="6 6"/>`;
-  p.forEach((o,i)=>{ s+=`<g><circle cx="${px(i)}" cy="${py(i)}" r="14" fill="${o.ok?"var(--ok)":"var(--bad)"}" stroke="var(--surface)" stroke-width="3"><title>${esc(o.cliente)} · ${esc(o.morada||"")}</title></circle><text x="${px(i)}" y="${py(i)+4}" text-anchor="middle" style="fill:#fff">${i+1}</text>`+
-    `</g>`; });
+  p.forEach((o,i)=>{ s+=`<g><circle cx="${px(i)}" cy="${py(i)}" r="14" fill="${o.ok?"var(--ok)":"var(--bad)"}" stroke="var(--surface)" stroke-width="3"><title>${esc(o.cliente)} · ${esc(o.morada||"")}</title></circle><text x="${px(i)}" y="${py(i)+4}" text-anchor="middle" style="fill:#fff">${i+1}</text></g>`; });
   if(kmPx>8&&kmPx<W/2) s+=`<line x1="${W-pad-kmPx}" x2="${W-pad}" y1="${H-14}" y2="${H-14}" stroke="var(--muted)" stroke-width="2"/><text class="sub" x="${W-pad-kmPx/2}" y="${H-20}" text-anchor="middle">1 km</text>`;
-  box.innerHTML=s+"</svg>"+`<ol style="margin:8px 0 0;padding-left:22px;font-size:13.5px;display:flex;flex-direction:column;gap:3px">`+
-    p.map((o,i)=>`<li><b>${esc(hhmm(o.ini))}</b> ${esc(o.cliente||"")} <span style="color:var(--muted)">${o.km!=null&&i>0?`· ${o.km.toLocaleString("pt-PT")} km desde a anterior`:"· primeira OT"}</span></li>`).join("")+`</ol>`;
+  box.innerHTML=s+"</svg>"+listaHtml;
 }
 $("#btnXlsx").onclick=async()=>{
   if(!REL||!REL.linhas.length) return toast("Sem dados neste período.");
