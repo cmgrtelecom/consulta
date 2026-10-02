@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="referrer" content="no-referrer">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#1f7f8c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -437,7 +437,7 @@ function desenharPercurso(){
   if(typeof L==="undefined") return desenharPercursoSvg(d,p,box,lista());
   box.innerHTML=`<div class="mapa" id="mapaOt"></div><div class="rota-nota" id="rotaNota">A calcular o percurso por estrada…</div><div id="rotaLista">${lista()}</div>`;
   MAPA=L.map("mapaOt",{scrollWheelZoom:false});
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAPA);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:20,attribution:"© OpenStreetMap © CARTO"}).addTo(MAPA);
   const pts=p.map(o=>[o.lat,o.lng]);
   const reta=L.polyline(pts,{color:"#1f7f8c",weight:3,dashArray:"6 8",opacity:.8}).addTo(MAPA);
   p.forEach((o,i)=>L.marker([o.lat,o.lng],{icon:L.divIcon({className:"",html:`<div class="pin ${o.ok?"ok":"nao"}">${i+1}</div>`,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:1000-i})
