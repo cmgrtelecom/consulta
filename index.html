@@ -423,6 +423,18 @@ function desenharTab(){
     <td class="n">${o.km!=null?o.km.toLocaleString("pt-PT"):""}</td><td class="n">${o.espera!=null?fMin(o.espera):""}</td></tr>`).join("");
 }
 $("#rDia").onchange=()=>desenharPercurso();
+function camadasMapa(mapa){
+  const esri=s=>`https://server.arcgisonline.com/ArcGIS/rest/services/${s}/MapServer/tile/{z}/{y}/{x}`;
+  const C={
+    "Ruas (Esri)": L.tileLayer(esri("World_Street_Map"),{maxZoom:19,attribution:"Tiles © Esri"}),
+    "Satélite (Esri)": L.tileLayer(esri("World_Imagery"),{maxZoom:19,attribution:"Tiles © Esri"}),
+    "OpenStreetMap": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"})
+  };
+  let esc="Ruas (Esri)"; try{ const g=localStorage.getItem("cr-mapa-camada"); if(C[g]) esc=g; }catch(e){}
+  C[esc].addTo(mapa);
+  L.control.layers(C,null,{position:"topright"}).addTo(mapa);
+  mapa.on("baselayerchange",e=>{ try{ localStorage.setItem("cr-mapa-camada",e.name); }catch(_){} });
+}
 let MAPA=null, ROTA_PEDIDO=0;
 const ROTAS={};  // cache de rotas por estrada (OSRM)
 function desenharPercurso(){
@@ -437,7 +449,7 @@ function desenharPercurso(){
   if(typeof L==="undefined") return desenharPercursoSvg(d,p,box,lista());
   box.innerHTML=`<div class="mapa" id="mapaOt"></div><div class="rota-nota" id="rotaNota">A calcular o percurso por estrada…</div><div id="rotaLista">${lista()}</div>`;
   MAPA=L.map("mapaOt",{scrollWheelZoom:false});
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:20,attribution:"© OpenStreetMap © CARTO"}).addTo(MAPA);
+  camadasMapa(MAPA);
   const pts=p.map(o=>[o.lat,o.lng]);
   const reta=L.polyline(pts,{color:"#1f7f8c",weight:3,dashArray:"6 8",opacity:.8}).addTo(MAPA);
   p.forEach((o,i)=>L.marker([o.lat,o.lng],{icon:L.divIcon({className:"",html:`<div class="pin ${o.ok?"ok":"nao"}">${i+1}</div>`,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:1000-i})
