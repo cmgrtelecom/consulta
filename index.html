@@ -553,7 +553,7 @@ function desenharFicha(){
 let GUIAS=[];
 function renderGuia(){
   const el=$("#vGuia"); const g=GUIAS[0];
-  if(!g){ el.innerHTML='<div class="vazio"><b>Ainda não há guias online.</b><br>No PC: painel → 🚚 Guias → Atualizar do TOConline.</div>'; return; }
+  if(!g){ el.innerHTML='<div class="vazio"><b>Ainda não há guias online.</b><br>No PC: painel → 🚚 Guias → Atualizar do TOConline.</div><button class="folha-btn" id="gNovaBtn">＋ Nova guia</button>'; $("#gNovaBtn").onclick=novaGuia; return; }
   const dt=s=>s?String(s).slice(8,10)+"/"+String(s).slice(5,7)+"/"+String(s).slice(0,4):"—";
   const _d=new Date(), hoje=`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
   const lin=x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 14px;border-top:1px solid var(--line)"><span>${esc(x.d||"")}<br><span class="mono" style="color:var(--muted);font-size:12px">${esc(x.c||"")}</span></span><b style="white-space:nowrap">${esc(String(x.q??"").replace(".",","))}</b></div>`;
@@ -564,9 +564,52 @@ function renderGuia(){
      <span style="color:var(--muted)">Código AT</span><b class="mono" style="font-size:18px">${esc(g.codigo_at||"—")}</b>
      <span style="color:var(--muted)">Veículo</span><b class="mono">${esc(g.veiculo||"—")}</b>
      <span style="color:var(--muted)">Carga</span><span>${esc(g.carga||"—")}</span></div>
-    <div style="padding:0 14px 12px">${g.pdf?`<button class="folha-btn" data-f="${esc(g.pdf)}">📄 Abrir PDF da guia</button>`:'<span style="color:var(--muted)">PDF ainda não enviado.</span>'}</div>
+    <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">${g.pdf?`<button class="folha-btn" data-f="${esc(g.pdf)}">📄 Abrir PDF da guia</button>`:(g.pdf_url?`<a class="folha-btn" style="text-decoration:none" href="${esc(g.pdf_url)}" target="_blank" rel="noopener">📄 Abrir PDF da guia</a>`:'<span style="color:var(--muted)">PDF ainda não enviado.</span>')}
+     <button class="folha-btn" style="background:var(--surface);color:var(--accent)" id="gNovaBtn">＋ Nova guia</button></div>
     <h4 style="border-top:1px solid var(--line)">Artigos (${(g.linhas||[]).length})</h4>${(g.linhas||[]).map(lin).join("")}</div>
-   ${GUIAS.length>1?`<div class="bloco"><h4>Guias anteriores</h4>${GUIAS.slice(1,30).map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line)"><span><b class="mono">${esc(x.numero)}</b> · ${dt(x.data)}<br><span class="mono" style="color:var(--muted);font-size:12px">AT ${esc(x.codigo_at||"—")}</span></span>${x.pdf?`<button class="folha-btn mini" data-f="${esc(x.pdf)}">PDF</button>`:""}</div>`).join("")}</div>`:""}`;
+   ${GUIAS.length>1?`<div class="bloco"><h4>Guias anteriores</h4>${GUIAS.slice(1,30).map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line)"><span><b class="mono">${esc(x.numero)}</b> · ${dt(x.data)}<br><span class="mono" style="color:var(--muted);font-size:12px">AT ${esc(x.codigo_at||"—")}</span></span>${x.pdf?`<button class="folha-btn mini" data-f="${esc(x.pdf)}">PDF</button>`:(x.pdf_url?`<a class="folha-btn mini" style="text-decoration:none" href="${esc(x.pdf_url)}" target="_blank" rel="noopener">PDF</a>`:"")}</div>`).join("")}</div>`:""}`;
+  $("#gNovaBtn").onclick=novaGuia;
+}
+// ---------- emitir guia (função "guias" no Supabase; as chaves do TOConline ficam lá, nunca nesta página)
+async function chamarGuias(corpo){
+  const t=await token(); if(!t) throw new Error("Sessão terminada. Entre de novo.");
+  const r=await fetch(`${SUPA_URL}/functions/v1/guias`,{method:"POST",headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify(corpo)});
+  const j=await r.json().catch(()=>({}));
+  if(r.status===404) throw new Error("A função 'guias' ainda não está instalada no Supabase.");
+  if(!r.ok) throw new Error(j.erro||("erro "+r.status));
+  return j;
+}
+async function novaGuia(){
+  const el=$("#vGuia"); const _d=new Date(Date.now()+5*60000);
+  const pad=n=>String(n).padStart(2,"0"), dia=`${_d.getFullYear()}-${pad(_d.getMonth()+1)}-${pad(_d.getDate())}`, hora=`${pad(_d.getHours())}:${pad(_d.getMinutes())}`;
+  el.innerHTML='<div class="vazio">A carregar a última guia do TOConline…</div>';
+  let B; try{ B=await chamarGuias({acao:"base"}); }catch(e){ el.innerHTML=`<div class="vazio"><b>Não foi possível abrir.</b><br>${esc(e.message)}</div><button class="folha-btn" onclick="renderGuia()">Voltar</button>`; return; }
+  const g=B.base, usados=new Set(g.linhas.map(l=>l.item_code||l.description)), extra=B.artigos.filter(a=>!usados.has(a.item_code||a.description));
+  const lin=l=>`<div class="gl" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 14px;border-top:1px solid var(--line)"><span>${esc(l.description||"")}<br><span class="mono" style="color:var(--muted);font-size:12px">${esc(l.item_code||"")}</span></span><input type="number" inputmode="decimal" min="0" step="any" value="${l.quantity??0}" data-l='${esc(JSON.stringify(l))}' style="width:74px;font-size:16px;padding:6px;text-align:right;border:1px solid var(--line);border-radius:8px"></div>`;
+  const inp='style="font-size:16px;padding:8px;border:1px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box;background:var(--surface);color:var(--fg)"';
+  el.innerHTML=`<div class="bloco"><h4>Nova guia de transporte · modelo ${esc(g.numero)}</h4>
+    <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <label style="font-size:13px;color:var(--muted)">Data<input id="ngData" type="date" value="${dia}" ${inp}></label>
+     <label style="font-size:13px;color:var(--muted)">Hora de carga<input id="ngHora" type="time" value="${hora}" ${inp}></label>
+     <label style="font-size:13px;color:var(--muted);grid-column:1/-1">Veículo<input id="ngVei" value="${esc(g.veiculo||"")}" ${inp}></label></div>
+    <h4 style="border-top:1px solid var(--line)">Artigos (ponha 0 no que não leva)</h4><div id="ngLin">${g.linhas.map(lin).join("")}</div>
+    <div style="padding:10px 14px;border-top:1px solid var(--line)"><select id="ngAdd" ${inp}><option value="">＋ acrescentar artigo…</option>${extra.map((a,i)=>`<option value="${i}">${esc(a.description||a.item_code)}</option>`).join("")}</select></div>
+    <label style="display:flex;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:15px"><input type="checkbox" id="ngFin" checked style="width:22px;height:22px"> Finalizar e comunicar à AT (recebe o código AT)</label>
+    <div style="padding:0 14px 14px;display:flex;gap:8px"><button class="folha-btn" id="ngCriar">Emitir guia</button><button class="folha-btn" style="background:var(--surface);color:var(--accent)" id="ngVoltar">Cancelar</button></div></div>`;
+  $("#ngAdd").onchange=e=>{ const a=extra[+e.target.value]; if(a){ $("#ngLin").insertAdjacentHTML("beforeend",lin({...a,quantity:1})); e.target.value=""; } };
+  $("#ngVoltar").onclick=renderGuia;
+  $("#ngCriar").onclick=async()=>{
+    const linhas=[...document.querySelectorAll("#ngLin input[data-l]")].map(i=>({...JSON.parse(i.dataset.l),quantity:parseFloat(String(i.value).replace(",","."))||0})).filter(l=>l.quantity>0);
+    if(!linhas.length){ toast("A guia não tem artigos."); return; }
+    const fin=$("#ngFin").checked;
+    if(!confirm(fin?`Emitir e comunicar à AT a guia de ${$("#ngData").value} às ${$("#ngHora").value} com ${linhas.length} artigos?\n(Depois de comunicada não se pode apagar.)`:"Criar a guia como rascunho no TOConline?")) return;
+    const b=$("#ngCriar"); b.disabled=true; b.textContent="A emitir…";
+    try{
+      const r=await chamarGuias({acao:"criar",base_id:g.id,data:$("#ngData").value,hora:$("#ngHora").value,veiculo:$("#ngVei").value,finalizar:fin,linhas});
+      GUIAS=[r.guia,...GUIAS.filter(x=>x.id!==r.guia.id)]; renderGuia();
+      toast(r.aviso||(r.guia.codigo_at?`Guia ${r.guia.numero} emitida · código AT ${r.guia.codigo_at}`:`Guia ${r.guia.numero||""} criada`));
+    }catch(e){ toast("Erro: "+e.message); b.disabled=false; b.textContent="Emitir guia"; }
+  };
 }
 
 // ---------- folhas de obra (PDF no Supabase Storage, bucket privado)
@@ -584,7 +627,7 @@ async function abrirFolha(caminho, btn){
   }catch(e){ if(janela) janela.close(); toast(e.message==="Failed to fetch"?"Sem internet.":e.message); }
   finally{ if(btn){ btn.disabled=false; btn.textContent=txt; } }
 }
-document.addEventListener("click",e=>{ const b=e.target.closest(".folha-btn"); if(b){ e.preventDefault(); e.stopPropagation(); abrirFolha(b.dataset.f,b); } }, true);
+document.addEventListener("click",e=>{ const b=e.target.closest(".folha-btn[data-f]"); if(b){ e.preventDefault(); e.stopPropagation(); abrirFolha(b.dataset.f,b); } }, true);
 
 // ---------- dados (Supabase: login + leitura protegida por RLS; sem bibliotecas externas)
 const SUPA_URL="https://bkgcidryvwafdbiagata.supabase.co", SUPA_KEY="sb_publishable_H1EabITuWmtxVq9U0ddx6Q_D2MpwMYb", CHAVE_SESSAO="cr-consulta-sessao";
