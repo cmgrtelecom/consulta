@@ -192,6 +192,7 @@ body:not(.sem-sessao) #login{display:none!important}
     <div class="seg" role="tablist" aria-label="Vista">
       <button data-v="ots" aria-pressed="true">OTs</button>
       <button data-v="rel" aria-pressed="false">Relatórios</button>
+      <button data-v="guia" aria-pressed="false">🚚 Guia</button>
     </div>
   </div>
 
@@ -222,6 +223,7 @@ body:not(.sem-sessao) #login{display:none!important}
   </div>
   </div>
 
+  <div id="vGuia" hidden style="flex-direction:column;gap:14px"></div>
   <div id="vRel" hidden style="flex-direction:column;gap:14px">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span class="nota" id="rPeriodo"></span><span style="flex:1"></span>
@@ -296,7 +298,9 @@ let tq=null; $("#q").oninput=()=>{clearTimeout(tq);tq=setTimeout(()=>{ if(VISTA=
 let VISTA="ots";
 function mudarVista(v){ VISTA=v; document.querySelectorAll("[data-v]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));
   $("#vOts").style.display=v==="ots"?"flex":"none"; $("#vRel").hidden=v!=="rel"; $("#vRel").style.display=v==="rel"?"flex":"none";
-  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); }
+  $("#vGuia").hidden=v!=="guia"; $("#vGuia").style.display=v==="guia"?"flex":"none";
+  document.querySelector(".filtros").style.display=v==="guia"?"none":"";
+  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); if(v==="guia") renderGuia(); }
 document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>mudarVista(b.dataset.v));
 
 function diasNoPeriodo(){
@@ -545,6 +549,26 @@ function desenharFicha(){
   });
 }
 
+// ---------- guias de transporte (TOConline → painel do PC → aqui)
+let GUIAS=[];
+function renderGuia(){
+  const el=$("#vGuia"); const g=GUIAS[0];
+  if(!g){ el.innerHTML='<div class="vazio"><b>Ainda não há guias online.</b><br>No PC: painel → 🚚 Guias → Atualizar do TOConline.</div>'; return; }
+  const dt=s=>s?String(s).slice(8,10)+"/"+String(s).slice(5,7)+"/"+String(s).slice(0,4):"—";
+  const _d=new Date(), hoje=`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
+  const lin=x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 14px;border-top:1px solid var(--line)"><span>${esc(x.d||"")}<br><span class="mono" style="color:var(--muted);font-size:12px">${esc(x.c||"")}</span></span><b style="white-space:nowrap">${esc(String(x.q??"").replace(".",","))}</b></div>`;
+  el.innerHTML=`<div class="bloco" style="border-color:${g.data===hoje?"var(--ok)":"var(--warn)"}"><h4>Guia de transporte em vigor ${g.data===hoje?"· hoje":"· atenção: não é de hoje"}</h4>
+    <div style="padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px">
+     <span style="color:var(--muted)">Guia</span><b class="mono">${esc(g.numero)}</b>
+     <span style="color:var(--muted)">Data</span><b>${dt(g.data)}${g.hora_carga?" · "+esc(String(g.hora_carga).replace("T"," ").slice(11,16)):""}</b>
+     <span style="color:var(--muted)">Código AT</span><b class="mono" style="font-size:18px">${esc(g.codigo_at||"—")}</b>
+     <span style="color:var(--muted)">Veículo</span><b class="mono">${esc(g.veiculo||"—")}</b>
+     <span style="color:var(--muted)">Carga</span><span>${esc(g.carga||"—")}</span></div>
+    <div style="padding:0 14px 12px">${g.pdf?`<button class="folha-btn" data-f="${esc(g.pdf)}">📄 Abrir PDF da guia</button>`:'<span style="color:var(--muted)">PDF ainda não enviado.</span>'}</div>
+    <h4 style="border-top:1px solid var(--line)">Artigos (${(g.linhas||[]).length})</h4>${(g.linhas||[]).map(lin).join("")}</div>
+   ${GUIAS.length>1?`<div class="bloco"><h4>Guias anteriores</h4>${GUIAS.slice(1,30).map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line)"><span><b class="mono">${esc(x.numero)}</b> · ${dt(x.data)}<br><span class="mono" style="color:var(--muted);font-size:12px">AT ${esc(x.codigo_at||"—")}</span></span>${x.pdf?`<button class="folha-btn mini" data-f="${esc(x.pdf)}">PDF</button>`:""}</div>`).join("")}</div>`:""}`;
+}
+
 // ---------- folhas de obra (PDF no Supabase Storage, bucket privado)
 async function abrirFolha(caminho, btn){
   const txt=btn?.textContent; if(btn){ btn.disabled=true; btn.textContent="A abrir…"; }
@@ -590,7 +614,9 @@ async function carregar(silencioso){
     const r=await fetch(`${SUPA_URL}/rest/v1/dias?select=data,pacote,atualizado&order=data.desc&limit=2000`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
     if(r.status===401){ gravarSessao(null); sessao(false); throw new Error("A sessão terminou. Entre de novo."); }
     const data=await r.json(); if(!r.ok) throw new Error(data.message||("erro "+r.status));
-    DIAS=data.map(x=>x.pacote).filter(Boolean);
+    GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[];
+    DIAS=data.map(x=>x.pacote).filter(p=>p&&p.tipo!=="guias");
+    if(VISTA==="guia") renderGuia();
     const ult=data.reduce((m,x)=>x.atualizado>m?x.atualizado:m,"");
     $("#sinc").textContent=ult?("atualizado "+new Date(ult).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})):"";
     if(!DIAS.length) $("#dias").innerHTML='<div class="vazio"><b>Ainda não há dias online.</b><br>Aparecem aqui depois da próxima coleta (ou no painel do PC: ☁ Online → Enviar tudo agora).</div>';
