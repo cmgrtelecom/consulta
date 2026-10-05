@@ -124,6 +124,28 @@ mark{background:var(--warn-bg);color:inherit;border-radius:3px;padding:0 1px}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 .ficha .corpo > *{flex:none}
 .ficha .corpo{overflow-y:auto;padding:14px 16px 30px;display:flex;flex-direction:column;gap:12px}
+.fkp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}@media(min-width:720px){.fkp{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.fkp div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;font-size:12.5px;color:var(--muted);min-width:0}
+.fkp b{display:block;font:700 22px/1.1 var(--f-display);color:var(--fg);font-variant-numeric:tabular-nums}
+.fkp .ok{background:var(--ok-bg);border-color:transparent} .fkp .ok b{color:var(--ok)}
+.fkp .warn{background:var(--warn-bg);border-color:transparent} .fkp .warn b{color:var(--warn)}
+.fkp .err{background:var(--bad-bg);border-color:transparent} .fkp .err b{color:var(--bad)}
+.flin{display:flex;justify-content:space-between;gap:10px;padding:8px 14px;border-top:1px solid var(--line);font-size:14px}
+.flin:first-of-type{border-top:0} .flin .n{font-variant-numeric:tabular-nums;white-space:nowrap} .flin.t{font-weight:700}
+.fneg{color:var(--bad)} .fpos{color:var(--ok)} .fmut{color:var(--muted);font-size:12.5px}
+.ftg{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.ftg.ok{background:var(--ok-bg);color:var(--ok)} .ftg.warn{background:var(--warn-bg);color:var(--warn)} .ftg.err{background:var(--bad-bg);color:var(--bad)}
+.fot{padding:9px 14px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13.5px}
+.fot .p{font-style:italic;color:var(--muted)}
+.fcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:10px}
+.fcal .h{font-size:10.5px;color:var(--muted);text-align:center}
+.fcal .d{border:1px solid var(--line);border-radius:7px;padding:3px 4px;min-height:44px;font-size:10.5px;overflow:hidden;overflow-wrap:anywhere}
+.fcal .d b{font-size:11px} .fcal .d .v{font-weight:600;font-size:11px;white-space:nowrap}
+.fcal .d.ok{background:var(--ok-bg);border-color:transparent} .fcal .d.warn{background:var(--warn-bg);border-color:transparent} .fcal .d.err{background:var(--bad-bg);border-color:transparent}
+.fcal .d.desc{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 4px,transparent 4px,transparent 8px);color:var(--muted)} .fcal .d.fut{opacity:.55} .fcal .d.vz{visibility:hidden}
+.fleg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);padding:0 14px 10px}
+.fleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.fsvg{padding:8px 6px 0} .fsvg svg{width:100%;height:auto;display:block}
 .bloco{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .bloco h4{margin:0;padding:9px 14px;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
 dl{margin:0;display:grid;grid-template-columns:minmax(120px,40%) 1fr}
@@ -194,6 +216,7 @@ body:not(.sem-sessao) #login{display:none!important}
       <button data-v="ots" aria-pressed="true">OTs</button>
       <button data-v="rel" aria-pressed="false">Relatórios</button>
       <button data-v="guia" aria-pressed="false">🚚 Guia</button>
+      <button data-v="fin" aria-pressed="false">💶 Finanças</button>
     </div>
   </div>
 
@@ -225,6 +248,7 @@ body:not(.sem-sessao) #login{display:none!important}
   </div>
 
   <div id="vGuia" hidden style="flex-direction:column;gap:14px"></div>
+  <div id="vFin" hidden style="flex-direction:column;gap:14px"></div>
   <div id="vRel" hidden style="flex-direction:column;gap:14px">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span class="nota" id="rPeriodo"></span><span style="flex:1"></span>
@@ -300,8 +324,9 @@ let VISTA="ots";
 function mudarVista(v){ VISTA=v; document.querySelectorAll("[data-v]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));
   $("#vOts").style.display=v==="ots"?"flex":"none"; $("#vRel").hidden=v!=="rel"; $("#vRel").style.display=v==="rel"?"flex":"none";
   $("#vGuia").hidden=v!=="guia"; $("#vGuia").style.display=v==="guia"?"flex":"none";
-  document.querySelector(".filtros").style.display=v==="guia"?"none":"";
-  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); if(v==="guia") renderGuia(); }
+  $("#vFin").hidden=v!=="fin"; $("#vFin").style.display=v==="fin"?"flex":"none";
+  document.querySelector(".filtros").style.display=(v==="guia"||v==="fin")?"none":"";
+  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); if(v==="guia") renderGuia(); if(v==="fin") renderFin(); }
 document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>mudarVista(b.dataset.v));
 
 function diasNoPeriodo(){
@@ -552,6 +577,108 @@ function desenharFicha(){
 
 // ---------- guias de transporte (TOConline → painel do PC → aqui)
 let GUIAS=[];
+// ---------- Finanças (só leitura: os dados vêm do painel do PC)
+let FINC=null, FIN_MES=null, FIN_SUB="resumo", FIN_FILTRO="";
+const feur=v=>v==null||v===""?"—":Number(v).toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+const fnum=v=>v==null?"—":Number(v).toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fdm=s=>s?String(s).slice(8,10)+"/"+String(s).slice(5,7):"—";
+const FMES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const fmesNome=m=>{m=String(m);return FMES[+m.slice(4,6)-1]+" "+m.slice(0,4);};
+const fsinal=v=>v==null?"":v<0?"fneg":v>0?"fpos":"";
+const fst=p=>p==null?"":p>=100?"ok":p>=80?"warn":"err";
+const FTIPO={"Instalação":"Inst","Manutenção":"Manut","Alteração de serviço":"Alt","Restabelecimento":"Rest","Desligamento":"Desl"};
+const fmix=m=>Object.entries(m||{}).map(([t,n])=>`${n} ${FTIPO[t]||t.slice(0,4)}`).join(" · ");
+function renderFin(){
+  const el=$("#vFin");
+  if(!FINC||!(FINC.meses||[]).length){ el.innerHTML='<div class="vazio"><b>Ainda não há Finanças online.</b><br>Aparecem depois de abrir o painel no PC (são enviadas sozinhas).</div>'; return; }
+  if(!FIN_MES||!FINC.por_mes[FIN_MES]) FIN_MES=FINC.meses[0];
+  const M=FINC.por_mes[FIN_MES];
+  const top=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <select id="finMes" style="font:inherit;padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)">${FINC.meses.map(m=>`<option value="${m}" ${m===FIN_MES?"selected":""}>${fmesNome(m)}${FINC.por_mes[m].tem_auto?"":" · só coleta"}</option>`).join("")}</select>
+    <div class="seg" role="group">${[["resumo","Resumo"],["ots","OTs"],["prod","🎯 Produtividade"]].map(([k,l])=>`<button data-fs="${k}" aria-pressed="${FIN_SUB===k}">${l}</button>`).join("")}</div></div>
+    <div class="fmut">Dados do painel do PC · atualizado ${FINC.gerado?new Date(FINC.gerado).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—"} · valores sem IVA</div>`;
+  let corpo="";
+  if(M.erro) corpo=`<div class="vazio">Erro neste mês: ${esc(M.erro)}</div>`;
+  else if(FIN_SUB==="resumo") corpo=finResumoHtml(M);
+  else if(FIN_SUB==="ots") corpo=finOtsHtml(M);
+  else corpo=finProdHtml(M);
+  el.innerHTML=top+corpo;
+  $("#finMes").onchange=e=>{ FIN_MES=e.target.value; FIN_FILTRO=""; renderFin(); };
+  el.querySelectorAll("[data-fs]").forEach(b=>b.onclick=()=>{ FIN_SUB=b.dataset.fs; renderFin(); });
+  el.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{ FIN_FILTRO=FIN_FILTRO===b.dataset.ff?"":b.dataset.ff; renderFin(); });
+  if(FIN_SUB==="prod"&&M.prod){ finGrafDias($("#fG1"),M.prod); finGrafAcum($("#fG2"),M.prod); }
+}
+function finResumoHtml(M){
+  const P=M.prod||{};
+  if(!M.tem_auto){
+    const r=M.ots_resumo||{}, prev=(M.ots||[]).filter(o=>o.previsto).reduce((s,o)=>s+(o.total||0),0);
+    return `<div class="fkp"><div><b>${(M.ots||[]).length}</b>OTs coletadas</div><div class="warn"><b>${r.seguimento||0}</b>à espera do Auto</div><div><b>≈ ${feur(prev)}</b>valor previsto</div><div class="${fst(P.pct_ate_hoje)}"><b>${P.pct_ate_hoje??"—"}%</b>da meta até ${fdm(P.corte)}</div></div>
+      <div class="vazio">O Auto_Envio de <b>${fmesNome(M.mes)}</b> ainda não chegou. Veja as OTs coletadas e a produtividade nos outros separadores.</div>`;
+  }
+  const R=M.resumo, ms=R.material_saldo||{};
+  const kp=`<div class="fkp"><div class="${R.confere?"ok":"warn"}"><b>${feur(R.recebido)}</b>Recebido${R.recibo_data?" · "+esc(R.recibo_data):""}${R.confere?" · ✓ confere":R.recebido!=null?" · ⚠ não confere":" · falta o recibo"}</div>
+    <div><b>${feur(R.auto_total)}</b>Auto s/IVA · ${R.ots} OTs</div><div class="${R.resultado>0?"ok":"err"}"><b>${feur(R.resultado)}</b>Resultado do mês</div><div class="err"><b>${feur(R.perdas)}</b>Perdas (garantias e débitos)</div></div>`;
+  const lin=(l,v,c="")=>`<div class="flin ${c}"><span>${l}</span><span class="n">${v}</span></div>`;
+  const res=`<div class="bloco"><h4>Resultado do mês (sem IVA)</h4>${lin("Mão de obra",feur(R.mo))}${lin("Material recebido",feur(R.mat))}${lin("Ajustes (avaliações, comunicações)",`<span class="${fsinal(R.ajustes)}">${feur(R.ajustes)}</span>`)}${lin("Material comprado à PROEF",ms.pago_civa!=null?`<span class="fneg">${feur(-ms.pago_civa/1.23)}</span>`:"—")}${lin("Custos da operação"+(R.custos_n?` (${R.custos_n} docs)`:""),`<span class="fneg">${feur(-(R.custos||0))}</span>`)}${lin("Resultado",`<span class="${fsinal(R.resultado)}">${feur(R.resultado)}</span>`,"t")}</div>`;
+  const cad=`<div class="bloco"><h4>Cadeia de pagamento</h4>${lin("Auto s/IVA",feur(R.auto_total))}${lin("Fatura +23% "+(R.fatura?`<span class="fmut">${esc(R.fatura)}</span>`:""),feur(R.fatura_valor))}${lin("Encontro de Contas "+(R.edc?`<span class="fmut">${esc(R.edc)}</span>`:""),`<span class="fneg">${R.descontos!=null?feur(-R.descontos):"—"}</span>`)}${lin("Recebido",feur(R.recebido),"t")}
+    ${ms.saldo_civa!=null?`<div class="flin"><span class="fmut">Saldo do material c/IVA: recebeu ${feur(ms.recebido_civa)}, pagou ${feur(ms.pago_civa)}</span><span class="n ${fsinal(ms.saldo_civa)}">${feur(ms.saldo_civa)}</span></div>`:""}</div>`;
+  const serv=(R.servicos||[]).length?`<div class="bloco"><h4>Serviços</h4>${R.servicos.map(s=>lin(`${esc(s.tipo)} <span class="fmut">${s.ots} OTs</span>`,feur(s.total))).join("")}</div>`:"";
+  const al=(R.alertas||[]).length?`<div class="bloco"><h4>A tratar</h4>${R.alertas.map(a=>`<div class="flin"><span><span class="ftg ${a.tipo==="err"?"err":a.tipo==="warn"?"warn":""}">${a.tipo==="err"?"erro":a.tipo==="warn"?"atenção":"verificar"}</span> ${esc(a.txt)}</span></div>`).join("")}</div>`:"";
+  return kp+res+cad+serv+al;
+}
+function finOtsHtml(M){
+  const ots=M.ots||[], r=M.ots_resumo||{};
+  const cls=s=>s.startsWith("pago")||s.startsWith("garantia de outro")?"ok":s==="em seguimento"||s==="garantia própria"||s==="pago com débito"?"warn":s.startsWith("debitada")||s==="estorno"?"err":"";
+  const chips=[["","Todas",ots.length],["#col","Coletadas",ots.filter(o=>o.coleta).length],["em seguimento","Em seguimento",r.seguimento||0],["debitada (garantia)","Debitadas",r.debitadas||0],["garantia própria","Garantia 0 €",r.proprias||0]].filter(c=>c[0]===""||c[2]);
+  const lst=ots.filter(o=>!FIN_FILTRO||(FIN_FILTRO==="#col"?o.coleta:o.estado===FIN_FILTRO));
+  const tot=k=>lst.reduce((s,o)=>s+(o[k]||0),0), prev=lst.filter(o=>o.previsto).reduce((s,o)=>s+(o.total||0),0);
+  return `<div class="seg" role="group">${chips.map(([k,l,n])=>`<button data-ff="${esc(k)}" aria-pressed="${FIN_FILTRO===k}">${l} ${n}</button>`).join("")}</div>
+   <div class="fkp"><div><b>${feur(tot("mo"))}</b>Mão de obra</div><div><b>${feur(tot("mat"))}</b>Material</div><div><b>${feur(tot("total"))}</b>Total · ${lst.length} OTs</div><div><b>${prev?"≈ "+feur(prev):"—"}</b>dos quais previstos</div></div>
+   <div class="bloco"><h4>OTs de ${fmesNome(M.mes)}</h4>${lst.map(o=>`<div class="fot"><span><b class="mono">${esc(o.ot)}</b> · ${fdm(o.data)} · ${esc(o.tipo)}${o.coleta?" · ✓ coleta":""}<br><span class="ftg ${cls(o.estado)}">${esc(o.estado)}</span> <span class="fmut">${esc(o.cliente||"")}</span></span>
+     <span class="n ${o.previsto?"p":""}" style="text-align:right">${o.total!=null?(o.previsto?"≈ ":"")+fnum(o.total)+" €":"—"}<br><span class="fmut">MO ${fnum(o.mo)} · Mat ${fnum(o.mat)}</span></span></div>`).join("")||'<div class="flin fmut">Nada neste filtro.</div>'}</div>`;
+}
+function finProdHtml(M){
+  const P=M.prod; if(!P) return '<div class="vazio">Sem dados de produtividade.</div>';
+  const R=P.referencia||{};
+  const kp=`<div class="fkp"><div class="${fst(P.pct_ate_hoje)}"><b>${feur(P.feito)}</b>Feito até ${fdm(P.corte)} · ${P.pct_ate_hoje??"—"}% da meta</div>
+    <div class="${fst(P.meta_mes?Math.round(P.projecao/P.meta_mes*100):null)}"><b>≈ ${feur(P.projecao)}</b>Projeção · meta ${feur(P.meta_mes)}</div>
+    <div>${P.dias_restantes?`<b>${feur(P.precisa_dia)}</b>por dia nos ${P.dias_restantes} dias que faltam`:`<b>${P.feito>=P.meta_mes?"✓":feur(P.feito-P.meta_mes)}</b>mês fechado`}</div>
+    <div><b>${feur(P.ritmo)}</b>ritmo médio por dia</div></div>`;
+  const pad=P.dias[0].dow;
+  const cls=x=>!x.trabalho?"desc":(!x.passado&&!x.ots)?"fut":fst(x.pct||0);
+  const cal=`<div class="bloco"><h4>Calendário · meta ${fnum(P.meta_dia)} €/dia · ${P.dias_trabalho} dias</h4><div class="fcal">${["S","T","Q","Q","S","S","D"].map(d=>`<div class="h">${d}</div>`).join("")}${Array(pad).fill('<div class="d vz"></div>').join("")}${P.dias.map(x=>`<div class="d ${cls(x)}"><b>${+x.data.slice(8)}</b>${x.ots?`<div class="v">${x.previsto>0?"≈":""}${Math.round(x.valor)}€</div><div>${fmix(x.mix)}</div>`:(x.trabalho?"":"<div>folga</div>")}</div>`).join("")}</div>
+    <div class="fleg"><span><i style="background:var(--ok-bg);border:1px solid var(--ok)"></i>meta</span><span><i style="background:var(--warn-bg);border:1px solid var(--warn)"></i>80–99%</span><span><i style="background:var(--bad-bg);border:1px solid var(--bad)"></i>&lt;80%</span><span>folgas marcam-se no painel do PC</span></div></div>`;
+  const tab=(t,l)=>`<div class="bloco"><h4>${t}</h4>${l.map(b=>`<div class="flin"><span>${esc(b.nome)} <span class="fmut">${fdm(b.de)}–${fdm(b.ate)} · meta ${fnum(b.meta)}</span></span><span class="n"><b>${fnum(b.feito)}</b> ${b.meta_ate_hoje?`<span class="ftg ${fst(b.pct)}">${b.pct}%</span>`:'<span class="fmut">por fazer</span>'}</span></div>`).join("")}</div>`;
+  const ref=`<div class="bloco"><h4>Referência</h4><div class="flin"><span>Meta semana / quinzena</span><span class="n">${fnum(P.meta_semana_ref)} / ${fnum(P.meta_quinzena_ref)}</span></div><div class="flin"><span>Seu histórico: média / dia bom</span><span class="n">${fnum(R.media)} / ${fnum(R.bom)}</span></div>
+    <div class="flin"><span class="fmut">${(P.combos||[]).filter(c=>c.inst+c.manut>0).slice(0,4).map(c=>`${c.inst} Inst + ${c.manut} Manut ≈ ${fnum(c.valor)}`).join(" · ")}</span></div></div>`;
+  return kp+`<div class="bloco"><h4>Valor por dia × meta</h4><div class="fsvg" id="fG1"></div></div><div class="bloco"><h4>Acumulado × meta</h4><div class="fsvg" id="fG2"></div></div>`+cal+tab("Semanas",P.semanas)+tab("Quinzenas",P.quinzenas)+ref;
+}
+function fEixo(g,max,fmt){ let o=""; for(let i=0;i<=4;i++){ const v=max*i/4, y=g.pt+(g.H-g.pt-g.pb)*(1-i/4); o+=`<line x1="${g.pl}" x2="${g.W-g.pr}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${g.pl-4}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(v)}</text>`; } return o; }
+function finGrafDias(el,P){
+  const g={W:600,H:220,pl:40,pr:6,pt:10,pb:22}, ds=P.dias, n=ds.length, max=Math.max(P.meta_dia*1.4,...ds.map(x=>x.valor))*1.05;
+  const bw=(g.W-g.pl-g.pr)/n, y=v=>g.pt+(g.H-g.pt-g.pb)*(1-v/max), base=y(0), col={ok:"var(--ok)",warn:"var(--warn)",err:"var(--bad)"};
+  const bars=ds.map((x,i)=>{ const X=g.pl+i*bw, w=Math.max(2,bw-3), h=x.valor>0?Math.max(2,base-y(x.valor)):0, c=x.trabalho?fst(x.pct||0):"";
+    const tip=`${fdm(x.data)} · ${x.trabalho?(x.ots?`${x.previsto>0?"≈ ":""}${fnum(x.valor)} € (${x.pct}%) · ${fmix(x.mix)}`:"sem OTs"):"folga"}`;
+    return `<rect x="${X}" y="${g.pt}" width="${bw}" height="${base-g.pt}" fill="transparent"><title>${esc(tip)}</title></rect>${h?`<path d="M${X+1.5},${base} v${-(h-3)} q0,-3 3,-3 h${w-6} q3,0 3,3 v${h-3} z" fill="${col[c]||"var(--accent)"}" opacity="${x.previsto>0?.7:1}"><title>${esc(tip)}</title></path>`:""}${i%5===0?`<text x="${X+bw/2}" y="${g.H-6}" text-anchor="middle" font-size="11" fill="var(--muted)">${+x.data.slice(8)}</text>`:""}`; }).join("");
+  const ym=y(P.meta_dia);
+  el.innerHTML=`<svg viewBox="0 0 ${g.W} ${g.H}" role="img" aria-label="Valor por dia contra a meta">${fEixo(g,max,v=>Math.round(v))}${bars}<line x1="${g.pl}" x2="${g.W-g.pr}" y1="${ym}" y2="${ym}" stroke="var(--fg)" stroke-width="2" stroke-dasharray="6 4"/><text x="${g.W-g.pr}" y="${ym-4}" text-anchor="end" font-size="11" fill="var(--fg)">meta ${fnum(P.meta_dia)}</text></svg>
+   <div class="fleg"><span><i style="background:var(--ok)"></i>meta</span><span><i style="background:var(--warn)"></i>80–99%</span><span><i style="background:var(--bad)"></i>&lt;80%</span><span>mais claro = previsto</span></div>`;
+}
+function finGrafAcum(el,P){
+  const g={W:600,H:220,pl:40,pr:6,pt:10,pb:22}, ds=P.dias, n=ds.length;
+  let ci=ds.findIndex(x=>x.data===P.corte); if(ci<0) ci=n-1;
+  const max=Math.max(P.meta_mes,P.projecao,ds[n-1].acum)*1.08||1, x=i=>g.pl+(g.W-g.pl-g.pr)*(i+.5)/n, y=v=>g.pt+(g.H-g.pt-g.pb)*(1-v/max);
+  const L=pts=>pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+  let ac=ds[ci].acum; const proj=[[x(ci),y(ac)]]; ds.slice(ci+1).forEach((d,k)=>{ if(d.trabalho) ac+=P.ritmo; proj.push([x(ci+1+k),y(ac)]); });
+  el.innerHTML=`<svg viewBox="0 0 ${g.W} ${g.H}" role="img" aria-label="Acumulado do mês contra a meta">${fEixo(g,max,v=>v>=1000?(v/1000).toFixed(1).replace(".",",")+"k":Math.round(v))}
+    <path d="${L(ds.map((d,i)=>[x(i),y(d.acum_meta)]))}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 4"/>
+    ${ci<n-1?`<path d="${L(proj)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="2 4"/>`:""}
+    <path d="${L(ds.slice(0,ci+1).map((d,i)=>[x(i),y(d.acum)]))}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+    <circle cx="${x(ci)}" cy="${y(ds[ci].acum)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"><title>${fdm(ds[ci].data)} · ${fnum(ds[ci].acum)} € de ${fnum(ds[ci].acum_meta)} €</title></circle>
+    <text x="${g.W-g.pr}" y="${y(P.meta_mes)-5}" text-anchor="end" font-size="11" fill="var(--muted)">meta ${fnum(P.meta_mes)}</text>
+    ${ci<n-1?`<text x="${g.W-g.pr}" y="${y(P.projecao)+14}" text-anchor="end" font-size="11" fill="var(--accent)">≈ ${fnum(P.projecao)}</text>`:""}</svg>
+   <div class="fleg"><span><i style="background:var(--accent)"></i>feito</span><span>····· projeção</span><span>– – meta acumulada</span></div>`;
+}
 function renderGuia(){
   const el=$("#vGuia"); const g=GUIAS[0];
   if(!g){ el.innerHTML='<div class="vazio"><b>Ainda não há guias online.</b><br>No PC: painel → 🚚 Guias → Atualizar do TOConline.</div><button class="folha-btn" id="gNovaBtn">＋ Nova guia</button>'; $("#gNovaBtn").onclick=novaGuia; return; }
@@ -659,8 +786,10 @@ async function carregar(silencioso){
     if(r.status===401){ gravarSessao(null); sessao(false); throw new Error("A sessão terminou. Entre de novo."); }
     const data=await r.json(); if(!r.ok) throw new Error(data.message||("erro "+r.status));
     GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[];
-    DIAS=data.map(x=>x.pacote).filter(p=>p&&p.tipo!=="guias");
+    FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
+    DIAS=data.map(x=>x.pacote).filter(p=>p&&p.tipo!=="guias"&&p.tipo!=="financas");
     if(VISTA==="guia") renderGuia();
+    if(VISTA==="fin") renderFin();
     const ult=data.reduce((m,x)=>x.atualizado>m?x.atualizado:m,"");
     $("#sinc").textContent=ult?("atualizado "+new Date(ult).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})):"";
     if(!DIAS.length) $("#dias").innerHTML='<div class="vazio"><b>Ainda não há dias online.</b><br>Aparecem aqui depois da próxima coleta (ou no painel do PC: ☁ Online → Enviar tudo agora).</div>';
