@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#1f7f8c">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CR Consulta">
@@ -688,5 +689,6 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden && SESSAO
 if(SUPA_URL.startsWith("__")){ $("#lErro").textContent="Página sem ligação configurada. Gere o index.html no painel do PC (☁ Online)."; $("#lBtn").disabled=true; }
 else { SESSAO=lerSessao(); if(SESSAO){ sessao(true); carregar(); } }
 </script>
+<script>if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(function(){});</script>
 </body>
 </html>
