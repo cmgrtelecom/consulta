@@ -411,7 +411,9 @@ function parseAgenda(texto){
     const txt=b.linhas.join(" "), N=agNorm(txt);
     const h=txt.match(reHora); if(!h) continue;
     const hi=`${h[1].padStart(2,"0")}:${h[2]}`, hf=`${h[3].padStart(2,"0")}:${h[4]}`;
-    const sf=((txt.match(/SF[A-Za-z0-9]{14,20}/)||[""])[0]).replace(/^(SF[A-Za-z0-9]{5})([0O]{5})/,(m,a,b)=>a+b.replace(/O/g,"0"));
+    // nº da OT (ex.: SFa3Icy00000Lp3O0AAJ): o OCR às vezes lê "5F"/"SE" e parte o código com espaços
+    let sf=((txt.match(/[S5][FE][A-Za-z0-9]{3,6}\s?[0O]{4,6}\s?[A-Za-z0-9]{5,10}/)||[""])[0]).replace(/\s+/g,"");
+    if(sf) sf=("SF"+sf.slice(2)).replace(/^(SF[A-Za-z0-9]{5})([0O]{5})/,(m,a,b)=>a+b.replace(/O/g,"0"));
     const tipoM=N.match(/(INSTALA\w*|MANUTEN\w*|ALTERA\w*|RESTABELEC\w*|DESLIGA\w*|RECOLHA\w*|MUDAN\w*|AVARIA\w*)(\s+(INDIVIDUAL|COLETIVA|COLECTIVA|DE\s+SERVICO))?/);
     const tipoMap={INSTALA:"Instalação",MANUTEN:"Manutenção",ALTERA:"Alteração de serviço",RESTABELEC:"Restabelecimento",DESLIGA:"Desligamento",RECOLHA:"Recolha",MUDAN:"Mudança de morada",AVARIA:"Avaria"};
     let tipo=""; if(tipoM){ const k=Object.keys(tipoMap).find(k=>tipoM[1].startsWith(k)); tipo=tipoMap[k]+(tipoM[3]?" "+tipoM[3].toLowerCase().replace("servico","serviço"):""); }
@@ -425,7 +427,8 @@ function parseAgenda(texto){
     const telM=txt.replace(/(\d)\s(?=\d)/g,"$1").match(/\b([29]\d{8})\b/); const tel=telM?telM[1]:"";
     let nome="";
     if(prio&&tel){ const a=N.indexOf(prio)+prio.length, z=N.indexOf(tel.slice(0,3),a); const seg=txt.slice(a,z>a?z:undefined);
-      nome=seg.replace(/^[\s•*°=·\-.,]+|[\s•*°=·\-.,]+$/g,"").replace(/\s+/g," "); }
+      // tira ícones lidos como símbolos (« » + * • ° = | ~ …) no início e no fim do nome
+      nome=seg.replace(/^[^A-Za-zÀ-ÿ0-9]+|[^A-Za-zÀ-ÿ0-9.)]+$/g,"").replace(/\s+[«»+*•°=|~]+\s+/g," ").replace(/\s+/g," ").trim(); }
     let morada=""; if(tel){ const p=txt.indexOf(tel.slice(-4)); if(p>0){ morada=txt.slice(p+4).replace(/^[\s•*°=·\-.,]+/,""); const q=morada.search(/Portugal/i); if(q>0) morada=morada.slice(0,q+8); morada=morada.replace(/\s+/g," ").trim(); } }
     ots.push({data:b.data, hi, hf, sf, tipo, tec, estado, cel, prio:prio?prio.charAt(0)+prio.slice(1).toLowerCase():"", nome, tel, morada});
   }
@@ -440,7 +443,7 @@ function juntarAgendaRapida(){
   }
   DIAS.sort((a,b)=>b.data.localeCompare(a.data));
 }
-function capKey(o){ return `${o.data}|${o.hi}|${o.tel||o.sf.slice(-6)}`; }
+function capKey(o){ return `${o.data}|${o.hi}|${o.hf}`; }
 function capJuntar(a,b){ const r={...a}; for(const k in b) if((b[k]||"").length>(r[k]||"").length) r[k]=b[k]; return r; }
 async function carregarTesseract(){
   if(window.Tesseract) return;
@@ -515,8 +518,12 @@ function escolherCapturasAgenda(){
 function verLeituraRapida(data){
   const r=AGR&&AGR[data]; if(!r) return;
   const pc=(DIAS.find(x=>x.data===data&&!x.rapida)||{ots:[]}).ots;
-  const chave=o=>(o.campos?.["Hora início"]||"")+"|"+String(o.campos?.["Contacto de cliente"]||"").slice(-4);
-  const noPC=new Set(pc.map(chave));
+  const dig=x=>String(x||"").replace(/\D/g,"");
+  const hPC=new Set(pc.map(o=>String(o.campos?.["Hora início"]||"").slice(0,5)));
+  const tPC=new Set(pc.map(o=>dig(o.campos?.["Contacto de cliente"]).slice(-4)).filter(Boolean));
+  const sPC=new Set(pc.map(o=>String(o.campos?.["Nº OT"]||"").toUpperCase()).filter(Boolean));
+  const noPC={has:k=>k};
+  const chave=o=>{ const c=o.campos||{}; return hPC.has(String(c["Hora início"]||"").slice(0,5))||(dig(c["Contacto de cliente"])&&tPC.has(dig(c["Contacto de cliente"]).slice(-4)))||(c["Nº OT"]&&sPC.has(String(c["Nº OT"]).toUpperCase())); };
   $("#agrVisor")?.remove();
   const v=document.createElement("div"); v.id="agrVisor";
   v.style.cssText="position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column";
