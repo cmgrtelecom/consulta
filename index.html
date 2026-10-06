@@ -511,6 +511,35 @@ function escolherCapturasAgenda(){
   inp.click();
 }
 
+// ---------- comparar: leitura rápida (capturas) de um dia que já tem a coleta do PC — só para ver, não entra nas contas
+function verLeituraRapida(data){
+  const r=AGR&&AGR[data]; if(!r) return;
+  const pc=(DIAS.find(x=>x.data===data&&!x.rapida)||{ots:[]}).ots;
+  const chave=o=>(o.campos?.["Hora início"]||"")+"|"+String(o.campos?.["Contacto de cliente"]||"").slice(-4);
+  const noPC=new Set(pc.map(chave));
+  $("#agrVisor")?.remove();
+  const v=document.createElement("div"); v.id="agrVisor";
+  v.style.cssText="position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column";
+  const linha=o=>{ const c=o.campos||{}, ok=noPC.has(chave(o));
+    return `<div style="padding:10px 14px;border-top:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b class="mono">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}</b><span class="chip ${/realizada/i.test(c.Estado||"")&&!/n[aã]o/i.test(c.Estado||"")?"ok":""}">${esc(c.Estado||"—")}</span></div>
+      <div class="mono" style="font-size:13px">${esc(c["Nº OT"]||"—")}</div>
+      <div style="font-size:14px">${esc([c["Tipo de OT"],c.Tecnologia].filter(Boolean).join(" · "))}</div>
+      <div style="font-size:14px"><b>${esc(c["Nome de cliente"]||"—")}</b> · ${esc(c["Contacto de cliente"]||"—")}</div>
+      <div style="font-size:13px;color:var(--muted)">${esc(c.Morada||"—")}</div>
+      <div style="font-size:12px;margin-top:3px;color:${ok?"var(--ok)":"var(--warn)"}">${ok?"✓ também está na coleta do PC":"! não encontrada na coleta do PC (hora/telefone diferentes?)"}</div></div>`; };
+  v.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)">
+      <b style="flex:1">⚡ Leitura rápida · ${fData(data)}<br><span style="font-weight:400;font-size:12.5px;color:var(--muted)">${r.ots.length} OTs lidas das capturas · coleta do PC: ${pc.length} OTs · só para comparar</span></b>
+      <button id="agrFechar" class="folha-btn">✕ Fechar</button></div>
+    <div style="flex:1;overflow:auto">${r.ots.map(linha).join("")}</div>`;
+  document.body.appendChild(v); document.body.style.overflow="hidden";
+  history.pushState({agr:1},"");
+  const fechar=()=>{ v.remove(); document.body.style.overflow=""; };
+  $("#agrFechar").onclick=()=>{ fechar(); if(history.state&&history.state.agr) history.back(); };
+  window.addEventListener("popstate",fechar,{once:true});
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-agr]"); if(b){ e.preventDefault(); e.stopPropagation(); verLeituraRapida(b.dataset.agr); } }, true);
+
 // ---------- Início: o dia num relance
 function hojeISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function renderIni(){
@@ -576,7 +605,7 @@ function render(){
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
     const r=d.resumo||{};
-    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido das capturas da Agenda (MacroDroid). A coleta completa no PC acrescenta equipamentos e materiais.">⚡ leitura rápida</span> ':""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
+    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido das capturas da Agenda (MacroDroid). A coleta completa no PC acrescenta equipamentos e materiais.">⚡ leitura rápida</span> ':""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""}${!d.rapida&&AGR&&AGR[d.data]&&(AGR[d.data].ots||[]).length?`<button class="folha-btn mini" data-agr="${d.data}" title="Ver o que foi lido das capturas da Agenda neste dia (não entra nas contas)">⚡ ver leitura rápida</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
       ots.map(o=>{const c=o.campos, ok=realizada(o);
         return `<button class="ot" data-d="${esc(d.data)}" data-o="${esc(o.id)}">
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
@@ -973,6 +1002,7 @@ function renderGuia(){
   if(!g){ el.innerHTML='<div class="vazio"><b>Ainda não há guias online.</b><br>No PC: painel → 🚚 Guias → Atualizar do TOConline.</div><button class="folha-btn" id="gNovaBtn">＋ Nova guia</button>'; $("#gNovaBtn").onclick=novaGuia; return; }
   const dt=s=>s?String(s).slice(8,10)+"/"+String(s).slice(5,7)+"/"+String(s).slice(0,4):"—";
   const _d=new Date(), hoje=`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
+  const C=g.cliente||{};
   const lin=x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 14px;border-top:1px solid var(--line)"><span>${esc(x.d||"")}<br><span class="mono" style="color:var(--muted);font-size:12px">${esc(x.c||"")}</span></span><b style="white-space:nowrap">${esc(String(x.q??"").replace(".",","))}</b></div>`;
   el.innerHTML=`<div class="bloco" style="border-color:${g.data===hoje?"var(--ok)":"var(--warn)"}"><h4>Guia de transporte em vigor ${g.data===hoje?"· hoje":"· atenção: não é de hoje"}</h4>
     <div style="padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px">
@@ -984,6 +1014,21 @@ function renderGuia(){
      ${g.descarga?`<span style="color:var(--muted)">Descarga</span><span>${esc(g.descarga)}</span>`:""}</div>
     <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">${g.pdf?`<button class="folha-btn" data-f="${esc(g.pdf)}">📄 Abrir PDF da guia</button>`:(g.pdf_url?`<a class="folha-btn" style="text-decoration:none" href="${esc(g.pdf_url)}" target="_blank" rel="noopener">📄 Abrir PDF da guia</a>`:'<span style="color:var(--muted)">PDF ainda não enviado.</span>')}
      <button class="folha-btn" style="background:var(--surface);color:var(--accent)" id="gNovaBtn">＋ Nova guia</button></div>
+    <h4 style="border-top:1px solid var(--line)">Dados do documento</h4>
+    <div style="padding:10px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14.5px">
+     <span style="color:var(--muted)">Data</span><span>${dt(g.data)}</span>
+     <span style="color:var(--muted)">Moeda</span><span>${esc(g.moeda||"EUR")}</span>
+     <span style="color:var(--muted)">Tipo de destinatário</span><b>${esc(g.destinatario||"Destinatário não determinado (guia global)")}</b>
+     <span style="color:var(--muted)">Vossa Ref.</span><span>${esc(g.vossa_ref||"—")}</span>
+     <span style="color:var(--muted)">Desconto cabeçalho</span><span>${esc(g.desconto||"—")}</span></div>
+    <h4 style="border-top:1px solid var(--line)">Dados do cliente</h4>
+    <div style="padding:10px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14.5px">
+     <span style="color:var(--muted)">Nome ou NIF</span><span><b>${esc(C.nome||"Consumidor Final")}</b> · <span class="mono">${esc(C.nif||"999999990")}</span></span>
+     <span style="color:var(--muted)">Endereço</span><span>${esc(C.endereco||"—")}</span>
+     <span style="color:var(--muted)">Código Postal</span><span>${esc(C.cp||"—")}</span>
+     <span style="color:var(--muted)">Cidade</span><span>${esc(C.cidade||"—")}</span>
+     <span style="color:var(--muted)">País/Região</span><span>${esc(C.pais||"Portugal - Continente")}</span>
+     <span style="color:var(--muted)">País/Região da Operação para efeitos de IVA</span><span>${esc(g.pais_operacao||"Portugal - Continente")}</span></div>
     <h4 style="border-top:1px solid var(--line)">Artigos (${(g.linhas||[]).length})</h4>${(g.linhas||[]).map(lin).join("")}</div>
    ${GUIAS.length>1?`<div class="bloco"><h4>Guias anteriores</h4>${GUIAS.slice(1,30).map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line)"><span><b class="mono">${esc(x.numero)}</b> · ${dt(x.data)}<br><span class="mono" style="color:var(--muted);font-size:12px">AT ${esc(x.codigo_at||"—")}</span></span>${x.pdf?`<button class="folha-btn mini" data-f="${esc(x.pdf)}">PDF</button>`:(x.pdf_url?`<a class="folha-btn mini" style="text-decoration:none" href="${esc(x.pdf_url)}" target="_blank" rel="noopener">PDF</a>`:"")}</div>`).join("")}</div>`:""}`;
   $("#gNovaBtn").onclick=novaGuia;
@@ -995,7 +1040,7 @@ let RELER_A_CORRER=false;
 async function relerGuiasSemAT(){
   if(RELER_A_CORRER||!SESSAO) return; RELER_A_CORRER=true;
   try{
-    const lista=(GUIAS||[]).slice(0,12).filter(x=>x.id&&/^\d+$/.test(String(x.id))&&(!x.codigo_at||!x.carga)&&!GUIA_RELIDA[x.id]);
+    const lista=(GUIAS||[]).slice(0,12).filter(x=>x.id&&/^\d+$/.test(String(x.id))&&(!x.codigo_at||!x.carga||!x.destinatario)&&!GUIA_RELIDA[x.id]);
     let mudou=false;
     for(const x of lista){ GUIA_RELIDA[x.id]=1;
       try{ const r=await chamarGuias({acao:"atualizar",id:x.id,comunicar:false});
