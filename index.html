@@ -360,12 +360,13 @@ const fSem=d=>DIAS_SEM[new Date(d+"T12:00:00").getDay()];
 const fMin=m=>m==null?"–":(m>=60?`${Math.floor(m/60)}h${String(m%60).padStart(2,"0")}`:`${m} min`);
 function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeout(e._t);e._t=setTimeout(()=>e.hidden=true,3200);}
 
+let CAPT_LOTES={}, AGR={}, CAPT_A_CORRER=false, CAP_MSG="";
 let DIAS=[], PERIODO="30", ESTADO="todas", DB=null, ABERTA=null, TAB="det";
 const CAMPOS=["Nº OT","Estado","Hora início","Hora fim","Tipo de tarefa","Tipo de OT","Categoria","Tecnologia","Tipo de cliente","Nome de cliente","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Morada","Password ONT","Conta de serviço","Observações","Sintoma","Fibra ligada","Reincidente Manut","Reincidente RGU","Parceiro responsável","PD","TAP / CMPT","Lig. prédio","N.º UA / PA","Cód. emp.","PLC","Tipo infraestrutura","N.º porta PLC","Access ID","Latitude PLC","Longitude PLC","Célula"];
 const COPIAVEIS=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Password ONT","Conta de serviço","N.º UA / PA","PLC","Morada"]);
 const MONO=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Password ONT","Conta de serviço","N.º UA / PA","PLC","Latitude PLC","Longitude PLC","N.º porta PLC"]);
 const realizada=o=>o.rel?.realizada ?? (/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||""));
-const confirmada=o=>(o.rel?.agendamento||"").startsWith("Confirmado");
+const confirmada=o=>o.rapida||(o.rel?.agendamento||"").startsWith("Confirmado");
 
 // ---------- filtros
 document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{PERIODO=b.dataset.p;document.querySelectorAll("[data-p]").forEach(x=>x.setAttribute("aria-pressed",x===b));render();if(VISTA==="rel")renderRel();});
@@ -388,6 +389,97 @@ $("#btnMenu").onclick=e=>{ e.stopPropagation(); const p=$("#menu3Pop"); p.hidden
   $("#menuInfo").textContent=[(SESSAO&&SESSAO.email)||"", $("#sinc").textContent].filter(Boolean).join(" · "); };
 document.addEventListener("click",e=>{ const p=$("#menu3Pop"); if(p&&!p.hidden&&!e.target.closest("#menu3")) p.hidden=true; });
 $("#fab").onclick=()=>{ FIN_SUB="custos"; FIN_ADD=true; FC_DOC=null; mudarVista("fin"); };
+// ---------- Agenda rápida: capturas do MacroDroid → OCR no telemóvel → OTs do dia (sem PC)
+// Lê o texto (OCR) de capturas da Agenda do Field Service e devolve as OTs
+const MESES_PT={JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+function agNorm(t){ return String(t||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase(); }
+function parseAgenda(texto){
+  const linhas=String(texto||"").replace(/\r/g,"").split("\n").map(l=>l.trim()).filter(Boolean);
+  const reData=/(SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|SABADO|DOMINGO)[- ]*(?:FEIRA)?\W*(\d{1,2})\s*([A-Z]{3})\W*(\d{4})/;
+  const reHora=/(\d{1,2})\s*[:.]\s*(\d{2})\s*[-–—]+\s*(\d{1,2})\s*[:.]\s*(\d{2})/;
+  const blocos=[]; let cur=null;
+  for(let i=0;i<linhas.length;i++){
+    const n=agNorm(linhas[i]); const md=n.match(reData);
+    if(md && !/^HOJE/.test(n)){
+      const mes=MESES_PT[md[3]]; if(!mes) continue;
+      cur={data:`${md[4]}-${String(mes).padStart(2,"0")}-${String(md[2]).padStart(2,"0")}`, linhas:[]}; blocos.push(cur); continue;
+    }
+    if(cur) cur.linhas.push(linhas[i]);
+  }
+  const ots=[];
+  for(const b of blocos){
+    const txt=b.linhas.join(" "), N=agNorm(txt);
+    const h=txt.match(reHora); if(!h) continue;
+    const hi=`${h[1].padStart(2,"0")}:${h[2]}`, hf=`${h[3].padStart(2,"0")}:${h[4]}`;
+    const sf=((txt.match(/SF[A-Za-z0-9]{14,20}/)||[""])[0]).replace(/^(SF[A-Za-z0-9]{5})([0O]{5})/,(m,a,b)=>a+b.replace(/O/g,"0"));
+    const tipoM=N.match(/(INSTALA\w*|MANUTEN\w*|ALTERA\w*|RESTABELEC\w*|DESLIGA\w*|RECOLHA\w*|MUDAN\w*|AVARIA\w*)(\s+(INDIVIDUAL|COLETIVA|COLECTIVA|DE\s+SERVICO))?/);
+    const tipoMap={INSTALA:"Instalação",MANUTEN:"Manutenção",ALTERA:"Alteração de serviço",RESTABELEC:"Restabelecimento",DESLIGA:"Desligamento",RECOLHA:"Recolha",MUDAN:"Mudança de morada",AVARIA:"Avaria"};
+    let tipo=""; if(tipoM){ const k=Object.keys(tipoMap).find(k=>tipoM[1].startsWith(k)); tipo=tipoMap[k]+(tipoM[3]?" "+tipoM[3].toLowerCase().replace("servico","serviço"):""); }
+    const estM=N.match(/(NAO\s+REALIZADA|REALIZADA|EM\s+CURSO|EM\s+EXECUCAO|EM\s+DESLOCACAO|AGENDAD[AO]|ATRIBUID[AO]|DESPACHAD[AO]|CANCELAD[AO]|PENDENTE|SUSPENS[AO]|NOVA|ACEITE)/);
+    const estMap={"NAO REALIZADA":"Não Realizada","REALIZADA":"Realizada","EM CURSO":"Em curso","EM EXECUCAO":"Em execução","EM DESLOCACAO":"Em deslocação"};
+    const estado=estM?(estMap[estM[1].replace(/\s+/g," ")]||estM[1].charAt(0)+estM[1].slice(1).toLowerCase()):"";
+    const tec=(N.match(/\b(FTTH|HFC|DTH|ADSL|GPON)\b/)||[""])[0];
+    let cel=(N.match(/\b([A-Z]{2,4}[0-9O]{2})\b(?=\W+(NORMAL|URGENTE|ALTA|BAIXA|PRIORIT))/)||[])[1]||"";
+    cel=cel.replace(/O(?=[0-9O]*$)/g,"0");
+    const prio=(N.match(/\b(NORMAL|URGENTE|ALTA|BAIXA|PRIORITARIA)\b/)||[""])[0];
+    const telM=txt.replace(/(\d)\s(?=\d)/g,"$1").match(/\b([29]\d{8})\b/); const tel=telM?telM[1]:"";
+    let nome="";
+    if(prio&&tel){ const a=N.indexOf(prio)+prio.length, z=N.indexOf(tel.slice(0,3),a); const seg=txt.slice(a,z>a?z:undefined);
+      nome=seg.replace(/^[\s•*°=·\-.,]+|[\s•*°=·\-.,]+$/g,"").replace(/\s+/g," "); }
+    let morada=""; if(tel){ const p=txt.indexOf(tel.slice(-4)); if(p>0){ morada=txt.slice(p+4).replace(/^[\s•*°=·\-.,]+/,""); const q=morada.search(/Portugal/i); if(q>0) morada=morada.slice(0,q+8); morada=morada.replace(/\s+/g," ").trim(); } }
+    ots.push({data:b.data, hi, hf, sf, tipo, tec, estado, cel, prio:prio?prio.charAt(0)+prio.slice(1).toLowerCase():"", nome, tel, morada});
+  }
+  return ots;
+}
+
+function juntarAgendaRapida(){
+  const tem=new Set(DIAS.map(d=>d.data));
+  for(const [data,d] of Object.entries(AGR||{})){
+    if(tem.has(data)) continue;
+    DIAS.push({data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos}))});
+  }
+  DIAS.sort((a,b)=>b.data.localeCompare(a.data));
+}
+function capKey(o){ return `${o.data}|${o.hi}|${o.tel||o.sf.slice(-6)}`; }
+function capJuntar(a,b){ const r={...a}; for(const k in b) if((b[k]||"").length>(r[k]||"").length) r[k]=b[k]; return r; }
+async function carregarTesseract(){
+  if(window.Tesseract) return;
+  await new Promise((ok,er)=>{ const s=document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"; s.onload=ok; s.onerror=()=>er(new Error("Sem internet para carregar o leitor de texto.")); document.head.appendChild(s); });
+}
+async function processarCapturas(){
+  if(CAPT_A_CORRER||!SESSAO) return; const lotes=Object.entries(CAPT_LOTES||{}).filter(([k,l])=>(l.imgs||[]).length);
+  if(!lotes.length) return; CAPT_A_CORRER=true;
+  const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
+  try{
+    aviso("⚡ A preparar a leitura das capturas…"); await carregarTesseract();
+    const worker=await Tesseract.createWorker("por");
+    for(const [lote,l] of lotes){
+      const porKey={}; let i=0;
+      for(const cam of l.imgs){
+        i++; aviso(`⚡ A ler a captura ${i} de ${l.imgs.length}…`);
+        const t=await token(); const r=await fetch(`${SUPA_URL}/storage/v1/object/authenticated/folhas/${cam.split("/").map(encodeURIComponent).join("/")}`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
+        if(!r.ok) continue;
+        const {data:{text}}=await worker.recognize(await r.blob());
+        for(const o of parseAgenda(text)){ const k=capKey(o); porKey[k]=porKey[k]?capJuntar(porKey[k],o):o; }
+      }
+      const ots=Object.values(porKey), dias={};
+      for(const o of ots){ (dias[o.data]=dias[o.data]||[]).push({id:"r_"+o.data.replace(/-/g,"")+"_"+o.hi.replace(":","")+"_"+(o.tel||"x"), campos:{"Nº OT":o.sf,"Estado":o.estado,"Hora início":o.hi,"Hora fim":o.hf,"Tipo de OT":o.tipo,"Tecnologia":o.tec,"Nome de cliente":o.nome,"Contacto de cliente":o.tel,"Morada":o.morada,"Célula":o.cel,"Tipo de tarefa":o.prio}}); }
+      if(!ots.length){ aviso("⚠ Não reconheci OTs nestas capturas. Confirme que o MacroDroid fotografou a Agenda."); await chamarGuias({acao:"captura_descartar",lote}); continue; }
+      for(const d in dias) dias[d].sort((a,b)=>a.campos["Hora início"].localeCompare(b.campos["Hora início"]));
+      await chamarGuias({acao:"agenda_guardar",lote,dias});
+      for(const d in dias) AGR[d]={data:d,ots:dias[d]};
+      delete CAPT_LOTES[lote];
+      DIAS=DIAS.filter(d=>!d.rapida); juntarAgendaRapida();
+      CAP_MSG=`✓ ${ots.length} OT${ots.length>1?"s":""} lidas da Agenda (${Object.keys(dias).map(d=>d.slice(8,10)+"/"+d.slice(5,7)).join(", ")}).`; aviso(CAP_MSG);
+    }
+    await worker.terminate();
+    CAPT_A_CORRER=false;
+    try{ render(); }catch(_){}
+    if(VISTA==="ini") renderIni();
+  }catch(e){ CAP_MSG="⚠ Leitura das capturas: "+esc(e.message||e); aviso(CAP_MSG); }
+  finally{ CAPT_A_CORRER=false; }
+}
+
 // ---------- Início: o dia num relance
 function hojeISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function renderIni(){
@@ -395,9 +487,12 @@ function renderIni(){
   const hoje=hojeISO(), mesK=hoje.slice(0,4)+hoje.slice(5,7);
   const dia=(DIAS||[]).find(d=>d.data===hoje), ultimo=(DIAS||[])[0];
   const real=o=>/realizada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
-  const M=FINC&&FINC.por_mes?FINC.por_mes[mesK]:null, P=M&&M.prod, dP=P?(P.dias||[]).find(x=>x.data===hoje):null;
+  const M=FINC&&FINC.por_mes?FINC.por_mes[mesK]:null, P=M&&M.prod;
+  const VO=(FINC&&FINC.por_mes&&Object.values(FINC.por_mes).find(x=>x.prod&&x.prod.referencia&&x.prod.referencia.valor_ot)?.prod.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
+  const tCurto=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":t;
+  let dP=P?(P.dias||[]).find(x=>x.data===hoje&&x.ots):null;
+  if(!dP&&dia){ const mix={}; let v=0; for(const o of dia.ots.filter(real)){ const t=tCurto(o.campos["Tipo de OT"]||""); mix[t]=(mix[t]||0)+1; v+=VO[t]||0; } if(v) dP={valor:Math.round(v*100)/100,previsto:v,ots:Object.values(mix).reduce((a,b)=>a+b,0),mix}; }
   const meta=P?P.meta_dia:154, vh=dP?dP.valor:0, pct=meta?Math.round(vh/meta*100):0;
-  const VO=(FINC&&FINC.por_mes&&Object.values(FINC.por_mes).find(x=>x.prod&&x.prod.referencia&&x.prod.referencia.valor_ot)?.prod.referencia.valor_ot)||{};
   const falta=Math.max(0,meta-vh), vi=VO["Instalação"]||62, vm=VO["Manutenção"]||20;
   const sug=falta<=0?"meta do dia atingida ✓":(falta>=vi*0.8?`faltam ≈ ${fnum(falta)} € (≈ ${Math.ceil(falta/vi)} Inst)`:`faltam ≈ ${fnum(falta)} € (≈ ${Math.ceil(falta/vm)} Manut)`);
   const h=new Date().getHours(), saud=h<12?"Bom dia":h<20?"Boa tarde":"Boa noite";
@@ -405,6 +500,7 @@ function renderIni(){
   const g=(GUIAS||[])[0], C=M&&M.custos||{}, pend=(CENTRADA||[]).length;
   const otsHoje=dia?dia.ots.length:0, realHoje=dia?dia.ots.filter(real).length:0;
   el.innerHTML=`<div class="isaud">${saud}, Carlos<small>${esc(dt)}</small></div>
+    <div class="itile ${CAP_MSG.startsWith("✓")?"ok":""}" id="capAviso" ${CAPT_A_CORRER||CAP_MSG||Object.keys(CAPT_LOTES||{}).length?"":"hidden"} style="font-size:13.5px;color:var(--fg)">${CAPT_A_CORRER||!CAP_MSG?"⚡ Há capturas da Agenda por ler…":CAP_MSG}</div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%"></i></div>
       <span>${dP&&dP.ots?esc(fmix(dP.mix))+" · ":""}${dP?sug:"Ainda sem OTs de hoje no painel (aparecem depois da coleta)."}</span></button>
@@ -448,7 +544,7 @@ function render(){
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
     const r=d.resumo||{};
-    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
+    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido das capturas da Agenda (MacroDroid). A coleta completa no PC acrescenta equipamentos e materiais.">⚡ leitura rápida</span> ':""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
       ots.map(o=>{const c=o.campos, ok=realizada(o);
         return `<button class="ot" data-d="${esc(d.data)}" data-o="${esc(o.id)}">
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
@@ -944,7 +1040,11 @@ async function carregar(silencioso){
     GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[];
     FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
     CENTRADA=((data.find(x=>x.pacote&&x.pacote.tipo==="custos_entrada")||{}).pacote||{}).itens||[];
-    DIAS=data.map(x=>x.pacote).filter(p=>p&&p.tipo!=="guias"&&p.tipo!=="financas"&&p.tipo!=="custos_entrada");
+    CAPT_LOTES=((data.find(x=>x.pacote&&x.pacote.tipo==="capturas")||{}).pacote||{}).lotes||{};
+    AGR=((data.find(x=>x.pacote&&x.pacote.tipo==="agenda_rapida")||{}).pacote||{}).dias||{};
+    DIAS=data.map(x=>x.pacote).filter(p=>p&&!["guias","financas","custos_entrada","capturas","agenda_rapida"].includes(p.tipo));
+    juntarAgendaRapida();
+    if(Object.keys(CAPT_LOTES).length) setTimeout(processarCapturas,300);
     if(VISTA==="guia") renderGuia();
     if(VISTA==="fin"&&!FIN_ADD) renderFin();
     if(VISTA==="ini") renderIni();
