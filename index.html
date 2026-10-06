@@ -480,6 +480,37 @@ async function processarCapturas(){
   finally{ CAPT_A_CORRER=false; }
 }
 
+// ---------- Agenda a partir de capturas escolhidas no telemóvel (sem envio pelo MacroDroid)
+async function lerImagensAgenda(files){
+  files=[...(files||[])].filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp)$/i.test(f.name));
+  if(!files.length||CAPT_A_CORRER) return; CAPT_A_CORRER=true;
+  const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
+  try{
+    aviso("⚡ A preparar a leitura das capturas…"); await carregarTesseract();
+    const worker=await Tesseract.createWorker("por"); const porKey={}; let i=0;
+    files.sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name));
+    for(const f of files){ i++; aviso(`⚡ A ler a captura ${i} de ${files.length}…`);
+      const {data:{text}}=await worker.recognize(f);
+      for(const o of parseAgenda(text)){ const k=capKey(o); porKey[k]=porKey[k]?capJuntar(porKey[k],o):o; } }
+    await worker.terminate();
+    const ots=Object.values(porKey), dias={};
+    if(!ots.length){ CAP_MSG="⚠ Não reconheci OTs nestas imagens. Escolha capturas da Agenda do Field Service."; aviso(CAP_MSG); return; }
+    for(const o of ots){ (dias[o.data]=dias[o.data]||[]).push({id:"r_"+o.data.replace(/-/g,"")+"_"+o.hi.replace(":","")+"_"+(o.tel||"x"), campos:{"Nº OT":o.sf,"Estado":o.estado,"Hora início":o.hi,"Hora fim":o.hf,"Tipo de OT":o.tipo,"Tecnologia":o.tec,"Nome de cliente":o.nome,"Contacto de cliente":o.tel,"Morada":o.morada,"Célula":o.cel,"Tipo de tarefa":o.prio}}); }
+    for(const d in dias) dias[d].sort((a,b)=>a.campos["Hora início"].localeCompare(b.campos["Hora início"]));
+    if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
+    for(const d in dias) AGR[d]={data:d,ots:dias[d]};
+    DIAS=DIAS.filter(d=>!d.rapida); juntarAgendaRapida();
+    CAP_MSG=`✓ ${ots.length} OT${ots.length>1?"s":""} lidas da Agenda (${Object.keys(dias).map(d=>d.slice(8,10)+"/"+d.slice(5,7)).join(", ")}).`; aviso(CAP_MSG);
+    CAPT_A_CORRER=false; try{ render(); }catch(_){} if(VISTA==="ini") renderIni();
+  }catch(e){ CAP_MSG="⚠ Leitura das capturas: "+esc(e.message||e); aviso(CAP_MSG); }
+  finally{ CAPT_A_CORRER=false; }
+}
+function escolherCapturasAgenda(){
+  let inp=$("#capFich"); if(!inp){ inp=document.createElement("input"); inp.type="file"; inp.id="capFich"; inp.accept="image/*"; inp.multiple=true; inp.hidden=true;
+    inp.addEventListener("change",()=>{ const f=[...inp.files]; inp.value=""; lerImagensAgenda(f); }); document.body.appendChild(inp); }
+  inp.click();
+}
+
 // ---------- Início: o dia num relance
 function hojeISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function renderIni(){
@@ -500,6 +531,7 @@ function renderIni(){
   const g=(GUIAS||[])[0], C=M&&M.custos||{}, pend=(CENTRADA||[]).length;
   const otsHoje=dia?dia.ots.length:0, realHoje=dia?dia.ots.filter(real).length:0;
   el.innerHTML=`<div class="isaud">${saud}, Carlos<small>${esc(dt)}</small></div>
+    <button class="itile" id="capBtn" onclick="escolherCapturasAgenda()" style="${location.hash==="#ler"?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📷 Ler capturas da Agenda</span><span>Escolha as capturas da Agenda (pasta Screenshots) — lê as OTs sozinho</span></button>
     <div class="itile ${CAP_MSG.startsWith("✓")?"ok":""}" id="capAviso" ${CAPT_A_CORRER||CAP_MSG||Object.keys(CAPT_LOTES||{}).length?"":"hidden"} style="font-size:13.5px;color:var(--fg)">${CAPT_A_CORRER||!CAP_MSG?"⚡ Há capturas da Agenda por ler…":CAP_MSG}</div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%"></i></div>
@@ -941,14 +973,27 @@ function renderGuia(){
     <div style="padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px">
      <span style="color:var(--muted)">Guia</span><b class="mono">${esc(g.numero)}</b>
      <span style="color:var(--muted)">Data</span><b>${dt(g.data)}${g.hora_carga?" · "+esc(String(g.hora_carga).replace("T"," ").slice(11,16)):""}</b>
-     <span style="color:var(--muted)">Código AT</span><b class="mono" style="font-size:18px">${esc(g.codigo_at||"—")}</b>
+     <span style="color:var(--muted)">Código AT</span><span><b class="mono" style="font-size:18px">${esc(g.codigo_at||"—")}</b>${!g.codigo_at&&g.id?` <button class="folha-btn mini" id="gAtBtn">↻ Pedir código AT</button>`:""}</span>
      <span style="color:var(--muted)">Veículo</span><b class="mono">${esc(g.veiculo||"—")}</b>
-     <span style="color:var(--muted)">Carga</span><span>${esc(g.carga||"—")}</span></div>
+     <span style="color:var(--muted)">Carga</span><span>${esc(g.carga||"—")}</span>
+     ${g.descarga?`<span style="color:var(--muted)">Descarga</span><span>${esc(g.descarga)}</span>`:""}</div>
     <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">${g.pdf?`<button class="folha-btn" data-f="${esc(g.pdf)}">📄 Abrir PDF da guia</button>`:(g.pdf_url?`<a class="folha-btn" style="text-decoration:none" href="${esc(g.pdf_url)}" target="_blank" rel="noopener">📄 Abrir PDF da guia</a>`:'<span style="color:var(--muted)">PDF ainda não enviado.</span>')}
      <button class="folha-btn" style="background:var(--surface);color:var(--accent)" id="gNovaBtn">＋ Nova guia</button></div>
     <h4 style="border-top:1px solid var(--line)">Artigos (${(g.linhas||[]).length})</h4>${(g.linhas||[]).map(lin).join("")}</div>
    ${GUIAS.length>1?`<div class="bloco"><h4>Guias anteriores</h4>${GUIAS.slice(1,30).map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line)"><span><b class="mono">${esc(x.numero)}</b> · ${dt(x.data)}<br><span class="mono" style="color:var(--muted);font-size:12px">AT ${esc(x.codigo_at||"—")}</span></span>${x.pdf?`<button class="folha-btn mini" data-f="${esc(x.pdf)}">PDF</button>`:(x.pdf_url?`<a class="folha-btn mini" style="text-decoration:none" href="${esc(x.pdf_url)}" target="_blank" rel="noopener">PDF</a>`:"")}</div>`).join("")}</div>`:""}`;
   $("#gNovaBtn").onclick=novaGuia;
+  const ab=$("#gAtBtn"); if(ab) ab.onclick=()=>atualizarGuiaAT(g,true);
+  if(g.id&&(!g.codigo_at||!g.carga)&&!GUIA_RELIDA[g.id]){ GUIA_RELIDA[g.id]=1; atualizarGuiaAT(g,false); }
+}
+const GUIA_RELIDA={};
+async function atualizarGuiaAT(g,comunicar){
+  const ab=$("#gAtBtn"); if(ab){ ab.disabled=true; ab.textContent="A consultar o TOConline…"; }
+  try{
+    const r=await chamarGuias({acao:"atualizar",id:g.id,comunicar:!!comunicar});
+    if(r&&r.guia){ const i=GUIAS.findIndex(x=>x.id===r.guia.id); if(i>=0) GUIAS[i]={...GUIAS[i],...r.guia}; else GUIAS.unshift(r.guia); }
+    if(comunicar||r?.guia?.codigo_at) toast(r?.guia?.codigo_at?`Código AT ${r.guia.codigo_at} ✓`:(r?.aviso||"Ainda sem código AT."));
+    if(VISTA==="guia") renderGuia();
+  }catch(e){ if(comunicar) toast("⚠ "+(e.message||e)); if(ab){ ab.disabled=false; ab.textContent="↻ Pedir código AT"; } }
 }
 // ---------- emitir guia (função "guias" no Supabase; as chaves do TOConline ficam lá, nunca nesta página)
 async function chamarGuias(corpo){
