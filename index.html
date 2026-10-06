@@ -983,9 +983,22 @@ function renderGuia(){
    ${GUIAS.length>1?`<div class="bloco"><h4>Guias anteriores</h4>${GUIAS.slice(1,30).map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line)"><span><b class="mono">${esc(x.numero)}</b> · ${dt(x.data)}<br><span class="mono" style="color:var(--muted);font-size:12px">AT ${esc(x.codigo_at||"—")}</span></span>${x.pdf?`<button class="folha-btn mini" data-f="${esc(x.pdf)}">PDF</button>`:(x.pdf_url?`<a class="folha-btn mini" style="text-decoration:none" href="${esc(x.pdf_url)}" target="_blank" rel="noopener">PDF</a>`:"")}</div>`).join("")}</div>`:""}`;
   $("#gNovaBtn").onclick=novaGuia;
   const ab=$("#gAtBtn"); if(ab) ab.onclick=()=>atualizarGuiaAT(g,true);
-  if(g.id&&(!g.codigo_at||!g.carga)&&!GUIA_RELIDA[g.id]){ GUIA_RELIDA[g.id]=1; atualizarGuiaAT(g,false); }
+  relerGuiasSemAT();
 }
 const GUIA_RELIDA={};
+let RELER_A_CORRER=false;
+async function relerGuiasSemAT(){
+  if(RELER_A_CORRER||!SESSAO) return; RELER_A_CORRER=true;
+  try{
+    const lista=(GUIAS||[]).slice(0,12).filter(x=>x.id&&/^\d+$/.test(String(x.id))&&(!x.codigo_at||!x.carga)&&!GUIA_RELIDA[x.id]);
+    let mudou=false;
+    for(const x of lista){ GUIA_RELIDA[x.id]=1;
+      try{ const r=await chamarGuias({acao:"atualizar",id:x.id,comunicar:false});
+        if(r&&r.guia){ const i=GUIAS.findIndex(y=>y.id===r.guia.id); if(i>=0){ GUIAS[i]={...GUIAS[i],...r.guia}; mudou=true; } } }catch(_){}
+    }
+    if(mudou&&VISTA==="guia") renderGuia();
+  } finally{ RELER_A_CORRER=false; }
+}
 async function atualizarGuiaAT(g,comunicar){
   const ab=$("#gAtBtn"); if(ab){ ab.disabled=true; ab.textContent="A consultar o TOConline…"; }
   try{
@@ -1038,18 +1051,56 @@ async function novaGuia(){
 }
 
 // ---------- folhas de obra (PDF no Supabase Storage, bucket privado)
+// PDFs (folhas de obra, guias) abrem num visor dentro da consulta — não descarregam; ficam em memória para reabrir sem gastar dados
+const PDF_CACHE={};
+async function carregarPdfJs(){
+  if(window.pdfjsLib) return;
+  await new Promise((ok,er)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"; s.onload=ok; s.onerror=()=>er(new Error("Sem internet para abrir o visor de PDF.")); document.head.appendChild(s); });
+  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+async function obterPdf(caminho){
+  if(PDF_CACHE[caminho]) return PDF_CACHE[caminho];
+  const t=await token(); if(!t) throw new Error("Sessão terminada. Entre de novo.");
+  const r=await fetch(`${SUPA_URL}/storage/v1/object/authenticated/folhas/${caminho.split("/").map(encodeURIComponent).join("/")}`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
+  if(!r.ok) throw new Error(r.status===404||r.status===400?"Documento ainda não enviado para a nuvem.":"Erro "+r.status);
+  const buf=await r.arrayBuffer(); PDF_CACHE[caminho]=buf; return buf;
+}
+function fecharVisor(){ const v=$("#pdfVisor"); if(v) v.remove(); document.body.style.overflow=""; if(history.state&&history.state.visor) history.back(); }
+window.addEventListener("popstate",()=>{ const v=$("#pdfVisor"); if(v){ v.remove(); document.body.style.overflow=""; } });
 async function abrirFolha(caminho, btn){
   const txt=btn?.textContent; if(btn){ btn.disabled=true; btn.textContent="A abrir…"; }
-  const janela = /Android|iPhone|iPad/i.test(navigator.userAgent) ? null : window.open("", "_blank");
   try{
-    const t=await token(); if(!t) throw new Error("Sessão terminada. Entre de novo.");
-    const r=await fetch(`${SUPA_URL}/storage/v1/object/authenticated/folhas/${caminho.split("/").map(encodeURIComponent).join("/")}`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
-    if(!r.ok) throw new Error(r.status===404||r.status===400?"Folha ainda não enviada para a nuvem.":"Erro "+r.status);
-    const url=URL.createObjectURL(new Blob([await r.blob()],{type:"application/pdf"}));
-    if(janela){ janela.location=url; }
-    else { const a=document.createElement("a"); a.href=url; a.download=caminho.split("/").pop(); document.body.appendChild(a); a.click(); a.remove(); }
-    setTimeout(()=>URL.revokeObjectURL(url),120000);
-  }catch(e){ if(janela) janela.close(); toast(e.message==="Failed to fetch"?"Sem internet.":e.message); }
+    const [buf]=await Promise.all([obterPdf(caminho),carregarPdfJs()]);
+    $("#pdfVisor")?.remove();
+    const nome=caminho.split("/").pop();
+    const v=document.createElement("div"); v.id="pdfVisor";
+    v.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(20,24,30,.96);display:flex;flex-direction:column";
+    v.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff;font-size:14px;border-bottom:1px solid #333">
+      <b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${esc(nome)}</b>
+      <button id="pdfMenos" style="font-size:18px;width:38px;height:36px;border-radius:8px;border:1px solid #555;background:#222;color:#fff">−</button>
+      <button id="pdfMais" style="font-size:18px;width:38px;height:36px;border-radius:8px;border:1px solid #555;background:#222;color:#fff">+</button>
+      <button id="pdfGuardar" title="Guardar no telemóvel" style="height:36px;padding:0 10px;border-radius:8px;border:1px solid #555;background:#222;color:#fff">⬇</button>
+      <button id="pdfFechar" style="height:36px;padding:0 14px;border-radius:8px;border:0;background:#fff;color:#111;font-weight:700">✕ Fechar</button></div>
+      <div id="pdfPags" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px;display:flex;flex-direction:column;align-items:center;gap:10px"><div style="color:#ccc;padding:30px">A preparar…</div></div>`;
+    document.body.appendChild(v); document.body.style.overflow="hidden";
+    history.pushState({visor:1},"");
+    $("#pdfFechar").onclick=fecharVisor;
+    $("#pdfGuardar").onclick=()=>{ const url=URL.createObjectURL(new Blob([buf],{type:"application/pdf"})); const a=document.createElement("a"); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000); };
+    const doc=await pdfjsLib.getDocument({data:buf.slice(0)}).promise;
+    let zoom=1;
+    const desenhar=async()=>{
+      const box=$("#pdfPags"); if(!box) return; box.innerHTML="";
+      const larg=Math.min(box.clientWidth-20,900)*zoom, dpr=Math.min(window.devicePixelRatio||1,2.5);
+      for(let n=1;n<=doc.numPages;n++){
+        const pg=await doc.getPage(n), vp0=pg.getViewport({scale:1}), esc_=larg/vp0.width, vp=pg.getViewport({scale:esc_*dpr});
+        const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height; c.style.width=(vp.width/dpr)+"px"; c.style.height=(vp.height/dpr)+"px"; c.style.background="#fff"; c.style.borderRadius="4px"; c.style.maxWidth="none";
+        box.appendChild(c); await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+      }
+    };
+    $("#pdfMais").onclick=()=>{ zoom=Math.min(3,zoom*1.4); desenhar(); };
+    $("#pdfMenos").onclick=()=>{ zoom=Math.max(.6,zoom/1.4); desenhar(); };
+    await desenhar();
+  }catch(e){ $("#pdfVisor")?.remove(); document.body.style.overflow=""; toast(e.message==="Failed to fetch"?"Sem internet.":e.message); }
   finally{ if(btn){ btn.disabled=false; btn.textContent=txt; } }
 }
 document.addEventListener("click",e=>{ const b=e.target.closest(".folha-btn[data-f]"); if(b){ e.preventDefault(); e.stopPropagation(); abrirFolha(b.dataset.f,b); } }, true);
