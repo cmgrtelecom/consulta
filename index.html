@@ -439,9 +439,46 @@ function juntarAgendaRapida(){
   const tem=new Set(DIAS.map(d=>d.data));
   for(const [data,d] of Object.entries(AGR||{})){
     if(tem.has(data)) continue;
-    DIAS.push({data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos}))});
+    const dia={data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos}))};
+    relRapido(dia); DIAS.push(dia); kmRapido(dia);
   }
   DIAS.sort((a,b)=>b.data.localeCompare(a.data));
+}
+// ---------- leitura rápida: duração (horas da Agenda) e km estimado (código postal → coordenadas, linha reta × 1,3, como no PC)
+const hmMin=h=>{ const m=String(h||"").match(/^(\d{1,2})[:.](\d{2})/); return m?(+m[1])*60+(+m[2]):null; };
+function relRapido(dia){
+  const ots=dia.ots.slice().sort((a,b)=>(hmMin(a.campos["Hora início"])??9999)-(hmMin(b.campos["Hora início"])??9999));
+  let ant=null;
+  for(const o of ots){ const ini=hmMin(o.campos["Hora início"]), fim=hmMin(o.campos["Hora fim"]);
+    o.rel={...(o.rel||{}), inicio:ini, fim, duracao:(ini!=null&&fim!=null&&fim>=ini)?fim-ini:null, km_estrada:o.rel?.km_estrada??null,
+      intervalo:(ant&&ant.rel.fim!=null&&ini!=null)?ini-ant.rel.fim:null};
+    ant=o; }
+  const n=dia.ots.length, ok=dia.ots.filter(o=>/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"")).length;
+  dia.resumo={...(dia.resumo||{}), produtividade:n?Math.round(100*ok/n):null, km_estrada:dia.resumo?.km_estrada??0, km_estimado:true};
+}
+const GEO_MEM={};
+function geoCache(cp,v){ const k="cr_geo_"+cp; if(v!==undefined){ GEO_MEM[cp]=v; try{ localStorage.setItem(k,JSON.stringify(v)); }catch(_){} return v; }
+  if(cp in GEO_MEM) return GEO_MEM[cp]; try{ const x=localStorage.getItem(k); if(x) return (GEO_MEM[cp]=JSON.parse(x)); }catch(_){} return undefined; }
+let GEO_FILA=Promise.resolve();
+function geoCP(cp){   // Nominatim (OpenStreetMap): 1 pedido por segundo, resultados guardados neste telemóvel
+  const c=geoCache(cp); if(c!==undefined) return Promise.resolve(c);
+  GEO_FILA=GEO_FILA.then(async()=>{ const c2=geoCache(cp); if(c2!==undefined) return c2;
+    await new Promise(r=>setTimeout(r,1100));
+    try{ const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=pt&limit=1&postalcode=${encodeURIComponent(cp)}`,{headers:{Accept:"application/json"}});
+      const j=await r.json(); return geoCache(cp, j&&j[0]?[+j[0].lat,+j[0].lon]:null);
+    }catch(_){ return null; } });
+  return GEO_FILA;
+}
+const distKm=(a,b)=>{ const R=6371,t=x=>x*Math.PI/180, dl=t(b[0]-a[0]), dg=t(b[1]-a[1]);
+  const h=Math.sin(dl/2)**2+Math.cos(t(a[0]))*Math.cos(t(b[0]))*Math.sin(dg/2)**2; return 2*R*Math.asin(Math.sqrt(h)); };
+async function kmRapido(dia){
+  const ots=dia.ots.slice().sort((a,b)=>(hmMin(a.campos["Hora início"])??9999)-(hmMin(b.campos["Hora início"])??9999));
+  const pts=[];
+  for(const o of ots){ const cp=(String(o.campos.Morada||"").match(/\b(\d{4})-(\d{3})\b/)||[])[0]; pts.push(cp?await geoCP(cp):null); }
+  let tot=0, ant=null;
+  ots.forEach((o,i)=>{ const p=pts[i]; let km=null; if(p&&ant){ km=Math.round(distKm(ant,p)*1.3*10)/10; tot+=km; } if(p) ant=p; o.rel.km_estrada=km; });
+  dia.resumo.km_estrada=Math.round(tot*10)/10;
+  if(DIAS.includes(dia)){ try{ if(VISTA==="ots"||VISTA==="rel") render(); if(VISTA==="rel"&&typeof renderRel==="function") renderRel(); }catch(_){} }
 }
 function capKey(o){ return `${o.data}|${o.hi}|${o.hf}`; }
 function capJuntar(a,b){ const r={...a}; for(const k in b) if((b[k]||"").length>(r[k]||"").length) r[k]=b[k]; return r; }
