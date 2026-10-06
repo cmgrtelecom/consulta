@@ -963,7 +963,12 @@ function finGrafAcum(el,P){
     ${ci<n-1?`<text x="${g.W-g.pr}" y="${y(P.projecao)+14}" text-anchor="end" font-size="11" fill="var(--accent)">≈ ${fnum(P.projecao)}</text>`:""}</svg>
    <div class="fleg"><span><i style="background:var(--accent)"></i>feito</span><span>····· projeção</span><span>– – meta acumulada</span></div>`;
 }
+function arrumarGuias(){
+  GUIAS=(GUIAS||[]).filter(x=>x&&x.numero&&x.data);
+  GUIAS.sort((a,b)=>String(b.data).localeCompare(String(a.data))||Number(b.id||0)-Number(a.id||0));
+}
 function renderGuia(){
+  arrumarGuias();
   const el=$("#vGuia"); const g=GUIAS[0];
   if(!g){ el.innerHTML='<div class="vazio"><b>Ainda não há guias online.</b><br>No PC: painel → 🚚 Guias → Atualizar do TOConline.</div><button class="folha-btn" id="gNovaBtn">＋ Nova guia</button>'; $("#gNovaBtn").onclick=novaGuia; return; }
   const dt=s=>s?String(s).slice(8,10)+"/"+String(s).slice(5,7)+"/"+String(s).slice(0,4):"—";
@@ -994,7 +999,7 @@ async function relerGuiasSemAT(){
     let mudou=false;
     for(const x of lista){ GUIA_RELIDA[x.id]=1;
       try{ const r=await chamarGuias({acao:"atualizar",id:x.id,comunicar:false});
-        if(r&&r.guia){ const i=GUIAS.findIndex(y=>y.id===r.guia.id); if(i>=0){ GUIAS[i]={...GUIAS[i],...r.guia}; mudou=true; } } }catch(_){}
+        if(r&&r.guia&&r.guia.numero){ const i=GUIAS.findIndex(y=>y.id===r.guia.id); if(i>=0){ GUIAS[i]={...GUIAS[i],...r.guia}; mudou=true; } } }catch(_){}
     }
     if(mudou&&VISTA==="guia") renderGuia();
   } finally{ RELER_A_CORRER=false; }
@@ -1003,7 +1008,7 @@ async function atualizarGuiaAT(g,comunicar){
   const ab=$("#gAtBtn"); if(ab){ ab.disabled=true; ab.textContent="A consultar o TOConline…"; }
   try{
     const r=await chamarGuias({acao:"atualizar",id:g.id,comunicar:!!comunicar});
-    if(r&&r.guia){ const i=GUIAS.findIndex(x=>x.id===r.guia.id); if(i>=0) GUIAS[i]={...GUIAS[i],...r.guia}; else GUIAS.unshift(r.guia); }
+    if(r&&r.guia&&r.guia.numero){ const i=GUIAS.findIndex(x=>x.id===r.guia.id); if(i>=0) GUIAS[i]={...GUIAS[i],...r.guia}; else GUIAS.unshift(r.guia); }
     if(comunicar||r?.guia?.codigo_at) toast(r?.guia?.codigo_at?`Código AT ${r.guia.codigo_at} ✓`:(r?.aviso||"Ainda sem código AT."));
     if(VISTA==="guia") renderGuia();
   }catch(e){ if(comunicar) toast("⚠ "+(e.message||e)); if(ab){ ab.disabled=false; ab.textContent="↻ Pedir código AT"; } }
@@ -1133,7 +1138,7 @@ async function carregar(silencioso){
     const r=await fetch(`${SUPA_URL}/rest/v1/dias?select=data,pacote,atualizado&order=data.desc&limit=2000`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
     if(r.status===401){ gravarSessao(null); sessao(false); throw new Error("A sessão terminou. Entre de novo."); }
     const data=await r.json(); if(!r.ok) throw new Error(data.message||("erro "+r.status));
-    GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[];
+    GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[]; arrumarGuias();
     FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
     CENTRADA=((data.find(x=>x.pacote&&x.pacote.tipo==="custos_entrada")||{}).pacote||{}).itens||[];
     CAPT_LOTES=((data.find(x=>x.pacote&&x.pacote.tipo==="capturas")||{}).pacote||{}).lotes||{};
