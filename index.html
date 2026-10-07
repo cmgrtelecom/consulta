@@ -367,7 +367,7 @@ const PROTEGIDOS=new Set(["Password ONT"]);   // completos só no PC; aqui só a
 const COPIAVEIS=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Password ONT","Conta de serviço","N.º UA / PA","PLC","Morada"]);
 const MONO=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Password ONT","Conta de serviço","N.º UA / PA","PLC","Latitude PLC","Longitude PLC","N.º porta PLC"]);
 const realizada=o=>o.rel?.realizada ?? (/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||""));
-const confirmada=o=>o.rapida||(o.rel?.agendamento||"").startsWith("Confirmado");
+const confirmada=o=>(o.rapida&&!o.completa)||(o.rel?.agendamento||"").startsWith("Confirmado");
 
 // ---------- filtros
 document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{PERIODO=b.dataset.p;document.querySelectorAll("[data-p]").forEach(x=>x.setAttribute("aria-pressed",x===b));render();if(VISTA==="rel")renderRel();});
@@ -447,15 +447,37 @@ function juntarAgendaRapida(){
 }
 // ---------- leitura rápida: duração (horas da Agenda) e km estimado (código postal → coordenadas, linha reta × 1,3, como no PC)
 const hmMin=h=>{ const m=String(h||"").match(/^(\d{1,2})[:.](\d{2})/); return m?(+m[1])*60+(+m[2]):null; };
+// agendamento prévio / motivo / reagendamento a partir do Feed — igual a relatorios.py do PC
+function agendamentoFeed(o){
+  const textos=(o.feed||[]).map(f=>String(f.Texto||"")), txt=textos.join(" "), n=txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  let ag, ev;
+  if(/tds automatico/.test(n)&&/confirmou/.test(n)){ ag="Confirmado pelo cliente (TDS automático)"; ev="#TDS AUTOMATICO Cliente confirmou a intervenção"; }
+  else if(/\bivr\b/.test(n)){ ag="Contactado por IVR, sem confirmação"; ev="Cliente contactado via IVR, a aguardar resposta"; }
+  else if(/incontact/.test(n)){ ag="Cliente incontactável"; ev=textos.find(t=>/incontact/i.test(t))||""; }
+  else { ag="Sem registo de agendamento prévio"; ev="Nenhuma confirmação/contacto no Feed"; }
+  const antecipacao=/antecipa/.test(n);
+  if(antecipacao&&ag.startsWith("Sem registo")) ev=textos.find(t=>/antecipa/i.test(t))||ev;
+  const real=/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"");
+  const regras=[[/n[aã]o pode comparecer|ausente|n[aã]o estava|n[aã]o atende/i,"Cliente ausente / não pode comparecer"],[/autoriza|sinaliza|2 tec|infraestrutura complexa|dmi/i,"Infraestrutura / autorizações / meios"],[/incontact/i,"Cliente incontactável"],[/cancel/i,"Cancelada"]];
+  const motivo=real?"":((regras.find(([rx])=>rx.test(txt))||[0,"Sem motivo no Feed"])[1]);
+  const m=txt.match(/agendad[oa]\s+(\d{2}-\d{2}-\d{4})(?:.{0,40}?(\d{1,2}h\d{2})\s*[àa]s\s*(\d{1,2}h\d{2}))?/i);
+  return {agendamento:ag, evidencia:ev, antecipacao, motivo, reagendada:m?m[1]+(m[2]?` ${m[2]}–${m[3]}`:""):"", realizada:real};
+}
 function relRapido(dia){
   const ots=dia.ots.slice().sort((a,b)=>(hmMin(a.campos["Hora início"])??9999)-(hmMin(b.campos["Hora início"])??9999));
   let ant=null;
   for(const o of ots){ const ini=hmMin(o.campos["Hora início"]), fim=hmMin(o.campos["Hora fim"]);
+    const num=v=>{ const x=parseFloat(String(v||"").replace(",",".")); return isFinite(x)?x:null; };
+    const la=num(o.campos["Latitude PLC"]), lo=num(o.campos["Longitude PLC"]), coord=(la&&lo&&Math.abs(la)>30&&Math.abs(la)<60)?[la,lo]:null;
     o.rel={...(o.rel||{}), inicio:ini, fim, duracao:(ini!=null&&fim!=null&&fim>=ini)?fim-ini:null, km_estrada:o.rel?.km_estrada??null,
+      lat:coord?coord[0]:null, lng:coord?coord[1]:null, origem_local:coord?"PLC":"",
       intervalo:(ant&&ant.rel.fim!=null&&ini!=null)?ini-ant.rel.fim:null};
+    if(o.completa) Object.assign(o.rel, agendamentoFeed(o));   // mesmas regras do PC (relatorios.py)
     ant=o; }
   const n=dia.ots.length, ok=dia.ots.filter(o=>/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"")).length;
-  dia.resumo={...(dia.resumo||{}), produtividade:n?Math.round(100*ok/n):null, km_estrada:dia.resumo?.km_estrada??0, km_estimado:true};
+  const paragens=ots.map(o=>o.rel.lat?`${o.rel.lat},${o.rel.lng}`:(o.campos.Morada?encodeURIComponent(o.campos.Morada):"")).filter(Boolean);
+  dia.resumo={...(dia.resumo||{}), produtividade:n?Math.round(100*ok/n):null, km_estrada:dia.resumo?.km_estrada??0, km_estimado:true,
+    google_maps:paragens.length>1?"https://www.google.com/maps/dir/"+paragens.join("/"):""};
 }
 const GEO_MEM={};
 function geoCache(cp,v){ const k="cr_geo_"+cp; if(v!==undefined){ GEO_MEM[cp]=v; try{ localStorage.setItem(k,JSON.stringify(v)); }catch(_){} return v; }
@@ -475,7 +497,8 @@ const distKm=(a,b)=>{ const R=6371,t=x=>x*Math.PI/180, dl=t(b[0]-a[0]), dg=t(b[1
 async function kmRapido(dia){
   const ots=dia.ots.slice().sort((a,b)=>(hmMin(a.campos["Hora início"])??9999)-(hmMin(b.campos["Hora início"])??9999));
   const pts=[];
-  for(const o of ots){ const cp=(String(o.campos.Morada||"").match(/\b(\d{4})-(\d{3})\b/)||[])[0]; pts.push(cp?await geoCP(cp):null); }
+  for(const o of ots){ if(o.rel&&o.rel.lat){ pts.push([o.rel.lat,o.rel.lng]); continue; }
+    const cp=(String(o.campos.Morada||"").match(/\b(\d{4})-(\d{3})\b/)||[])[0]; pts.push(cp?await geoCP(cp):null); }
   let tot=0, ant=null;
   ots.forEach((o,i)=>{ const p=pts[i]; let km=null; if(p&&ant){ km=Math.round(distKm(ant,p)*1.3*10)/10; tot+=km; } if(p) ant=p; o.rel.km_estrada=km; });
   dia.resumo.km_estrada=Math.round(tot*10)/10;
@@ -651,7 +674,9 @@ async function lerAgendaTexto(texto){
     if(!r.ots.length){ CAP_MSG="⚠ O texto copiado não tem OTs da Agenda. Corra a macro com a Agenda aberta."; aviso(CAP_MSG); return; }
     const dias={};
     for(const o of r.ots){ const c=o.campos;
-      (dias[o.data]=dias[o.data]||[]).push({id:"r_"+o.data.replace(/-/g,"")+"_"+(c["Hora início"]||"").replace(":","")+"_"+(c["Nº OT"]||"x"), campos:c}); }
+      const ant=(AGR[o.data]?.ots||[]).find(x=>x.campos?.["Nº OT"]===c["Nº OT"]);   // não perder equipamentos/materiais já recolhidos
+      (dias[o.data]=dias[o.data]||[]).push(ant&&ant.completa?{...ant, campos:{...c, ...ant.campos, Estado:c.Estado||ant.campos.Estado}}
+        :{id:"r_"+o.data.replace(/-/g,"")+"_"+(c["Hora início"]||"").replace(":","")+"_"+(c["Nº OT"]||"x"), campos:c}); }
     for(const d in dias) dias[d].sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
     for(const d in dias) AGR[d]={data:d,ots:dias[d]};
@@ -849,7 +874,7 @@ function render(){
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
           <div class="c">${realce(c["Nome de cliente"]||"(sem nome)",q)}</div>
           <div class="m"><span class="mono">${realce(c["Nº OT"]||"",q)}</span> · ${esc(c["Tipo de OT"]||"")}</div>
-          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>'}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
+          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
   $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
