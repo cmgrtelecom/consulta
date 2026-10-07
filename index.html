@@ -440,7 +440,7 @@ function juntarAgendaRapida(){
   const tem=new Set(DIAS.map(d=>d.data));
   for(const [data,d] of Object.entries(AGR||{})){
     if(tem.has(data)) continue;
-    const dia={data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos}))};
+    const dia={data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos, equip:o.equip||[], naoser:o.naoser||[], feed:o.feed||[], completa:!!o.completa}))};
     relRapido(dia); DIAS.push(dia); kmRapido(dia);
   }
   DIAS.sort((a,b)=>b.data.localeCompare(a.data));
@@ -529,9 +529,12 @@ const FS_ROTULOS=["N.º OT","Tipo de tarefa","Categoria","Tecnologia","Tipo de O
   "Reincidente Manut","Reincidente RGU","Parceiro responsável","PD","TAP / CMPT","Lig. prédio","N.º UA / PA","Cód. emp.","PLC",
   "Tipo infraestrutura","N.º porta PLC","Access ID","Latitude PLC","Longitude PLC"];
 const FS_PROTEGIDOS=new Set(["Password ONT"]);   // completos só no PC; fora dele ficam "******"
+function fsNormalizar(txt){   // leituras coladas umas às outras sem quebra de linha → separar antes de cada "[chave]:"
+  return String(txt||"").replace(/\r/g,"").replace(/([^\n])(\[(?:index:\d+|[\w.]+:id\/[^\]\n]+|top_bar_title)\]:)/g,"$1\n$2");
+}
 function fsLinhas(txt){   // "[chave]: valor" ; linhas sem [ ] continuam o valor anterior
   const out=[];
-  for(const l of String(txt||"").replace(/\r/g,"").split("\n")){
+  for(const l of fsNormalizar(txt).split("\n")){
     const m=l.match(/^\[([^\]]+)\]:\s?(.*)$/);
     if(m){ const k=m[1], id=(k.match(/id\/([\w.]+?)(?:\$\d+)?$/)||[])[1]||"", ix=+((k.match(/^index:(\d+)$/)||[])[1]??-1);
       out.push({k,id,ix,v:m[2].trim()}); }
@@ -552,7 +555,8 @@ function fsOT(txt){       // ecrã de uma OT (todos os separadores vêm juntos)
   const data=dm&&MES[dm[2]]?`${dm[3]}-${String(MES[dm[2]]).padStart(2,"0")}-${dm[1].padStart(2,"0")}`:"";
   const rel={}; for(const v of id("related_list_item_desc")){ const m=v.match(/^(.*?)\s*[–-]\s*\((\d+)\)/); if(m) rel[m[1]]=+m[2]; }
   const feed=[]; const autores=id("feedsdk_actor_name"), corpos=id("feedsdk_body"), quando=id("feedsdk_date");
-  corpos.forEach((t,i)=>feed.push({valores:{Autor:(autores[i]||"").replace(/\s*\(.*\)$/,""),Perfil:((autores[i]||"").match(/\((.*)\)/)||[])[1]||"",Quando:quando[i]||"",Texto:t}}));
+  const vistos=new Set();
+  corpos.forEach((t,i)=>{ const k=(autores[i]||"")+"|"+t; if(vistos.has(k)) return; vistos.add(k); feed.push({valores:{Autor:(autores[i]||"").replace(/\s*\(.*\)$/,""),Perfil:((autores[i]||"").match(/\((.*)\)/)||[])[1]||"",Quando:quando[i]||"",Texto:t.replace(/\s+/g," ").trim()}}); });
   Object.assign(c,{"Nº OT":c["Nº OT"]||um("title")||um("record_view_toolbar_title"), "Hora início":hi||"", "Hora fim":hf||"",
     "Morada":um("saoverview_address"), "Estado":sub[2]||"", "Tipo de OT":c["Tipo de OT"]||sub[0]||"", "Tecnologia":c["Tecnologia"]||sub[1]||""});
   const passos=um("work_plan_completed_steps");
@@ -598,7 +602,7 @@ function fsAgenda(txt){
 }
 function fsSepararLeituras(txt){   // várias leituras coladas seguidas: cada uma vem por ordem alfabética das chaves → nova leitura quando a ordem recomeça
   const blocos=[]; let cur=[], ant="";
-  for(const l of String(txt||"").replace(/\r/g,"").split("\n")){
+  for(const l of fsNormalizar(txt).split("\n")){
     if(/^#{3,}/.test(l.trim())){ if(cur.length) blocos.push(cur.join("\n")); cur=[]; ant=""; continue; }
     const m=l.match(/^\[[^\]]*id\/([\w.]+?)(?:\$(\d+))?\]:/); const k=m?m[1]+"~"+String(m[2]||1).padStart(3,"0"):"";
     if(k&&ant&&k<ant&&cur.length){ blocos.push(cur.join("\n")); cur=[]; }
@@ -615,6 +619,25 @@ function fsJuntarAgenda(leituras){   // várias leituras (ecrãs a deslizar) →
       if(!por[k]) por[k]=o; else for(const [c,v] of Object.entries(o.campos)) if(v&&!por[k].campos[c]) por[k].campos[c]=v; } }
   const ots=Object.values(por).sort((a,b)=>(a.data+a.campos["Hora início"]).localeCompare(b.data+b.campos["Hora início"]));
   return {total, ots};
+}
+
+// lista "Não Seriados": nome → Tipo de não seriado (MAT_x material / TAR_x tarefa) → Quantidade → Unidade. Várias leituras sem repetir.
+function fsNaoSeriados(txt){
+  const L=fsLinhas(txt).filter(x=>x.ix>=0).map(x=>x.v), CHAVE=/^(Tipo de não seriado|Quantidade|Unidade|Voltar|Menu Ações|Ações|Agenda|Técnico|Eqs\. do Dia|Notificações|Perfil)$/i;
+  const por={}; let total=null;
+  for(let i=0;i<L.length;i++){
+    const t=L[i].match(/^Não seriados\s*\((\d+)\)/i); if(t){ total=+t[1]; continue; }
+    if(L[i+1]!=="Tipo de não seriado"||CHAVE.test(L[i])) continue;
+    const it={nome:L[i], tipo:"", qtd:"", unidade:""};
+    for(let j=i+1;j<Math.min(L.length,i+8);j++){
+      if(L[j]==="Tipo de não seriado"&&!CHAVE.test(L[j+1]||"")) it.tipo=L[j+1];
+      else if(L[j]==="Quantidade"&&!CHAVE.test(L[j+1]||"")) it.qtd=L[j+1];
+      else if(L[j]==="Unidade"){ if(L[j+1]&&!CHAVE.test(L[j+1])&&L[j+2]!=="Tipo de não seriado") it.unidade=L[j+1]; break; }
+    }
+    it.classe=/^MAT_/i.test(it.tipo)?"material":/^TAR_/i.test(it.tipo)?"tarefa":"";
+    const k=it.nome+"|"+it.tipo; if(!por[k]) por[k]=it;
+  }
+  return {total, itens:Object.values(por)};
 }
 
 async function lerAgendaTexto(texto){
@@ -637,6 +660,45 @@ async function lerAgendaTexto(texto){
     CAP_MSG=`✓ ${r.ots.length} OT${r.ots.length>1?"s":""} lidas da Agenda (texto exato) · ${Object.keys(dias).map(d=>d.slice(8,10)+"/"+d.slice(5,7)).join(", ")}${falta}`; aviso(CAP_MSG);
     try{ render(); }catch(_){} if(VISTA==="ini") renderIni();
   }catch(e){ CAP_MSG="⚠ Leitura da Agenda: "+esc(e.message||e); aviso(CAP_MSG); }
+}
+// ---------- OTs recolhidas uma a uma (macro "CR Coleta OT"): blocos "##OT##" com o ecrã da OT + Equipamentos + Não Seriados
+function fsColeta(txt){
+  const blocos=fsNormalizar(txt).split(/##OT##/).map(b=>b.trim()).filter(b=>/id\/(title|record_view_toolbar_title)\]/.test(b));
+  const por={};
+  for(const b of blocos){
+    const o=fsOT(b); const n=o.campos["Nº OT"]; if(!n) continue;
+    const eq=fsEquipamentos(b).filter(e=>e.nome&&!/^(Equipamentos e servi|Não seriados)/i.test(e.nome));
+    const ns=fsNaoSeriados(b).itens;
+    const ot={data:o.data, campos:o.campos, feed:o.feed.map(f=>f.valores),
+      equip:eq.map(e=>({"Equipamento / Serviço":e.nome,"Ação":e.acao,"Mensagem":e.motivo||"","Nº Série":e.serie||""})),
+      naoser:ns.map(i=>({"Material / Tarefa":i.nome,"Código":i.tipo,"Quantidade":i.qtd,"Unidade":i.unidade})),
+      relacionados:o.relacionados, completa:true};
+    const ant=por[n]; if(!ant){ por[n]=ot; continue; }
+    for(const k of ["equip","naoser","feed"]){ const vis=new Set(ant[k].map(x=>JSON.stringify(x))); for(const x of ot[k]) if(!vis.has(JSON.stringify(x))) ant[k].push(x); }
+    for(const [c,v] of Object.entries(ot.campos)) if(v&&!ant.campos[c]) ant.campos[c]=v;
+  }
+  return Object.values(por);
+}
+async function lerColetaTexto(texto){
+  const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
+  try{
+    if(texto==null){ try{ texto=await navigator.clipboard.readText(); }catch(_){ texto=""; } }
+    if(!/##OT##/.test(texto||"")){ CAP_MSG="⚠ A área de transferência não tem OTs recolhidas. Corra a macro CR Coleta OT dentro de cada OT."; aviso(CAP_MSG); return; }
+    const ots=fsColeta(texto);
+    if(!ots.length){ CAP_MSG="⚠ Não reconheci OTs no texto recolhido."; aviso(CAP_MSG); return; }
+    const dias={};
+    for(const o of ots){ const d=o.data||hojeISO(); const base=(AGR[d]?.ots||[]).map(x=>({...x})); (dias[d]=dias[d]||base); 
+      const i=dias[d].findIndex(x=>x.campos?.["Nº OT"]===o.campos["Nº OT"]);
+      const novo={id:"r_"+d.replace(/-/g,"")+"_"+(o.campos["Hora início"]||"").replace(":","")+"_"+o.campos["Nº OT"], campos:o.campos, equip:o.equip, naoser:o.naoser, feed:o.feed, completa:true};
+      if(i>=0) dias[d][i]={...dias[d][i], ...novo, campos:{...dias[d][i].campos, ...o.campos}}; else dias[d].push(novo); }
+    for(const d in dias) dias[d].sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
+    if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
+    for(const d in dias) AGR[d]={data:d,ots:dias[d]};
+    DIAS=DIAS.filter(d=>!d.rapida); juntarAgendaRapida();
+    const nEq=ots.reduce((s,o)=>s+o.equip.filter(e=>e["Nº Série"]).length,0), nMat=ots.reduce((s,o)=>s+o.naoser.filter(n=>/^MAT_/i.test(n["Código"])).length,0);
+    CAP_MSG=`✓ ${ots.length} OT${ots.length>1?"s":""} completa${ots.length>1?"s":""} (texto exato) · ${nEq} nº de série · ${nMat} materiais`; aviso(CAP_MSG);
+    try{ render(); }catch(_){} if(VISTA==="ini") renderIni();
+  }catch(e){ CAP_MSG="⚠ Leitura das OTs: "+esc(e.message||e); aviso(CAP_MSG); }
 }
 function pedirTextoAgenda(){   // se o browser não deixar ler a área de transferência: colar à mão
   $("#txtAgVisor")?.remove();
@@ -734,6 +796,7 @@ function renderIni(){
   const g=(GUIAS||[])[0], C=M&&M.custos||{}, pend=(CENTRADA||[]).length;
   const otsHoje=dia?dia.ots.length:0, realHoje=dia?dia.ots.filter(real).length:0;
   el.innerHTML=`<div class="isaud">${saud}, Carlos<small>${esc(dt)}</small></div>
+    <button class="itile ok" id="colBtn" onclick="lerColetaTexto()"><span class="t">📋 Ler OTs recolhidas</span><span>Depois da macro CR Coleta OT: equipamentos, nº de série, materiais e Feed</span></button>
     <button class="itile ok" id="txtBtn" onclick="lerAgendaTexto()" style="${location.hash==="#texto"?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📋 Ler Agenda (texto)</span><span>Depois da macro: lê o texto copiado da Agenda — valores exatos</span></button>
     <button class="itile" id="capBtn" onclick="escolherCapturasAgenda()" style="${location.hash==="#ler"?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📷 Ler capturas da Agenda</span><span>Escolha as capturas da Agenda (pasta Screenshots) — lê as OTs sozinho</span></button>
     <div class="itile ${CAP_MSG.startsWith("✓")?"ok":""}" id="capAviso" ${CAPT_A_CORRER||CAP_MSG||Object.keys(CAPT_LOTES||{}).length?"":"hidden"} style="font-size:13.5px;color:var(--fg)">${CAPT_A_CORRER||!CAP_MSG?"⚡ Há capturas da Agenda por ler…":CAP_MSG}</div>
