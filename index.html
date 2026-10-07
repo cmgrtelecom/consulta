@@ -360,7 +360,7 @@ const fSem=d=>DIAS_SEM[new Date(d+"T12:00:00").getDay()];
 const fMin=m=>m==null?"–":(m>=60?`${Math.floor(m/60)}h${String(m%60).padStart(2,"0")}`:`${m} min`);
 function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeout(e._t);e._t=setTimeout(()=>e.hidden=true,3200);}
 
-let CAPT_LOTES={}, AGR={}, CAPT_A_CORRER=false, CAP_MSG="";
+let AGR={}, CAP_MSG="", AUTO_LIDO=false;
 let DIAS=[], PERIODO="30", ESTADO="todas", DB=null, ABERTA=null, TAB="det";
 const CAMPOS=["Nº OT","Estado","Hora início","Hora fim","Tipo de tarefa","Tipo de OT","Categoria","Tecnologia","Tipo de cliente","Nome de cliente","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Morada","Password ONT","Conta de serviço","Observações","Sintoma","Fibra ligada","Reincidente Manut","Reincidente RGU","Parceiro responsável","PD","TAP / CMPT","Lig. prédio","N.º UA / PA","Cód. emp.","PLC","Tipo infraestrutura","N.º porta PLC","Access ID","Latitude PLC","Longitude PLC","Célula"];
 const PROTEGIDOS=new Set(["Password ONT"]);   // completos só no PC; aqui só asteriscos
@@ -390,52 +390,7 @@ $("#btnMenu").onclick=e=>{ e.stopPropagation(); const p=$("#menu3Pop"); p.hidden
   $("#menuInfo").textContent=[(SESSAO&&SESSAO.email)||"", $("#sinc").textContent].filter(Boolean).join(" · "); };
 document.addEventListener("click",e=>{ const p=$("#menu3Pop"); if(p&&!p.hidden&&!e.target.closest("#menu3")) p.hidden=true; });
 $("#fab").onclick=()=>{ FIN_SUB="custos"; FIN_ADD=true; FC_DOC=null; mudarVista("fin"); };
-// ---------- Agenda rápida: capturas do MacroDroid → OCR no telemóvel → OTs do dia (sem PC)
-// Lê o texto (OCR) de capturas da Agenda do Field Service e devolve as OTs
-const MESES_PT={JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
-function agNorm(t){ return String(t||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase(); }
-function parseAgenda(texto){
-  const linhas=String(texto||"").replace(/\r/g,"").split("\n").map(l=>l.trim()).filter(Boolean);
-  const reData=/(SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|SABADO|DOMINGO)[- ]*(?:FEIRA)?\W*(\d{1,2})\s*([A-Z]{3})\W*(\d{4})/;
-  const reHora=/(\d{1,2})\s*[:.]\s*(\d{2})\s*[-–—]+\s*(\d{1,2})\s*[:.]\s*(\d{2})/;
-  const blocos=[]; let cur=null;
-  for(let i=0;i<linhas.length;i++){
-    const n=agNorm(linhas[i]); const md=n.match(reData);
-    if(md && !/^HOJE/.test(n)){
-      const mes=MESES_PT[md[3]]; if(!mes) continue;
-      cur={data:`${md[4]}-${String(mes).padStart(2,"0")}-${String(md[2]).padStart(2,"0")}`, linhas:[]}; blocos.push(cur); continue;
-    }
-    if(cur) cur.linhas.push(linhas[i]);
-  }
-  const ots=[];
-  for(const b of blocos){
-    const txt=b.linhas.join(" "), N=agNorm(txt);
-    const h=txt.match(reHora); if(!h) continue;
-    const hi=`${h[1].padStart(2,"0")}:${h[2]}`, hf=`${h[3].padStart(2,"0")}:${h[4]}`;
-    // nº da OT (ex.: SFa3Icy00000Lp3O0AAJ): o OCR às vezes lê "5F"/"SE" e parte o código com espaços
-    let sf=((txt.match(/[S5][FE][A-Za-z0-9]{3,6}\s?[0O]{4,6}\s?[A-Za-z0-9]{5,10}/)||[""])[0]).replace(/\s+/g,"");
-    if(sf) sf=("SF"+sf.slice(2)).replace(/^(SF[A-Za-z0-9]{5})([0O]{5})/,(m,a,b)=>a+b.replace(/O/g,"0"));
-    const tipoM=N.match(/(INSTALA\w*|MANUTEN\w*|ALTERA\w*|RESTABELEC\w*|DESLIGA\w*|RECOLHA\w*|MUDAN\w*|AVARIA\w*)(\s+(INDIVIDUAL|COLETIVA|COLECTIVA|DE\s+SERVICO))?/);
-    const tipoMap={INSTALA:"Instalação",MANUTEN:"Manutenção",ALTERA:"Alteração de serviço",RESTABELEC:"Restabelecimento",DESLIGA:"Desligamento",RECOLHA:"Recolha",MUDAN:"Mudança de morada",AVARIA:"Avaria"};
-    let tipo=""; if(tipoM){ const k=Object.keys(tipoMap).find(k=>tipoM[1].startsWith(k)); tipo=tipoMap[k]+(tipoM[3]?" "+tipoM[3].toLowerCase().replace("servico","serviço"):""); }
-    const estM=N.match(/(NAO\s+REALIZADA|REALIZADA|EM\s+CURSO|EM\s+EXECUCAO|EM\s+DESLOCACAO|AGENDAD[AO]|ATRIBUID[AO]|DESPACHAD[AO]|CANCELAD[AO]|PENDENTE|SUSPENS[AO]|NOVA|ACEITE)/);
-    const estMap={"NAO REALIZADA":"Não Realizada","REALIZADA":"Realizada","EM CURSO":"Em curso","EM EXECUCAO":"Em execução","EM DESLOCACAO":"Em deslocação"};
-    const estado=estM?(estMap[estM[1].replace(/\s+/g," ")]||estM[1].charAt(0)+estM[1].slice(1).toLowerCase()):"";
-    const tec=(N.match(/\b(FTTH|HFC|DTH|ADSL|GPON)\b/)||[""])[0];
-    let cel=(N.match(/\b([A-Z]{2,4}[0-9O]{2})\b(?=\W+(NORMAL|URGENTE|ALTA|BAIXA|PRIORIT))/)||[])[1]||"";
-    cel=cel.replace(/O(?=[0-9O]*$)/g,"0");
-    const prio=(N.match(/\b(NORMAL|URGENTE|ALTA|BAIXA|PRIORITARIA)\b/)||[""])[0];
-    const telM=txt.replace(/(\d)\s(?=\d)/g,"$1").match(/\b([29]\d{8})\b/); const tel=telM?telM[1]:"";
-    let nome="";
-    if(prio&&tel){ const a=N.indexOf(prio)+prio.length, z=N.indexOf(tel.slice(0,3),a); const seg=txt.slice(a,z>a?z:undefined);
-      // tira ícones lidos como símbolos (« » + * • ° = | ~ …) no início e no fim do nome
-      nome=seg.replace(/^[^A-Za-zÀ-ÿ0-9]+|[^A-Za-zÀ-ÿ0-9.)]+$/g,"").replace(/\s+[«»+*•°=|~]+\s+/g," ").replace(/\s+/g," ").trim(); }
-    let morada=""; if(tel){ const p=txt.indexOf(tel.slice(-4)); if(p>0){ morada=txt.slice(p+4).replace(/^[\s•*°=·\-.,]+/,""); const q=morada.search(/Portugal/i); if(q>0) morada=morada.slice(0,q+8); morada=morada.replace(/\s+/g," ").trim(); } }
-    ots.push({data:b.data, hi, hf, sf, tipo, tec, estado, cel, prio:prio?prio.charAt(0)+prio.slice(1).toLowerCase():"", nome, tel, morada});
-  }
-  return ots;
-}
-
+// ---------- Leitura rápida pelo telemóvel (MacroDroid → texto do ecrã → Consulta; sem PC)
 function juntarAgendaRapida(){
   const tem=new Set(DIAS.map(d=>d.data));
   for(const [data,d] of Object.entries(AGR||{})){
@@ -504,46 +459,6 @@ async function kmRapido(dia){
   dia.resumo.km_estrada=Math.round(tot*10)/10;
   if(DIAS.includes(dia)){ try{ if(VISTA==="ots"||VISTA==="rel") render(); if(VISTA==="rel"&&typeof renderRel==="function") renderRel(); }catch(_){} }
 }
-function capKey(o){ return `${o.data}|${o.hi}|${o.hf}`; }
-function capJuntar(a,b){ const r={...a}; for(const k in b) if((b[k]||"").length>(r[k]||"").length) r[k]=b[k]; return r; }
-async function carregarTesseract(){
-  if(window.Tesseract) return;
-  await new Promise((ok,er)=>{ const s=document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"; s.onload=ok; s.onerror=()=>er(new Error("Sem internet para carregar o leitor de texto.")); document.head.appendChild(s); });
-}
-async function processarCapturas(){
-  if(CAPT_A_CORRER||!SESSAO) return; const lotes=Object.entries(CAPT_LOTES||{}).filter(([k,l])=>(l.imgs||[]).length);
-  if(!lotes.length) return; CAPT_A_CORRER=true;
-  const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
-  try{
-    aviso("⚡ A preparar a leitura das capturas…"); await carregarTesseract();
-    const worker=await Tesseract.createWorker("por");
-    for(const [lote,l] of lotes){
-      const porKey={}; let i=0;
-      for(const cam of l.imgs){
-        i++; aviso(`⚡ A ler a captura ${i} de ${l.imgs.length}…`);
-        const t=await token(); const r=await fetch(`${SUPA_URL}/storage/v1/object/authenticated/folhas/${cam.split("/").map(encodeURIComponent).join("/")}`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
-        if(!r.ok) continue;
-        const {data:{text}}=await worker.recognize(await r.blob());
-        for(const o of parseAgenda(text)){ const k=capKey(o); porKey[k]=porKey[k]?capJuntar(porKey[k],o):o; }
-      }
-      const ots=Object.values(porKey), dias={};
-      for(const o of ots){ (dias[o.data]=dias[o.data]||[]).push({id:"r_"+o.data.replace(/-/g,"")+"_"+o.hi.replace(":","")+"_"+(o.tel||"x"), campos:{"Nº OT":o.sf,"Estado":o.estado,"Hora início":o.hi,"Hora fim":o.hf,"Tipo de OT":o.tipo,"Tecnologia":o.tec,"Nome de cliente":o.nome,"Contacto de cliente":o.tel,"Morada":o.morada,"Célula":o.cel,"Tipo de tarefa":o.prio}}); }
-      if(!ots.length){ aviso("⚠ Não reconheci OTs nestas capturas. Confirme que o MacroDroid fotografou a Agenda."); await chamarGuias({acao:"captura_descartar",lote}); continue; }
-      for(const d in dias) dias[d].sort((a,b)=>a.campos["Hora início"].localeCompare(b.campos["Hora início"]));
-      await chamarGuias({acao:"agenda_guardar",lote,dias});
-      for(const d in dias) AGR[d]={data:d,ots:dias[d]};
-      delete CAPT_LOTES[lote];
-      DIAS=DIAS.filter(d=>!d.rapida); juntarAgendaRapida();
-      CAP_MSG=`✓ ${ots.length} OT${ots.length>1?"s":""} lidas da Agenda (${Object.keys(dias).map(d=>d.slice(8,10)+"/"+d.slice(5,7)).join(", ")}).`; aviso(CAP_MSG);
-    }
-    await worker.terminate();
-    CAPT_A_CORRER=false;
-    try{ render(); }catch(_){}
-    if(VISTA==="ini") renderIni();
-  }catch(e){ CAP_MSG="⚠ Leitura das capturas: "+esc(e.message||e); aviso(CAP_MSG); }
-  finally{ CAPT_A_CORRER=false; }
-}
-
 // ---------- Agenda a partir do TEXTO do ecrã (MacroDroid "Ler conteúdo da tela" → área de transferência). Sem OCR: valores exatos.
 // Leitura do TEXTO do ecrã do Field Service (MacroDroid "Ler conteúdo da tela" ou adb uiautomator).
 // Sem OCR: os valores vêm exatos. Partilhado pela Consulta (telemóvel) e pelo PC.
@@ -725,48 +640,32 @@ async function lerColetaTexto(texto){
     try{ render(); }catch(_){} if(VISTA==="ini") renderIni();
   }catch(e){ CAP_MSG="⚠ Leitura das OTs: "+esc(e.message||e); aviso(CAP_MSG); }
 }
+// ---------- Um só botão: o texto copiado pela macro pode ter a Agenda do dia e/ou OTs recolhidas (blocos ##OT##) — deteta sozinho
+async function lerTelemovel(texto, auto){
+  const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
+  if(texto==null){ try{ texto=await navigator.clipboard.readText(); }catch(_){ texto=""; } }
+  texto=String(texto||"");
+  const partes=texto.split(/##OT##/), agenda=partes[0], ots=partes.slice(1).join("##OT##");
+  const temAg=/schedule_item_single_title/.test(agenda), temOT=partes.length>1&&/id\/(title|record_view_toolbar_title)\]/.test(ots);
+  if(!temAg&&!temOT){ if(auto) return; return pedirTextoAgenda(); }
+  const msgs=[];
+  if(temAg){ await lerAgendaTexto(agenda); msgs.push(CAP_MSG); }
+  if(temOT){ await lerColetaTexto("##OT##"+ots); msgs.push(CAP_MSG); }
+  CAP_MSG=msgs.join("<br>"); aviso(CAP_MSG);
+  if(auto&&!/⚠/.test(CAP_MSG)){ try{ history.replaceState(null,"",location.pathname); }catch(_){} }
+}
 function pedirTextoAgenda(){   // se o browser não deixar ler a área de transferência: colar à mão
   $("#txtAgVisor")?.remove();
   const v=document.createElement("div"); v.id="txtAgVisor";
   v.style.cssText="position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column;padding:14px;gap:10px";
-  v.innerHTML=`<b>📋 Colar o texto da Agenda</b><span style="font-size:13px;color:var(--muted)">Mantenha o dedo na caixa e escolha <b>Colar</b>.</span>
+  v.innerHTML=`<b>📋 Colar o texto copiado pela macro</b><span style="font-size:13px;color:var(--muted)">Mantenha o dedo na caixa e escolha <b>Colar</b>.</span>
     <textarea id="txtAg" style="flex:1;width:100%;font:12px monospace;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)"></textarea>
     <div style="display:flex;gap:8px"><button class="folha-btn" id="txtAgOk" style="flex:1">Ler</button><button class="folha-btn" id="txtAgX" style="background:var(--surface);color:var(--accent)">Fechar</button></div>`;
   document.body.appendChild(v);
   $("#txtAgX").onclick=()=>v.remove();
-  $("#txtAgOk").onclick=()=>{ const t=$("#txtAg").value; v.remove(); lerAgendaTexto(t); };
+  $("#txtAgOk").onclick=()=>{ const t=$("#txtAg").value; v.remove(); lerTelemovel(t); };
 }
 
-// ---------- Agenda a partir de capturas escolhidas no telemóvel (sem envio pelo MacroDroid)
-async function lerImagensAgenda(files){
-  files=[...(files||[])].filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp)$/i.test(f.name));
-  if(!files.length||CAPT_A_CORRER) return; CAPT_A_CORRER=true;
-  const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
-  try{
-    aviso("⚡ A preparar a leitura das capturas…"); await carregarTesseract();
-    const worker=await Tesseract.createWorker("por"); const porKey={}; let i=0;
-    files.sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name));
-    for(const f of files){ i++; aviso(`⚡ A ler a captura ${i} de ${files.length}…`);
-      const {data:{text}}=await worker.recognize(f);
-      for(const o of parseAgenda(text)){ const k=capKey(o); porKey[k]=porKey[k]?capJuntar(porKey[k],o):o; } }
-    await worker.terminate();
-    const ots=Object.values(porKey), dias={};
-    if(!ots.length){ CAP_MSG="⚠ Não reconheci OTs nestas imagens. Escolha capturas da Agenda do Field Service."; aviso(CAP_MSG); return; }
-    for(const o of ots){ (dias[o.data]=dias[o.data]||[]).push({id:"r_"+o.data.replace(/-/g,"")+"_"+o.hi.replace(":","")+"_"+(o.tel||"x"), campos:{"Nº OT":o.sf,"Estado":o.estado,"Hora início":o.hi,"Hora fim":o.hf,"Tipo de OT":o.tipo,"Tecnologia":o.tec,"Nome de cliente":o.nome,"Contacto de cliente":o.tel,"Morada":o.morada,"Célula":o.cel,"Tipo de tarefa":o.prio}}); }
-    for(const d in dias) dias[d].sort((a,b)=>a.campos["Hora início"].localeCompare(b.campos["Hora início"]));
-    if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
-    for(const d in dias) AGR[d]={data:d,ots:dias[d]};
-    DIAS=DIAS.filter(d=>!d.rapida); juntarAgendaRapida();
-    CAP_MSG=`✓ ${ots.length} OT${ots.length>1?"s":""} lidas da Agenda (${Object.keys(dias).map(d=>d.slice(8,10)+"/"+d.slice(5,7)).join(", ")}).`; aviso(CAP_MSG);
-    CAPT_A_CORRER=false; try{ render(); }catch(_){} if(VISTA==="ini") renderIni();
-  }catch(e){ CAP_MSG="⚠ Leitura das capturas: "+esc(e.message||e); aviso(CAP_MSG); }
-  finally{ CAPT_A_CORRER=false; }
-}
-function escolherCapturasAgenda(){
-  let inp=$("#capFich"); if(!inp){ inp=document.createElement("input"); inp.type="file"; inp.id="capFich"; inp.accept="image/*"; inp.multiple=true; inp.hidden=true;
-    inp.addEventListener("change",()=>{ const f=[...inp.files]; inp.value=""; lerImagensAgenda(f); }); document.body.appendChild(inp); }
-  inp.click();
-}
 
 // ---------- comparar: leitura rápida (capturas) de um dia que já tem a coleta do PC — só para ver, não entra nas contas
 function verLeituraRapida(data){
@@ -790,7 +689,7 @@ function verLeituraRapida(data){
       <div style="font-size:13px;color:var(--muted)">${esc(c.Morada||"—")}</div>
       <div style="font-size:12px;margin-top:3px;color:${ok?"var(--ok)":"var(--warn)"}">${ok?"✓ também está na coleta do PC":"! não encontrada na coleta do PC (hora/telefone diferentes?)"}</div></div>`; };
   v.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)">
-      <b style="flex:1">⚡ Leitura rápida · ${fData(data)}<br><span style="font-weight:400;font-size:12.5px;color:var(--muted)">${r.ots.length} OTs lidas das capturas · coleta do PC: ${pc.length} OTs · só para comparar</span></b>
+      <b style="flex:1">⚡ Leitura rápida · ${fData(data)}<br><span style="font-weight:400;font-size:12.5px;color:var(--muted)">${r.ots.length} OTs lidas no telemóvel · coleta do PC: ${pc.length} OTs · só para comparar</span></b>
       <button id="agrFechar" class="folha-btn">✕ Fechar</button></div>
     <div style="flex:1;overflow:auto">${r.ots.map(linha).join("")}</div>`;
   document.body.appendChild(v); document.body.style.overflow="hidden";
@@ -821,10 +720,8 @@ function renderIni(){
   const g=(GUIAS||[])[0], C=M&&M.custos||{}, pend=(CENTRADA||[]).length;
   const otsHoje=dia?dia.ots.length:0, realHoje=dia?dia.ots.filter(real).length:0;
   el.innerHTML=`<div class="isaud">${saud}, Carlos<small>${esc(dt)}</small></div>
-    <button class="itile ok" id="colBtn" onclick="lerColetaTexto()"><span class="t">📋 Ler OTs recolhidas</span><span>Depois da macro CR Coleta OT: equipamentos, nº de série, materiais e Feed</span></button>
-    <button class="itile ok" id="txtBtn" onclick="lerAgendaTexto()" style="${location.hash==="#texto"?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📋 Ler Agenda (texto)</span><span>Depois da macro: lê o texto copiado da Agenda — valores exatos</span></button>
-    <button class="itile" id="capBtn" onclick="escolherCapturasAgenda()" style="${location.hash==="#ler"?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📷 Ler capturas da Agenda</span><span>Escolha as capturas da Agenda (pasta Screenshots) — lê as OTs sozinho</span></button>
-    <div class="itile ${CAP_MSG.startsWith("✓")?"ok":""}" id="capAviso" ${CAPT_A_CORRER||CAP_MSG||Object.keys(CAPT_LOTES||{}).length?"":"hidden"} style="font-size:13.5px;color:var(--fg)">${CAPT_A_CORRER||!CAP_MSG?"⚡ Há capturas da Agenda por ler…":CAP_MSG}</div>
+    <button class="itile ok" id="telBtn" onclick="lerTelemovel()" style="${/^#(texto|auto)$/.test(location.hash)?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📲 Ler do telemóvel</span><span>Depois da macro: Agenda do dia + OTs recolhidas (equipamentos, nº de série, materiais, Feed) — tudo de uma vez</span></button>
+    <div class="itile ${CAP_MSG.startsWith("✓")?"ok":""}" id="capAviso" ${CAP_MSG?"":"hidden"} style="font-size:13.5px;color:var(--fg)">${CAP_MSG}</div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%"></i></div>
       <span>${dP&&dP.ots?esc(fmix(dP.mix))+" · ":""}${dP?sug:"Ainda sem OTs de hoje no painel (aparecem depois da coleta)."}</span></button>
@@ -868,7 +765,7 @@ function render(){
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
     const r=d.resumo||{};
-    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido das capturas da Agenda (MacroDroid). A coleta completa no PC acrescenta equipamentos e materiais.">⚡ leitura rápida</span> ':""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""}${!d.rapida&&AGR&&AGR[d.data]&&(AGR[d.data].ots||[]).length?`<button class="folha-btn mini" data-agr="${d.data}" title="Ver o que foi lido das capturas da Agenda neste dia (não entra nas contas)">⚡ ver leitura rápida</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
+    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido no telemóvel (MacroDroid).">⚡ leitura rápida</span> ':""}${d.rapida?`<button class="folha-btn mini" data-gerar-dia="${d.data}" title="Folhas de obra de todas as OTs do dia (geradas agora no telemóvel)">📄 Folhas do dia</button> `:""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""}${!d.rapida&&AGR&&AGR[d.data]&&(AGR[d.data].ots||[]).length?`<button class="folha-btn mini" data-agr="${d.data}" title="Ver o que foi lido no telemóvel neste dia (não entra nas contas)">⚡ ver leitura rápida</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
       ots.map(o=>{const c=o.campos, ok=realizada(o);
         return `<button class="ot" data-d="${esc(d.data)}" data-o="${esc(o.id)}">
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
@@ -1067,7 +964,7 @@ function desenharFicha(){
   let h="";
   if(TAB==="det"){
     const loc = r.lat&&r.lng ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : (c.Morada?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.Morada)}`:null);
-    h+=`<div class="acoes">${o.folha?`<button class="folha-btn" data-f="${esc(o.folha)}">📄 Folha de obra</button>`:""}${loc?`<a href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
+    h+=`<div class="acoes">${o.folha?`<button class="folha-btn" data-f="${esc(o.folha)}">📄 Folha de obra</button>`:(d.rapida?`<button class="folha-btn" data-gerar="1" title="Gerada agora, com os dados lidos no telemóvel">📄 Folha de obra</button>`:"")}${loc?`<a href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
     if(!realizada(o)||r.reagendada) h+=`<div class="bloco"><h4>Improdutividade</h4><dl><dt>Motivo</dt><dd>${esc(r.motivo||"—")}</dd>${r.reagendada?`<dt>Reagendada para</dt><dd>${esc(r.reagendada)}</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Agendamento prévio</h4><dl><dt>Situação</dt><dd>${esc(r.agendamento||"—")}</dd><dt>Evidência</dt><dd>${esc(r.evidencia||"—")}</dd>${r.km_estrada!=null?`<dt>Desde a OT anterior</dt><dd>${r.km_estrada} km · ≈${fMin(r.min_conducao)} de condução</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Detalhes da OT</h4><dl>`+CAMPOS.filter(k=>c[k]).map(k=>{ const prot=PROTEGIDOS.has(k);
@@ -1419,6 +1316,147 @@ async function abrirFolha(caminho, btn){
 }
 document.addEventListener("click",e=>{ const b=e.target.closest(".folha-btn[data-f]"); if(b){ e.preventDefault(); e.stopPropagation(); abrirFolha(b.dataset.f,b); } }, true);
 
+// ---------- Folhas de obra geradas na Consulta (OTs lidas no telemóvel) — mesmo modelo PROEF IP.ET.001.00 e mesmas regras do PC (folhas_obra.py)
+const FO_MODELO_CAMINHO="modelo/Folha_obra_RIC.pdf", FO_EMPRESA="CR Telecom", FO_H=841.92;
+const FO_LIM=[201.7,209.4,217.1,224.8,232.5,240.2,247.9,255.6,263.3,271.0,278.7,286.5,294.1,301.9,309.5,317.2,324.9,332.6,340.3,348.0,355.8,363.4,371.2,378.8,386.6,394.3,401.9,409.7,417.3,425.1,
+  432.7,440.5,448.2,455.9,463.6,471.2,479.0,486.6,494.4,502.1,509.8,517.5,525.1,532.9,540.6,548.3,556.0,563.7,571.4,579.1,586.8,594.5,601.6,608.7,615.8,622.9,629.9,636.9,644.0,651.0,
+  658.2,665.2,672.2,679.2,686.2,693.4,700.5,707.5,714.5,721.5,728.6,735.8,742.8,749.8,756.8,763.8,771.0,778.0,785.1,792.1,802.7];
+const FO_COLS={E:{inst:[228.6,263.5],ret:[263.9,297.0]}, D:{inst:[473.4,508.3],ret:[508.7,541.8]}};
+const FO_CAB={celula:[271,346,131.5], data:[443,527,131.5], tipo:[120,195,153.5], ot:[271,346,153.5], cliente:[443,527,153.5]};
+const FO_LINHAS={"E1":"BOX 2.0 HD SAT (CONS.)","E7":"Router Wi-Fi 6.0 FTTH (STRONG)","E14":"BOX 3.0 ULTRA HD (CONS.)","E15":"BOX 3.0 ULTRA HD V2 (CONS.)","E17":"DTA (INTEK)",
+  "E18":"EXTENDER MESH WIFI SAGEMCOM (CONS)","E19":"EXTENDER MESH WIFI SUPERPOD SAGEMCOM","E20":"EXTENDER SUPERPOD 6E SAGEMCOM","E22":"PACK BOX NVIDIA SHIELD TV",
+  "E23":"PACK CARTÃO ÚNICO VOZ (CONS.)","E24":"VOIP - ONT (HUAWEI H8012H) (CONS.)","E25":"VOIP - ONT ZTE F612C (DST)","E26":"VOIP - Router Wi-Fi 5.0 FTTH (Sagem) (Cons.)",
+  "E27":"VOIP - ROUTER WI-FI 6.0 FTTH (SAGEM)","E60":"WOO - EXTENDER MESH WIFI SAGEMCOM","E61":"WOO - PACK CARTAO SIM","E62":"ROUTER FIBRA WOO 6.0 (SAGEM FTTH)",
+  "D9":"Adaptador Tomada Ótica SC/APC","D11":"Atenuador 10db FTTH","D13":"Cabo Fibra Exterior 2FO","D14":"Cabo HDMI High Speed","D21":"CABO SCART","D28":"COMANDO 1.0","D29":"COMANDO 2.0",
+  "D30":"COMANDO 3.0 IR PRETO (KAON)","D31":"MP Comando 3.0 Preto v2","D32":"MP Comando 5.0 / 5.0 v2","D33":"MP COMANDO APPLE TV 2021","D56":"Patchcord 0,5m","D57":"Patchcord 1m",
+  "D58":"Patchcord 2m","D59":"PIGTAIL SC/APC 1M","D60":"Repartidor 2 vias","D61":"Repartidor 3 vias","D62":"Repartidor 4 vias","D67":"Tomada Ótica"};
+const FO_EQ=[[/router.*woo|woo.*router/,"E62"],[/router.*6\.0/,"E27"],[/router.*5\.0/,"E26"],[/\bdta\b/,"E17"],[/box 3\.0.*v2/,"E15"],[/box 3\.0/,"E14"],[/nvidia|shield/,"E22"],
+  [/\bont\b/,null],[/extender|plume|superpod/,null],[/box|android|cartao|sim\b/,null]];
+const FO_MAT=[[/patch ?cord 0[,.]5/,"D56"],[/patch ?cord 1/,"D57"],[/patch ?cord 2/,"D58"],[/pigtail/,"D59"],[/adaptador.*tomada/,"D9"],[/tomada o?tica/,"D67"],
+  [/fibra exterior/,"D13"],[/atenuador/,"D11"],[/repartidor 2/,"D60"],[/repartidor 3/,"D61"],[/repartidor 4/,"D62"],[/comando 1\.0/,"D28"],[/comando 2\.0/,"D29"],[/comando 3\.0/,"D31"],
+  [/comando 5\.0|android tv/,"D32"],[/comando.*apple/,"D33"],[/scart/,"D21"],[/hdmi/,"D14"]];
+const FO_FISICO=/router|\bont\b|box|android|extender|plume|\bdta\b|cartao (cabo|sim)|cartao sim|cfs cartao|modem|camara|detetor|sensor|sirene|teclado|repetidor|telefone s\/? ?fios|decoder|antena/;
+const foNorm=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const foLinha=(nome,mapa)=>{ const n=foNorm(nome); for(const [rx,l] of mapa) if(rx.test(n)) return l; return null; };
+const foNum=(v,d=1)=>{ const m=String(v??"").match(/\d+(?:[.,]\d+)?/); return m?parseFloat(m[0].replace(",",".")):d; };
+const foFmtN=n=>String(n).replace(".",",");
+function foEstado(c){ const e=foNorm(c.Estado); if(/nao realizada|cancel|anulad/.test(e)) return "nao"; if(/realizada|conclu|fechad/.test(e)) return "ok"; return "previsto"; }
+function foAnalisar(o){
+  const c=o.campos||{}, st=foEstado(c), folha={}, equip=[], mat=[];
+  for(const it of o.equip||[]){ const v=it.valores||it;
+    const nome=v["Equipamento / Serviço"]||"", acao=v["Ação"]||"", serie=String(v["Nº Série"]||"").trim();
+    if(!(FO_FISICO.test(foNorm(nome))||serie)) continue;   // serviço/tarifário: não é equipamento físico
+    const a=foNorm(acao), tipo=/instala/.test(a)?"inst":(/recolh|remo|retir|desinstal|devolu/.test(a)?"ret":null), l=foLinha(nome,FO_EQ);
+    equip.push({nome, acao:acao||"—", serie, linha:l, tipo});
+    if(tipo&&l&&st!=="nao"){ (folha[l]=folha[l]||{inst:0,ret:0})[tipo]+=1; } }
+  for(const it of o.naoser||[]){ const v=it.valores||it, nome=v["Material / Tarefa"]||"", cod=String(v["Código"]||"");
+    if(!/^\s*MAT/i.test(cod)) continue;   // TAR_ = tarefa
+    const q=foNum(v.Quantidade,1), l=foLinha(nome,FO_MAT);
+    mat.push({nome, codigo:cod.replace(/\s*Valor:.*/,"").trim(), qtd:q, linha:l, unid:l==="D13"?"mt":String(v.Unidade||"un").toLowerCase()});
+    if(l&&st!=="nao"){ (folha[l]=folha[l]||{inst:0,ret:0}).inst+=q; } }
+  return {estado:st, folha, equip, mat};
+}
+const foData=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")?d.split("-").reverse().join("/"):(d||"");
+const foTxt=t=>String(t??"").replace(/[^\x20-\x7E\xA0-\xFF–—…•€‘’“”]/g,"?");   // só caracteres que a Helvetica do PDF sabe escrever
+function foNomeFicheiro(o,i){ const c=o.campos||{};
+  const cli=foNorm(c["Nome de cliente"]).toUpperCase().replace(/[^A-Z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,40);
+  const ot=String(c["Nº OT"]||`OT${i+1}`).replace(/[^A-Za-z0-9-]+/g,""), hora=String(c["Hora início"]||"").replace(":","h");
+  return `${String(i+1).padStart(2,"0")}_${hora?hora+"_":""}${ot}_${cli}.pdf`; }
+
+async function carregarPdfLib(){
+  if(window.PDFLib) return;
+  await new Promise((ok,er)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"; s.onload=ok; s.onerror=()=>er(new Error("Sem internet para preparar a folha de obra.")); document.head.appendChild(s); });
+}
+// ots: lista de OTs (campos, equip, naoser) · data "AAAA-MM-DD" · modelo: ArrayBuffer do PDF da PROEF → Uint8Array (2 páginas por OT)
+async function foGerarPdf(PDFLib, modelo, ots, data){
+  const {PDFDocument, StandardFonts, rgb}=PDFLib;
+  const out=await PDFDocument.create(), mod=await PDFDocument.load(modelo);
+  const F=await out.embedFont(StandardFonts.Helvetica), FB=await out.embedFont(StandardFonts.HelveticaBold), FM=await out.embedFont(StandardFonts.CourierBold);
+  out.setTitle(ots.length===1?`Folha de Obra ${ots[0].campos?.["Nº OT"]||""}`:`Folhas de Obra ${foData(data)}`); out.setProducer(FO_EMPRESA);
+  const azul=rgb(0.05,0.2,0.6), cinza=rgb(0.27,0.27,0.27), linhaC=rgb(0.72,0.76,0.84), amarelo=rgb(1,0.957,0.722), azulC=rgb(0.875,0.902,0.961);
+  const ajustado=(pg,txt,[x0,x1,yc])=>{ txt=foTxt(txt); let t=8.5; const w=x1-x0-4;
+    while(t>5&&FB.widthOfTextAtSize(txt,t)>w) t-=0.25;
+    while(FB.widthOfTextAtSize(txt,t)>w&&txt.length>3) txt=txt.slice(0,-2)+"…";
+    pg.drawText(txt,{x:x0+2,y:FO_H-yc-t*0.35,size:t,font:FB,color:azul}); };
+  const partir=(txt,font,size,larg)=>{ const out=[]; for(const par of foTxt(txt).split("\n")){ let l="";
+      for(const p of par.split(/\s+/)){ const t=l?l+" "+p:p; if(font.widthOfTextAtSize(t,size)<=larg){ l=t; continue; }
+        if(l) out.push(l); l=p; while(font.widthOfTextAtSize(l,size)>larg&&l.length>1){ let k=l.length; while(k>1&&font.widthOfTextAtSize(l.slice(0,k),size)>larg) k--; out.push(l.slice(0,k)); l=l.slice(k); } }
+      out.push(l); } return out; };
+  const capas=await out.copyPages(mod,ots.map(()=>0));   // copiadas de uma vez: a imagem do modelo fica 1 vez no PDF
+  for(const [i,o] of ots.entries()){
+    const c=o.campos||{}, an=foAnalisar(o);
+    // ---- página 1: o modelo da PROEF preenchido
+    const p1=capas[i]; out.addPage(p1);
+    ajustado(p1,c["Célula"],FO_CAB.celula); ajustado(p1,foData(data),FO_CAB.data); ajustado(p1,c["Tipo de OT"],FO_CAB.tipo);
+    ajustado(p1,c["Nº OT"],FO_CAB.ot); ajustado(p1,c["Nome de cliente"],FO_CAB.cliente);
+    for(const [l,q] of Object.entries(an.folha)){ const col=l[0], idx=+l.slice(1), y0=FO_LIM[idx], y1=FO_LIM[idx+1];
+      for(const k of ["inst","ret"]) if(q[k]){ const [x0,x1]=FO_COLS[col][k], t=foFmtN(q[k]), w=FB.widthOfTextAtSize(t,7.5);
+        p1.drawText(t,{x:(x0+x1)/2-w/2,y:FO_H-(y0+y1)/2-2.6,size:7.5,font:FB,color:azul}); } }
+    if(an.estado!=="ok") p1.drawText(an.estado==="nao"?"OT NÃO REALIZADA — sem material aplicado":"PREVISTO — OT por executar (material em trânsito)",
+      {x:62,y:FO_H-174,size:9,font:FB,color:an.estado==="nao"?rgb(0.75,0.1,0.1):rgb(0.7,0.4,0)});
+    const rod=`Executado por ${FO_EMPRESA} · nº de série no anexo (pág. 2)`;
+    p1.drawText(rod,{x:527-F.widthOfTextAtSize(rod,6.5),y:FO_H-174,size:6.5,font:F,color:azul});
+    // ---- página 2: anexo com equipamentos (nº de série) e materiais
+    let pg=out.addPage([595.28,841.89]), y=841.89-36;
+    const novaPag=()=>{ pg=out.addPage([595.28,841.89]); y=841.89-36; };
+    const texto=(t,{x=40,size=8.5,font=F,color=cinza,larg=515,lead}={})=>{ lead=lead||size*1.3;
+      for(const l of partir(t,font,size,larg)){ if(y-lead<36) novaPag(); y-=lead; pg.drawText(l,{x,y:y+size*0.25,size,font,color}); } };
+    const tabela=(larguras,linhas,{cab=false,fundoCol=[]}={})=>{ linhas.forEach((cel,ri)=>{
+        const cels=cel.map((v,ci)=>{ const font=(cab&&ri===0)||fundoCol.includes(ci)?F:(v&&v.mono?FM:F), size=(cab&&ri===0)||fundoCol.includes(ci)?8.5:8;
+          return {ls:partir(v&&v.mono?v.t:v,font,size,larguras[ci]-6),font,size}; });
+        const h=Math.max(...cels.map(x=>x.ls.length*x.size*1.25))+6;
+        if(y-h<40){ novaPag(); }
+        let x=40;
+        cels.forEach((cc,ci)=>{ const w=larguras[ci];
+          if((cab&&ri===0)) pg.drawRectangle({x,y:y-h,width:w,height:h,color:azulC});
+          else if(fundoCol.includes(ci)) pg.drawRectangle({x,y:y-h,width:w,height:h,color:amarelo});
+          pg.drawRectangle({x,y:y-h,width:w,height:h,borderColor:linhaC,borderWidth:0.4});
+          let yy=y-3-(h-6-cc.ls.length*cc.size*1.25)/2;
+          for(const l of cc.ls){ yy-=cc.size*1.25; pg.drawText(l,{x:x+3,y:yy+cc.size*0.3,size:cc.size,font:cc.font,color:(cab&&ri===0)||fundoCol.includes(ci)?cinza:rgb(0,0,0)}); }
+          x+=w; });
+        y-=h; }); };
+    texto("FOLHA DE OBRA — Anexo: equipamentos e materiais",{size:15,font:FB,color:rgb(0.12,0.235,0.55),lead:19});
+    texto(`Modelo PROEF IP.ET.001.00 · trabalho executado por ${FO_EMPRESA} (parceiro PROEF)`); y-=8;
+    const estTxt={ok:"Realizada",nao:"NÃO REALIZADA — nenhum material aplicado",previsto:"Por executar — material previsto para esta OT"}[an.estado];
+    tabela([52,228,52,183],[["Nº OT",c["Nº OT"]||"","Data OT",foData(data)],["Cliente",c["Nome de cliente"]||"","Tipo de OT",c["Tipo de OT"]||""],
+      ["Morada",c.Morada||"","Estado",estTxt],["Célula",c["Célula"]||"","Horário",`${c["Hora início"]||""} – ${c["Hora fim"]||""}`]],{fundoCol:[0,2]});
+    const linhaTxt=l=>l?`${l[0]==="E"?"Esq.":"Dir."} ${FO_LINHAS[l]||""}`:"— (sem linha no modelo)";
+    y-=10; texto("Equipamentos (com número de série)",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
+    if(an.equip.length) tabela([160,70,120,165],[["Equipamento","Ação","Nº de série","Linha na folha (pág. 1)"],...an.equip.map(e=>[e.nome,e.acao,{mono:true,t:e.serie||"—"},linhaTxt(e.linha)])],{cab:true});
+    else texto("Sem equipamentos físicos nesta OT.",{color:rgb(0,0,0),size:8});
+    y-=10; texto("Materiais não seriados",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
+    if(an.mat.length) tabela([175,70,55,215],[["Material","Código","Qtd.","Linha na folha (pág. 1)"],...an.mat.map(m=>[m.nome,m.codigo,`${foFmtN(m.qtd)} ${m.unid}`,linhaTxt(m.linha)])],{cab:true});
+    else texto("Sem materiais registados.",{color:rgb(0,0,0),size:8});
+    y-=18; texto("Equipamentos propriedade do operador, transportados pelo técnico para instalação/recolha no cliente indicado. Dados retirados da Ordem de Trabalho (Field Service).");
+    y-=26; if(y<60) novaPag();
+    pg.drawText("Técnico: ______________________________",{x:43,y,size:9,font:F}); pg.drawText("Assinatura: ______________________________",{x:300,y,size:9,font:F});
+  }
+  return await out.save();
+}
+async function foModelo(){
+  try{ return await obterPdf(FO_MODELO_CAMINHO); }
+  catch(e){ throw new Error(/ainda não enviado/.test(e.message)?"O modelo da folha de obra ainda não está na nuvem: abra o painel no PC uma vez (envia-o sozinho).":e.message); }
+}
+async function gerarFolhaConsulta(ots,data,nome,btn){
+  const txt=btn?.textContent; if(btn){ btn.disabled=true; btn.textContent="A preparar…"; }
+  try{
+    const [,modelo]=await Promise.all([carregarPdfLib(),foModelo()]);
+    const ord=ots.slice().sort((a,b)=>(a.campos?.["Hora início"]||"99").localeCompare(b.campos?.["Hora início"]||"99"));
+    const b=await foGerarPdf(window.PDFLib,modelo.slice(0),ord,data);
+    const chave=`gerado/${data}/${nome||foNomeFicheiro(ord[0],0)}`;
+    PDF_CACHE[chave]=b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);
+    if(btn){ btn.disabled=false; btn.textContent=txt; }
+    await abrirFolha(chave,btn);
+  }catch(e){ toast(e.message==="Failed to fetch"?"Sem internet.":e.message); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=txt; } }
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".folha-btn[data-gerar],.folha-btn[data-gerar-dia]"); if(!b) return; e.preventDefault(); e.stopPropagation();
+  if(b.dataset.gerarDia){ const d=DIAS.find(x=>x.data===b.dataset.gerarDia); if(d) gerarFolhaConsulta(d.ots,d.data,`Folhas_Obra_${d.data}_DIA_COMPLETO.pdf`,b); }
+  else if(ABERTA){ const {d,o}=ABERTA, i=d.ots.slice().sort((a,b)=>(a.campos?.["Hora início"]||"99").localeCompare(b.campos?.["Hora início"]||"99")).indexOf(o);
+    gerarFolhaConsulta([o],d.data,foNomeFicheiro(o,Math.max(0,i)),b); }
+}, true);
+
 // ---------- dados (Supabase: login + leitura protegida por RLS; sem bibliotecas externas)
 const SUPA_URL="https://bkgcidryvwafdbiagata.supabase.co", SUPA_KEY="sb_publishable_H1EabITuWmtxVq9U0ddx6Q_D2MpwMYb", CHAVE_SESSAO="cr-consulta-sessao";
 let SESSAO=null, A_CARREGAR=false, ULTIMA=0;
@@ -1450,11 +1488,10 @@ async function carregar(silencioso){
     GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[]; arrumarGuias();
     FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
     CENTRADA=((data.find(x=>x.pacote&&x.pacote.tipo==="custos_entrada")||{}).pacote||{}).itens||[];
-    CAPT_LOTES=((data.find(x=>x.pacote&&x.pacote.tipo==="capturas")||{}).pacote||{}).lotes||{};
     AGR=((data.find(x=>x.pacote&&x.pacote.tipo==="agenda_rapida")||{}).pacote||{}).dias||{};
     DIAS=data.map(x=>x.pacote).filter(p=>p&&!["guias","financas","custos_entrada","capturas","agenda_rapida"].includes(p.tipo));
     juntarAgendaRapida();
-    if(Object.keys(CAPT_LOTES).length) setTimeout(processarCapturas,300);
+    if(!AUTO_LIDO&&/^#(texto|auto)$/.test(location.hash)){ AUTO_LIDO=true; setTimeout(()=>lerTelemovel(null,true),200); }   // aberto pela macro: lê sozinho
     if(VISTA==="guia") renderGuia();
     if(VISTA==="fin"&&!FIN_ADD) renderFin();
     if(VISTA==="ini") renderIni();
