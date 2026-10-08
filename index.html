@@ -654,6 +654,42 @@ async function lerTelemovel(texto, auto){
   CAP_MSG=msgs.join("<br>"); aviso(CAP_MSG);
   if(auto&&!/⚠/.test(CAP_MSG)){ try{ history.replaceState(null,"",location.pathname); }catch(_){} }
 }
+// ---------- Arrancar a macro "CR Dia Completo" no MacroDroid a partir da Consulta (gatilho Webhook do MacroDroid)
+// O endereço do webhook fica só neste telemóvel (não vai para o GitHub nem para a nuvem).
+const WH_CHAVE="cr_macro_webhook";
+const whLer=()=>{ try{ return localStorage.getItem(WH_CHAVE)||""; }catch(_){ return ""; } };
+const whGuardar=v=>{ try{ v?localStorage.setItem(WH_CHAVE,v):localStorage.removeItem(WH_CHAVE); }catch(_){} };
+async function recolherDia(){
+  const url=whLer(); if(!url) return configurarWebhook();
+  const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
+  try{
+    await fetch(url,{mode:"no-cors",cache:"no-store"});
+    CAP_MSG="▶ Pedido enviado ao MacroDroid. Ele abre o Field Service, percorre a Agenda e no fim volta aqui e lê tudo sozinho. Não mexa no telemóvel (≈ 1 min por OT).";
+    aviso(CAP_MSG);
+  }catch(e){ CAP_MSG="⚠ Não consegui chamar o MacroDroid (sem internet?)."; aviso(CAP_MSG); }
+}
+function configurarWebhook(){
+  $("#whVisor")?.remove();
+  const v=document.createElement("div"); v.id="whVisor";
+  v.style.cssText="position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column;padding:16px;gap:12px;overflow:auto";
+  v.innerHTML=`<b style="font-size:17px">▶ Ligar o botão ao MacroDroid</b>
+    <div style="font-size:14px;line-height:1.5">1. No MacroDroid abra a macro <b>CR Dia Completo</b> → Gatilhos → <b>+</b> → pesquise <b>Webhook</b>.<br>
+    2. Em identificador escreva <b>coleta</b> → OK. O MacroDroid mostra um endereço <span style="font-family:monospace">https://trigger.macrodroid.com/…/coleta</span> — toque para o <b>copiar</b>.<br>
+    3. Cole-o aqui em baixo e toque em Guardar. Fica guardado só neste telemóvel.</div>
+    <input id="whUrl" type="url" placeholder="https://trigger.macrodroid.com/…/coleta" value="${esc(whLer())}" style="font:14px monospace;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)">
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="folha-btn" id="whOk" style="flex:1">Guardar</button>
+    <button class="folha-btn" id="whTeste" style="background:var(--surface);color:var(--accent)">Colar</button>
+    ${whLer()?'<button class="folha-btn" id="whApagar" style="background:var(--surface);color:var(--accent)">Apagar</button>':""}
+    <button class="folha-btn" id="whX" style="background:var(--surface);color:var(--accent)">Fechar</button></div>
+    <div id="whMsg" style="font-size:13px;color:var(--muted)"></div>`;
+  document.body.appendChild(v);
+  $("#whX").onclick=()=>v.remove();
+  $("#whTeste").onclick=async()=>{ try{ $("#whUrl").value=(await navigator.clipboard.readText()).trim(); }catch(_){ $("#whMsg").textContent="Mantenha o dedo na caixa e escolha Colar."; } };
+  if($("#whApagar")) $("#whApagar").onclick=()=>{ whGuardar(""); v.remove(); renderIni(); };
+  $("#whOk").onclick=()=>{ const u=$("#whUrl").value.trim();
+    if(!/^https:\/\/trigger\.macrodroid\.com\/\S+$/.test(u)){ $("#whMsg").textContent="⚠ O endereço deve começar por https://trigger.macrodroid.com/"; return; }
+    whGuardar(u); v.remove(); renderIni(); toast("Botão ligado ao MacroDroid ✓"); };
+}
 function pedirTextoAgenda(){   // se o browser não deixar ler a área de transferência: colar à mão
   $("#txtAgVisor")?.remove();
   const v=document.createElement("div"); v.id="txtAgVisor";
@@ -720,7 +756,9 @@ function renderIni(){
   const g=(GUIAS||[])[0], C=M&&M.custos||{}, pend=(CENTRADA||[]).length;
   const otsHoje=dia?dia.ots.length:0, realHoje=dia?dia.ots.filter(real).length:0;
   el.innerHTML=`<div class="isaud">${saud}, Carlos<small>${esc(dt)}</small></div>
-    <button class="itile ok" id="telBtn" onclick="lerTelemovel()" style="${/^#(texto|auto)$/.test(location.hash)?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📲 Ler do telemóvel</span><span>Depois da macro: Agenda do dia + OTs recolhidas (equipamentos, nº de série, materiais, Feed) — tudo de uma vez</span></button>
+    <div class="ig2" style="grid-template-columns:${whLer()?"2fr 1fr":"1fr"}"><button class="itile ok" id="macroBtn" onclick="recolherDia()"><span class="t">▶ Recolher o dia</span><span>${whLer()?"Arranca o MacroDroid: abre o Field Service, lê a Agenda e todas as OTs e volta aqui":"Toque para ligar este botão ao MacroDroid (uma vez)"}</span></button>
+    ${whLer()?'<button class="itile" onclick="configurarWebhook()"><span class="t">⚙ MacroDroid</span><span>endereço do webhook</span></button>':""}</div>
+    <button class="itile ok" id="telBtn" onclick="lerTelemovel()" style="${/^#(texto|auto)$/.test(location.hash)?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📲 Ler o que já foi recolhido</span><span>Agenda do dia + OTs recolhidas (equipamentos, nº de série, materiais, Feed) — se a Consulta não leu sozinha</span></button>
     <div class="itile ${CAP_MSG.startsWith("✓")?"ok":""}" id="capAviso" ${CAP_MSG?"":"hidden"} style="font-size:13.5px;color:var(--fg)">${CAP_MSG}</div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%"></i></div>
