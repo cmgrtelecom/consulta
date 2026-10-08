@@ -370,10 +370,10 @@ function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeou
 
 let AGR={}, CAP_MSG="", AUTO_LIDO=false;
 let DIAS=[], PERIODO="30", ESTADO="todas", DB=null, ABERTA=null, TAB="det";
-const CAMPOS=["Nº OT","Estado","Hora início","Hora fim","Tipo de tarefa","Tipo de OT","Categoria","Tecnologia","Tipo de cliente","Nome de cliente","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Morada","Password ONT","Conta de serviço","Observações","Sintoma","Fibra ligada","Reincidente Manut","Reincidente RGU","Parceiro responsável","PD","TAP / CMPT","Lig. prédio","N.º UA / PA","Cód. emp.","PLC","Tipo infraestrutura","N.º porta PLC","Access ID","Latitude PLC","Longitude PLC","Célula"];
+const CAMPOS=["Nº OT","Estado","Hora início","Hora fim","Tipo de tarefa","Tipo de OT","Categoria","Tecnologia","Tipo de cliente","Nome de cliente","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Morada","Morada Completa","Coordenadas cliente","Distância PLC–cliente","Início agendamento","Fim agendamento","Password ONT","Conta de serviço","Observações","Sintoma","Fibra ligada","Reincidente Manut","Reincidente RGU","Parceiro responsável","PD","TAP / CMPT","Lig. prédio","N.º UA / PA","Cód. emp.","PLC","Tipo infraestrutura","N.º porta PLC","Access ID","Latitude PLC","Longitude PLC","Célula"];
 const PROTEGIDOS=new Set(["Password ONT"]);   // completos só no PC; aqui só asteriscos
-const COPIAVEIS=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Password ONT","Conta de serviço","N.º UA / PA","PLC","Morada"]);
-const MONO=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Password ONT","Conta de serviço","N.º UA / PA","PLC","Latitude PLC","Longitude PLC","N.º porta PLC"]);
+const COPIAVEIS=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Password ONT","Conta de serviço","N.º UA / PA","PLC","Morada","Morada Completa","Coordenadas cliente","Latitude PLC"]);
+const MONO=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Password ONT","Conta de serviço","N.º UA / PA","PLC","Latitude PLC","Longitude PLC","N.º porta PLC","Coordenadas cliente"]);
 const realizada=o=>o.rel?.realizada ?? (/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||""));
 const confirmada=o=>(o.rapida&&!o.completa)||(o.rel?.agendamento||"").startsWith("Confirmado");
 
@@ -1004,6 +1004,16 @@ function fechar(){ $("#fundo").hidden=true; $("#ficha").hidden=true; ABERTA=null
 $("#fFechar").onclick=fechar; $("#fundo").onclick=fechar;
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&ABERTA) fechar(); });
 document.querySelectorAll("#fTabs button").forEach(b=>b.onclick=()=>{TAB=b.dataset.t;desenharFicha();});
+// ---------- PLC × casa do cliente: distância em linha reta e rota no Google Maps
+function plcCliente(c){
+  const n=v=>{ const x=parseFloat(String(v??"").replace(",",".")); return isFinite(x)&&Math.abs(x)>1&&Math.abs(x)<90?+x.toFixed(6):null; };
+  const plc=n(c["Latitude PLC"])!=null&&n(c["Longitude PLC"])!=null?[n(c["Latitude PLC"]),n(c["Longitude PLC"])]:null;
+  const cli=n(c.Latitude)!=null&&n(c.Longitude)!=null?[n(c.Latitude),n(c.Longitude)]:null;
+  if(!plc||!cli) return {plc,cli,dist:"",rota:""};
+  const t=x=>x*Math.PI/180, h=Math.sin(t(cli[0]-plc[0])/2)**2+Math.cos(t(plc[0]))*Math.cos(t(cli[0]))*Math.sin(t(cli[1]-plc[1])/2)**2, m=2*6371000*Math.asin(Math.sqrt(h));
+  return {plc,cli,dist:m<1000?Math.round(m)+" m":(m/1000).toFixed(1).replace(".",",")+" km",
+    rota:`https://www.google.com/maps/dir/?api=1&origin=${plc[0]},${plc[1]}&destination=${cli[0]},${cli[1]}&travelmode=${m>800?"driving":"walking"}`};
+}
 function desenharFicha(){
   const {d,o}=ABERTA, c=o.campos, r=o.rel||{};
   document.querySelectorAll("#fTabs button").forEach(b=>{
@@ -1019,9 +1029,12 @@ function desenharFicha(){
       const mor=c["Morada Completa"]||c.Morada||"", w=p=>`https://waze.com/ul?ll=${p[0]},${p[1]}&navigate=yes`, cp=cli||plc;
       return (cli?`<a href="${w(cli)}" target="_blank" rel="noopener">🚗 Waze (cliente)</a>`:(mor?`<a href="https://waze.com/ul?q=${encodeURIComponent(mor)}&navigate=yes" target="_blank" rel="noopener">🚗 Waze (morada)</a>`:""))
         +(plc?`<a class="sec" href="${w(plc)}" target="_blank" rel="noopener">🚗 Waze (PLC)</a>`:"")
+        +(plcCliente(c).rota?`<a class="sec" href="${plcCliente(c).rota}" target="_blank" rel="noopener">🗺 Rota PLC → cliente · ${plcCliente(c).dist}</a>`:"")
         +(cp?`<button class="sec" data-copiar="${cp[0]}, ${cp[1]}">📋 Coordenadas ${cli?"cliente":"PLC"}</button>`:""); })()}${loc?`<a class="sec" href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
     if(!realizada(o)||r.reagendada) h+=`<div class="bloco"><h4>Improdutividade</h4><dl><dt>Motivo</dt><dd>${esc(r.motivo||"—")}</dd>${r.reagendada?`<dt>Reagendada para</dt><dd>${esc(r.reagendada)}</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Agendamento prévio</h4><dl><dt>Situação</dt><dd>${esc(r.agendamento||"—")}</dd><dt>Evidência</dt><dd>${esc(r.evidencia||"—")}</dd>${r.km_estrada!=null?`<dt>Desde a OT anterior</dt><dd>${r.km_estrada} km · ≈${fMin(r.min_conducao)} de condução</dd>`:""}</dl></div>`;
+    { const pc=plcCliente(c); if(pc.dist&&!c["Distância PLC–cliente"]) c["Distância PLC–cliente"]=pc.dist; }
+    if(!c["Coordenadas cliente"]&&c.Latitude&&c.Longitude){ const f=v=>String(+parseFloat(String(v).replace(",",".")).toFixed(6)); c["Coordenadas cliente"]=f(c.Latitude)+", "+f(c.Longitude); }
     h+=`<div class="bloco"><h4>Detalhes da OT</h4><dl>`+CAMPOS.filter(k=>c[k]).map(k=>{ const prot=PROTEGIDOS.has(k);
       return `<dt>${esc(k)}</dt><dd>${prot?`<span class="mono">******</span> <span style="font-size:12px;color:var(--muted)">🔒 só no PC</span>`:`<span class="${MONO.has(k)?"mono":""}">${esc(c[k])}</span>${COPIAVEIS.has(k)?`<button class="copiar" data-v="${esc(c[k])}">Copiar</button>`:""}`}</dd>`; }).join("")+`</dl></div>`;
   } else if(TAB==="eq"){
