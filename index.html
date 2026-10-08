@@ -197,6 +197,13 @@ button.itile{cursor:pointer}
 .itile.ok{background:var(--ok-bg);border-color:transparent}.itile.ok b{color:var(--ok)}
 .itile.warn{background:var(--warn-bg);border-color:transparent}.itile.warn b{color:var(--warn)}
 .itile.err{background:var(--bad-bg);border-color:transparent}.itile.err b{color:var(--bad)}
+.tel{display:flex;flex-direction:column;gap:8px;text-align:left}
+.tel .telPrinc{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.tel .telPrinc span{font-weight:700;font-size:16px;color:var(--fg)}
+.tel .telPrinc small{font-size:12.5px;color:var(--muted)}
+.tel .telLinks{display:flex;gap:6px;flex-wrap:wrap}
+.tel .telLinks button{font:inherit;font-size:12.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.tel .telMsg{font-size:12.5px;line-height:1.4;color:var(--fg);border-top:1px solid var(--line);padding-top:7px}
 .ig2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media(min-width:900px){.ig2.q4{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .ibarra{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:4px 0}.ibarra i{display:block;height:100%;border-radius:99px;background:var(--accent)}
@@ -756,10 +763,11 @@ function renderIni(){
   const g=(GUIAS||[])[0], C=M&&M.custos||{}, pend=(CENTRADA||[]).length;
   const otsHoje=dia?dia.ots.length:0, realHoje=dia?dia.ots.filter(real).length:0;
   el.innerHTML=`<div class="isaud">${saud}, Carlos<small>${esc(dt)}</small></div>
-    <div class="ig2" style="grid-template-columns:${whLer()?"2fr 1fr":"1fr"}"><button class="itile ok" id="macroBtn" onclick="recolherDia()"><span class="t">▶ Recolher o dia</span><span>${whLer()?"Arranca o MacroDroid: abre o Field Service, lê a Agenda e todas as OTs e volta aqui":"Toque para ligar este botão ao MacroDroid (uma vez)"}</span></button>
-    ${whLer()?'<button class="itile" onclick="configurarWebhook()"><span class="t">⚙ MacroDroid</span><span>endereço do webhook</span></button>':""}</div>
-    <button class="itile ok" id="telBtn" onclick="lerTelemovel()" style="${/^#(texto|auto)$/.test(location.hash)?"border:2px solid var(--ac,#4f5bd5)":""}"><span class="t">📲 Ler o que já foi recolhido</span><span>Agenda do dia + OTs recolhidas (equipamentos, nº de série, materiais, Feed) — se a Consulta não leu sozinha</span></button>
-    <div class="itile ${CAP_MSG.startsWith("✓")?"ok":""}" id="capAviso" ${CAP_MSG?"":"hidden"} style="font-size:13.5px;color:var(--fg)">${CAP_MSG}</div>
+    <div class="itile ok tel" id="telCard">
+      <button class="telPrinc" id="macroBtn" onclick="recolherDia()"><span>▶ Recolher o dia</span><small>${whLer()?"MacroDroid abre o Field Service, lê tudo e volta aqui":"toque para ligar ao MacroDroid (uma vez)"}</small></button>
+      <div class="telLinks"><button onclick="lerTelemovel()">📋 Ler recolhido</button>${whLer()?'<button onclick="configurarWebhook()">⚙ MacroDroid</button>':""}</div>
+      <div class="telMsg" id="capAviso" ${CAP_MSG?"":"hidden"}>${CAP_MSG}</div>
+    </div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%"></i></div>
       <span>${dP&&dP.ots?esc(fmix(dP.mix))+" · ":""}${dP?sug:"Ainda sem OTs de hoje no painel (aparecem depois da coleta)."}</span></button>
