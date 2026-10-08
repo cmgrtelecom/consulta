@@ -164,6 +164,7 @@ dl > :nth-last-child(-n+2){border-bottom:0}
 .acoes{display:flex;gap:8px;flex-wrap:wrap}
 .acoes a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--accent-ink);background:var(--accent);padding:8px 14px;border-radius:999px;font-weight:600;font-size:14px}
 .acoes a.sec{background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
+.acoes button.sec{font:inherit;font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px;background:var(--surface);color:var(--accent);border:1px solid var(--accent);cursor:pointer}
 /* importar */
 .imp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 .imp h2{font:600 18px var(--f-display);margin:0}
@@ -430,9 +431,10 @@ function relRapido(dia){
   let ant=null;
   for(const o of ots){ const ini=hmMin(o.campos["Hora início"]), fim=hmMin(o.campos["Hora fim"]);
     const num=v=>{ const x=parseFloat(String(v||"").replace(",",".")); return isFinite(x)?x:null; };
-    const la=num(o.campos["Latitude PLC"]), lo=num(o.campos["Longitude PLC"]), coord=(la&&lo&&Math.abs(la)>30&&Math.abs(la)<60)?[la,lo]:null;
+    const ok=(a,b)=>(a&&b&&Math.abs(a)>30&&Math.abs(a)<60)?[a,b]:null;
+    const cli=ok(num(o.campos["Latitude"]),num(o.campos["Longitude"])), plc=ok(num(o.campos["Latitude PLC"]),num(o.campos["Longitude PLC"])), coord=cli||plc;   // casa do cliente primeiro
     o.rel={...(o.rel||{}), inicio:ini, fim, duracao:(ini!=null&&fim!=null&&fim>=ini)?fim-ini:null, km_estrada:o.rel?.km_estrada??null,
-      lat:coord?coord[0]:null, lng:coord?coord[1]:null, origem_local:coord?"PLC":"",
+      lat:coord?coord[0]:null, lng:coord?coord[1]:null, origem_local:cli?"cliente":coord?"PLC":"",
       intervalo:(ant&&ant.rel.fim!=null&&ini!=null)?ini-ant.rel.fim:null};
     if(o.completa) Object.assign(o.rel, agendamentoFeed(o));   // mesmas regras do PC (relatorios.py)
     ant=o; }
@@ -472,7 +474,8 @@ async function kmRapido(dia){
 const FS_ROTULOS=["N.º OT","Tipo de tarefa","Categoria","Tecnologia","Tipo de OT","Célula","Tipo de cliente","Contacto acompanhamento",
   "Nome de cliente","Contactos alternativos","Contacto de cliente","Password ONT","Conta de serviço","Observações","Sintoma","Fibra ligada",
   "Reincidente Manut","Reincidente RGU","Parceiro responsável","PD","TAP / CMPT","Lig. prédio","N.º UA / PA","Cód. emp.","PLC",
-  "Tipo infraestrutura","N.º porta PLC","Access ID","Latitude PLC","Longitude PLC"];
+  "Tipo infraestrutura","N.º porta PLC","Access ID","Latitude PLC","Longitude PLC",
+  "Morada Completa","Latitude","Longitude","Início agendamento","Fim agendamento","Primeira hora de início permitida","Conta de cliente","Motivo de suspensão","Código de fecho"];   // os últimos: Agendamento de intervenção › Exibir detalhes
 const FS_PROTEGIDOS=new Set(["Password ONT"]);   // completos só no PC; fora dele ficam "******"
 function fsNormalizar(txt){   // leituras coladas umas às outras sem quebra de linha → separar antes de cada "[chave]:"
   return String(txt||"").replace(/\r/g,"").replace(/([^\n])(\[(?:index:\d+|[\w.]+:id\/[^\]\n]+|top_bar_title)\]:)/g,"$1\n$2");
@@ -491,7 +494,8 @@ function fsOT(txt){       // ecrã de uma OT (todos os separadores vêm juntos)
   const L=fsLinhas(txt), id=n=>L.filter(x=>x.id===n).map(x=>x.v), um=n=>id(n)[0]||"";
   const c={}, rot=new Set(FS_ROTULOS), ix=L.filter(x=>x.ix>=0);
   for(let i=0;i<ix.length;i++){ const r=ix[i].v; if(!rot.has(r)) continue;
-    const nx=ix[i+1]; const val=(nx&&!rot.has(nx.v)&&nx.ix-ix[i].ix<=2)?nx.v:"";
+    const nx=ix[i+1]; const val=(nx&&!rot.has(nx.v)&&nx.ix-ix[i].ix>0&&nx.ix-ix[i].ix<=2)?nx.v:"";
+    if(!val&&c[r==="N.º OT"?"Nº OT":r]) continue;   // rótulo sem valor (fim do ecrã) não apaga o lido noutro ecrã
     c[r==="N.º OT"?"Nº OT":r]=(FS_PROTEGIDOS.has(r)&&val)?"******":val; }
   const [hi,hf]=(um("saoverview_timespan").match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/)||[]).slice(1);
   const sub=um("subtitle").split("•").map(s=>s.trim());
@@ -1010,7 +1014,12 @@ function desenharFicha(){
   let h="";
   if(TAB==="det"){
     const loc = r.lat&&r.lng ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : (c.Morada?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.Morada)}`:null);
-    h+=`<div class="acoes">${o.folha?`<button class="folha-btn" data-f="${esc(o.folha)}">📄 Folha de obra</button>`:(d.rapida?`<button class="folha-btn" data-gerar="1" title="Gerada agora, com os dados lidos no telemóvel">📄 Folha de obra</button>`:"")}${loc?`<a href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
+    h+=`<div class="acoes">${o.folha?`<button class="folha-btn" data-f="${esc(o.folha)}">📄 Folha de obra</button>`:(d.rapida?`<button class="folha-btn" data-gerar="1" title="Gerada agora, com os dados lidos no telemóvel">📄 Folha de obra</button>`:"")}${(()=>{ const n=v=>{ const x=parseFloat(String(v||"").replace(",",".")); return isFinite(x)&&Math.abs(x)>1?+x.toFixed(6):null; };
+      const cli=n(c.Latitude)&&n(c.Longitude)?[n(c.Latitude),n(c.Longitude)]:null, plc=n(c["Latitude PLC"])&&n(c["Longitude PLC"])?[n(c["Latitude PLC"]),n(c["Longitude PLC"])]:null;
+      const mor=c["Morada Completa"]||c.Morada||"", w=p=>`https://waze.com/ul?ll=${p[0]},${p[1]}&navigate=yes`, cp=cli||plc;
+      return (cli?`<a href="${w(cli)}" target="_blank" rel="noopener">🚗 Waze (cliente)</a>`:(mor?`<a href="https://waze.com/ul?q=${encodeURIComponent(mor)}&navigate=yes" target="_blank" rel="noopener">🚗 Waze (morada)</a>`:""))
+        +(plc?`<a class="sec" href="${w(plc)}" target="_blank" rel="noopener">🚗 Waze (PLC)</a>`:"")
+        +(cp?`<button class="sec" data-copiar="${cp[0]}, ${cp[1]}">📋 Coordenadas ${cli?"cliente":"PLC"}</button>`:""); })()}${loc?`<a class="sec" href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
     if(!realizada(o)||r.reagendada) h+=`<div class="bloco"><h4>Improdutividade</h4><dl><dt>Motivo</dt><dd>${esc(r.motivo||"—")}</dd>${r.reagendada?`<dt>Reagendada para</dt><dd>${esc(r.reagendada)}</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Agendamento prévio</h4><dl><dt>Situação</dt><dd>${esc(r.agendamento||"—")}</dd><dt>Evidência</dt><dd>${esc(r.evidencia||"—")}</dd>${r.km_estrada!=null?`<dt>Desde a OT anterior</dt><dd>${r.km_estrada} km · ≈${fMin(r.min_conducao)} de condução</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Detalhes da OT</h4><dl>`+CAMPOS.filter(k=>c[k]).map(k=>{ const prot=PROTEGIDOS.has(k);
@@ -1539,6 +1548,8 @@ document.addEventListener("click",e=>{
     gerarFolhaConsulta([o],d.data,foNomeFicheiro(o,Math.max(0,i)),b); }
 }, true);
 
+document.addEventListener("click",async e=>{ const b=e.target.closest("[data-copiar]"); if(!b) return; e.preventDefault();
+  try{ await navigator.clipboard.writeText(b.dataset.copiar); toast("Coordenadas copiadas: "+b.dataset.copiar); }catch(_){ prompt("Copie as coordenadas:",b.dataset.copiar); } });
 // ---------- dados (Supabase: login + leitura protegida por RLS; sem bibliotecas externas)
 const SUPA_URL="https://bkgcidryvwafdbiagata.supabase.co", SUPA_KEY="sb_publishable_H1EabITuWmtxVq9U0ddx6Q_D2MpwMYb", CHAVE_SESSAO="cr-consulta-sessao";
 let SESSAO=null, A_CARREGAR=false, ULTIMA=0;
