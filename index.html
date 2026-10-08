@@ -798,7 +798,7 @@ function renderIni(){
       <div class="telMsg" id="capAviso" ${CAP_MSG?"":"hidden"}>${CAP_MSG}</div>
     </div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
-      <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%"></i></div>
+      <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%;background:${pct>=100?"var(--ok)":pct>=80?"var(--warn)":"var(--bad)"}"></i></div>
       <span>${dP&&dP.ots?esc(fmix(dP.mix))+" · ":""}${dP?sug:"Ainda sem OTs de hoje no painel (aparecem depois da coleta)."}</span></button>
     <div class="ig2 q4">
       <button class="itile" data-ir="ots"><span class="t">📋 OTs ${dia?"hoje":"(último dia)"}</span><b>${dia?otsHoje:(ultimo?ultimo.ots.length:"—")}</b><span>${dia?realHoje+(realHoje===1?" realizada":" realizadas"):(ultimo?dt0(ultimo.data):"sem dados")}</span></button>
@@ -1120,9 +1120,12 @@ function finComTelemovel(M0){
   const resto=P.dias.slice(ic+1).filter(x=>x.trabalho).length;
   P.dias_restantes=resto; P.precisa_dia=resto?Math.max(0,(P.meta_mes-P.feito)/resto):0;
   P.projecao=Math.round((P.feito+(P.ritmo||0)*resto)*100)/100;
+  const corte0=M0.prod.corte||"";
   for(const b of [...(P.semanas||[]),...(P.quinzenas||[])]){
-    const add=P.dias.filter(x=>x.estim&&x.data>=b.de&&x.data<=b.ate).reduce((s,x)=>s+x.valor,0);
-    if(add){ b.feito=Math.round(((b.feito||0)+add)*100)/100; if(b.meta_ate_hoje) b.pct=Math.round(b.feito/b.meta_ate_hoje*100); }
+    const ds=P.dias.filter(x=>x.estim&&x.data>=b.de&&x.data<=b.ate);
+    const add=ds.reduce((s,x)=>s+x.valor,0);
+    const metaAdd=ds.filter(x=>x.trabalho&&x.data>corte0).length*(P.meta_dia||0);   // dias novos também entram na meta "até hoje"
+    if(add){ b.feito=Math.round(((b.feito||0)+add)*100)/100; b.meta_ate_hoje=(b.meta_ate_hoje||0)+metaAdd; if(b.meta_ate_hoje) b.pct=Math.round(b.feito/b.meta_ate_hoje*100); }
   }
   if(M.ots_resumo) M.ots_resumo.telemovel=n;
   M.estimativa={ots:n,valor:Math.round(soma*100)/100};
@@ -1251,7 +1254,7 @@ function finProdHtml(M){
   const cls=x=>!x.trabalho?"desc":(!x.passado&&!x.ots)?"fut":fst(x.pct||0);
   const cal=`<div class="bloco"><h4>Calendário · meta ${fnum(P.meta_dia)} €/dia · ${P.dias_trabalho} dias</h4><div class="fcal">${["S","T","Q","Q","S","S","D"].map(d=>`<div class="h">${d}</div>`).join("")}${Array(pad).fill('<div class="d vz"></div>').join("")}${P.dias.map(x=>`<div class="d ${cls(x)}"><b>${+x.data.slice(8)}</b>${x.ots?`<div class="v">${x.previsto>0?"≈":""}${Math.round(x.valor)}€</div><div>${fmix(x.mix)}</div>`:(x.trabalho?"":"<div>folga</div>")}</div>`).join("")}</div>
     <div class="fleg"><span><i style="background:var(--ok-bg);border:1px solid var(--ok)"></i>meta</span><span><i style="background:var(--warn-bg);border:1px solid var(--warn)"></i>80–99%</span><span><i style="background:var(--bad-bg);border:1px solid var(--bad)"></i>&lt;80%</span><span>folgas marcam-se no painel do PC</span></div></div>`;
-  const tab=(t,l)=>`<div class="bloco"><h4>${t}</h4>${l.map(b=>`<div class="flin"><span>${esc(b.nome)} <span class="fmut">${fdm(b.de)}–${fdm(b.ate)} · meta ${fnum(b.meta)}</span></span><span class="n"><b>${fnum(b.feito)}</b> ${b.meta_ate_hoje?`<span class="ftg ${fst(b.pct)}">${b.pct}%</span>`:'<span class="fmut">por fazer</span>'}</span></div>`).join("")}</div>`;
+  const tab=(t,l)=>`<div class="bloco"><h4>${t}</h4>${l.map(b=>`<div class="flin"><span>${esc(b.nome)} <span class="fmut">${fdm(b.de)}–${fdm(b.ate)} · meta ${fnum(b.meta)}</span></span><span class="n" style="text-align:right"><b>${fnum(b.feito)}</b> ${b.meta_ate_hoje?`<span class="ftg ${fst(b.pct)}" title="Cor = ritmo: feito ${fnum(b.feito)} € para ${fnum(b.meta_ate_hoje)} € esperados até hoje">${b.meta?Math.round(b.feito/b.meta*100):0}% da meta</span><br><span class="fmut">esperado até hoje ${fnum(b.meta_ate_hoje)} · ritmo ${b.pct}%</span>`:'<span class="fmut">por fazer</span>'}</span></div>`).join("")}</div>`;
   const ref=`<div class="bloco"><h4>Referência</h4><div class="flin"><span>Meta semana / quinzena</span><span class="n">${fnum(P.meta_semana_ref)} / ${fnum(P.meta_quinzena_ref)}</span></div><div class="flin"><span>Seu histórico: média / dia bom</span><span class="n">${fnum(R.media)} / ${fnum(R.bom)}</span></div>
     <div class="flin"><span class="fmut">${(P.combos||[]).filter(c=>c.inst+c.manut>0).slice(0,4).map(c=>`${c.inst} Inst + ${c.manut} Manut ≈ ${fnum(c.valor)}`).join(" · ")}</span></div></div>`;
   return kp+`<div class="bloco"><h4>Valor por dia × meta</h4><div class="fsvg" id="fG1"></div></div><div class="bloco"><h4>Acumulado × meta</h4><div class="fsvg" id="fG2"></div></div>`+cal+tab("Semanas",P.semanas)+tab("Quinzenas",P.quinzenas)+ref;
