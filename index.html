@@ -743,7 +743,7 @@ function renderIni(){
   const hoje=hojeISO(), mesK=hoje.slice(0,4)+hoje.slice(5,7);
   const dia=(DIAS||[]).find(d=>d.data===hoje), ultimo=(DIAS||[])[0];
   const real=o=>/realizada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
-  const M=FINC&&FINC.por_mes?FINC.por_mes[mesK]:null, P=M&&M.prod;
+  const M=FINC&&FINC.por_mes?finComTelemovel(FINC.por_mes[mesK]):null, P=M&&M.prod;
   const VO=(FINC&&FINC.por_mes&&Object.values(FINC.por_mes).find(x=>x.prod&&x.prod.referencia&&x.prod.referencia.valor_ot)?.prod.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
   const tCurto=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":t;
   let dP=P?(P.dias||[]).find(x=>x.data===hoje&&x.ots):null;
@@ -1037,15 +1037,51 @@ const fsinal=v=>v==null?"":v<0?"fneg":v>0?"fpos":"";
 const fst=p=>p==null?"":p>=100?"ok":p>=80?"warn":"err";
 const FTIPO={"Instalação":"Inst","Manutenção":"Manut","Alteração de serviço":"Alt","Restabelecimento":"Rest","Desligamento":"Desl"};
 const fmix=m=>Object.entries(m||{}).map(([t,n])=>`${n} ${FTIPO[t]||t.slice(0,4)}`).join(" · ");
+// ---------- Finanças + OTs recolhidas no telemóvel: estimativa até o PC confirmar
+// Dias lidos no telemóvel (⚡) que o PC ainda não tem entram como "≈ estimativa", com o valor médio de cada tipo de OT.
+function finComTelemovel(M0){
+  if(!M0||M0.erro||!M0.prod) return M0;
+  const mes=String(M0.mes), M=JSON.parse(JSON.stringify(M0)), P=M.prod;
+  const VO=(P.referencia&&P.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
+  const tC=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":t;
+  const real=o=>/realizada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
+  const jaPC=new Set((M.ots||[]).map(o=>String(o.ot||"").toUpperCase()));
+  let n=0, soma=0;
+  for(const d of (DIAS||[]).filter(d=>d.rapida&&d.data.replace(/-/g,"").slice(0,6)===mes)){
+    const x=P.dias.find(z=>z.data===d.data); if(!x||(x.ots&&!x.estim)) continue;   // o PC já tem este dia: manda o PC
+    const mix={}; let v=0, k=0;
+    for(const o of d.ots.filter(real)){ const nOT=String(o.campos["Nº OT"]||"").toUpperCase(); if(jaPC.has(nOT)) continue;
+      const t=tC(o.campos["Tipo de OT"]||""), val=VO[t]||0; mix[t]=(mix[t]||0)+1; v+=val; k++;
+      (M.ots=M.ots||[]).push({ot:o.campos["Nº OT"],data:d.data,tipo:t,cliente:o.campos["Nome de cliente"]||"",estado:"telemóvel · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true}); }
+    if(!k) continue;
+    Object.assign(x,{ots:k,valor:v,previsto:v,mix,estim:true,passado:true,pct:P.meta_dia?Math.round(v/P.meta_dia*100):null}); n+=k; soma+=v;
+  }
+  if(!n) return M0;
+  let ac=0, corte=P.corte;
+  for(const x of P.dias){ ac+=x.valor||0; x.acum=Math.round(ac*100)/100; if(x.estim&&(!corte||x.data>corte)) corte=x.data; }
+  const ic=P.dias.findIndex(x=>x.data===corte), dc=P.dias[ic]||{};
+  P.corte=corte; P.feito=Math.round((dc.acum||0)*100)/100;
+  P.pct_ate_hoje=dc.acum_meta?Math.round(P.feito/dc.acum_meta*100):P.pct_ate_hoje;
+  const resto=P.dias.slice(ic+1).filter(x=>x.trabalho).length;
+  P.dias_restantes=resto; P.precisa_dia=resto?Math.max(0,(P.meta_mes-P.feito)/resto):0;
+  P.projecao=Math.round((P.feito+(P.ritmo||0)*resto)*100)/100;
+  for(const b of [...(P.semanas||[]),...(P.quinzenas||[])]){
+    const add=P.dias.filter(x=>x.estim&&x.data>=b.de&&x.data<=b.ate).reduce((s,x)=>s+x.valor,0);
+    if(add){ b.feito=Math.round(((b.feito||0)+add)*100)/100; if(b.meta_ate_hoje) b.pct=Math.round(b.feito/b.meta_ate_hoje*100); }
+  }
+  if(M.ots_resumo) M.ots_resumo.telemovel=n;
+  M.estimativa={ots:n,valor:Math.round(soma*100)/100};
+  return M;
+}
 function renderFin(){
   const el=$("#vFin");
   if(!FINC||!(FINC.meses||[]).length){ el.innerHTML='<div class="vazio"><b>Ainda não há Finanças online.</b><br>Aparecem depois de abrir o painel no PC (são enviadas sozinhas).</div>'; return; }
   if(!FIN_MES||!FINC.por_mes[FIN_MES]) FIN_MES=FINC.meses[0];
-  const M=FINC.por_mes[FIN_MES];
+  const M=finComTelemovel(FINC.por_mes[FIN_MES]);
   const top=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <select id="finMes" style="font:inherit;padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)">${FINC.meses.map(m=>`<option value="${m}" ${m===FIN_MES?"selected":""}>${fmesNome(m)}${FINC.por_mes[m].tem_auto?"":" · só coleta"}</option>`).join("")}</select>
     <div class="seg" role="group">${[["resumo","Resumo"],["ots","OTs"],["prod","🎯 Produtividade"],["custos","⛽ Custos"]].map(([k,l])=>`<button data-fs="${k}" aria-pressed="${FIN_SUB===k}">${l}</button>`).join("")}</div></div>
-    <div class="fmut">Dados do painel do PC · atualizado ${FINC.gerado?new Date(FINC.gerado).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—"} · valores sem IVA</div>`;
+    <div class="fmut">Dados do painel do PC · atualizado ${FINC.gerado?new Date(FINC.gerado).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—"} · valores sem IVA</div>${M.estimativa?`<div style="font-size:13.5px;line-height:1.45;background:var(--warn-bg);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;margin:8px 0">≈ Inclui <b>${M.estimativa.ots} OT${M.estimativa.ots>1?"s":""} realizada${M.estimativa.ots>1?"s":""} recolhida${M.estimativa.ots>1?"s":""} no telemóvel</b> (≈ ${feur(M.estimativa.valor)}), ainda por confirmar no PC. Valor médio por tipo de OT; os números certos chegam quando o painel do PC atualizar.</div>`:""}`;
   let corpo="";
   if(M.erro) corpo=`<div class="vazio">Erro neste mês: ${esc(M.erro)}</div>`;
   else if(FIN_SUB==="resumo") corpo=finResumoHtml(M);
