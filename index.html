@@ -399,10 +399,34 @@ $("#btnMenu").onclick=e=>{ e.stopPropagation(); const p=$("#menu3Pop"); p.hidden
 document.addEventListener("click",e=>{ const p=$("#menu3Pop"); if(p&&!p.hidden&&!e.target.closest("#menu3")) p.hidden=true; });
 $("#fab").onclick=()=>{ FIN_SUB="custos"; FIN_ADD=true; FC_DOC=null; mudarVista("fin"); };
 // ---------- Leitura rápida pelo telemóvel (MacroDroid → texto do ecrã → Consulta; sem PC)
+// ---------- Dia com coleta do PC + recolha mais recente no telemóvel: vale a mais recente, OT a OT
+// estado, horas e campos vêm do telemóvel (menos os protegidos, que só o PC tem completos); OTs novas entram; as que saíram da Agenda ficam marcadas
+function fundirTelemovel(pc, ag){
+  if(!pc._orig) pc._orig=JSON.parse(JSON.stringify({ots:pc.ots,resumo:pc.resumo||{}}));
+  pc.ots=JSON.parse(JSON.stringify(pc._orig.ots)); pc.resumo=JSON.parse(JSON.stringify(pc._orig.resumo)); pc.tel=null;
+  const tPC=Date.parse(pc._atualizado||"")||0, tAG=Date.parse(ag.gerado||"")||0;
+  if(!tAG||tAG<=tPC||!(ag.ots||[]).length) return;
+  const hora=new Date(tAG).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}), k=o=>String(o.campos?.["Nº OT"]||"").toUpperCase();
+  const porN={}; for(const o of pc.ots) porN[k(o)]=o;
+  const vistos=new Set(); let mud=0, novas=0, saiu=0;
+  for(const a of ag.ots){ const n=k(a); if(!n) continue; vistos.add(n); const o=porN[n];
+    if(o){ for(const [c,v] of Object.entries(a.campos||{})) if(v&&!PROTEGIDOS.has(c)&&!/^\*+$/.test(v)) o.campos[c]=v;
+      if(a.completa){ for(const x of ["equip","naoser","feed"]) if((a[x]||[]).length) o[x]=a[x]; o.completa=true; }
+      o.tel=hora; mud++; }
+    else { pc.ots.push({id:a.id||("t_"+n), rapida:true, nova:true, campos:a.campos, equip:a.equip||[], naoser:a.naoser||[], feed:a.feed||[], completa:a.completa, tel:hora}); novas++; }
+  }
+  const total=Math.max(0,...ag.ots.map(a=>+a._total||0)), completa=total&&ag.ots.filter(a=>a._total).length>=total;
+  if(completa) for(const o of pc.ots) if(!o.nova&&!vistos.has(k(o))){ o.saiu=true; saiu++; }   // só se a leitura da Agenda apanhou todas as OTs
+  pc.ots.sort((a,b)=>(a.campos["Hora início"]||"99").localeCompare(b.campos["Hora início"]||"99"));
+  relRapido(pc);
+  const contam=pc.ots.filter(o=>!o.saiu), ok=contam.filter(o=>/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"")).length;
+  pc.resumo.produtividade=contam.length?Math.round(100*ok/contam.length):null;
+  pc.tel={hora,mud,novas,saiu};
+}
 function juntarAgendaRapida(){
   const tem=new Set(DIAS.map(d=>d.data));
   for(const [data,d] of Object.entries(AGR||{})){
-    if(tem.has(data)) continue;
+    if(tem.has(data)){ const pc=DIAS.find(x=>x.data===data&&!x.rapida); if(pc) fundirTelemovel(pc,d); continue; }
     const dia={data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos, equip:o.equip||[], naoser:o.naoser||[], feed:o.feed||[], completa:!!o.completa}))};
     relRapido(dia); DIAS.push(dia); kmRapido(dia);
   }
@@ -603,9 +627,10 @@ async function lerAgendaTexto(texto){
       const ant=(AGR[o.data]?.ots||[]).find(x=>x.campos?.["Nº OT"]===c["Nº OT"]);   // não perder equipamentos/materiais já recolhidos
       (dias[o.data]=dias[o.data]||[]).push(ant&&ant.completa?{...ant, campos:{...ant.campos, ...Object.fromEntries(Object.entries(c).filter(([k,v])=>v))}}   // nova recolha: estado e horas da Agenda atualizam
         :{id:"r_"+o.data.replace(/-/g,"")+"_"+(c["Hora início"]||"").replace(":","")+"_"+(c["Nº OT"]||"x"), campos:c}); }
+    for(const d in dias) for(const x of dias[d]) x._total=r.total||null;   // nº de OTs que a Agenda indica (para saber se a leitura ficou completa)
     for(const d in dias) dias[d].sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
-    for(const d in dias) AGR[d]={data:d,ots:dias[d]};
+    for(const d in dias) AGR[d]={data:d,ots:dias[d],gerado:new Date().toISOString()};
     DIAS=DIAS.filter(d=>!d.rapida); juntarAgendaRapida();
     const falta=r.total&&r.total>r.ots.length?` · ⚠ a Agenda indica ${r.total}: faltam ${r.total-r.ots.length} (deslize mais vezes na macro)`:"";
     CAP_MSG=`✓ ${r.ots.length} OT${r.ots.length>1?"s":""} lidas da Agenda (texto exato) · ${Object.keys(dias).map(d=>d.slice(8,10)+"/"+d.slice(5,7)).join(", ")}${falta}`; aviso(CAP_MSG);
@@ -644,7 +669,7 @@ async function lerColetaTexto(texto){
       if(i>=0) dias[d][i]={...dias[d][i], ...novo, campos:{...dias[d][i].campos, ...o.campos}}; else dias[d].push(novo); }
     for(const d in dias) dias[d].sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
-    for(const d in dias) AGR[d]={data:d,ots:dias[d]};
+    for(const d in dias) AGR[d]={data:d,ots:dias[d],gerado:new Date().toISOString()};
     DIAS=DIAS.filter(d=>!d.rapida); juntarAgendaRapida();
     const nEq=ots.reduce((s,o)=>s+o.equip.filter(e=>e["Nº Série"]).length,0), nMat=ots.reduce((s,o)=>s+o.naoser.filter(n=>/^MAT_/i.test(n["Código"])).length,0);
     CAP_MSG=`✓ ${ots.length} OT${ots.length>1?"s":""} completa${ots.length>1?"s":""} (texto exato) · ${nEq} nº de série · ${nMat} materiais`; aviso(CAP_MSG);
@@ -815,13 +840,13 @@ function render(){
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
     const r=d.resumo||{};
-    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido no telemóvel (MacroDroid).">⚡ leitura rápida</span> ':""}${d.rapida?`<button class="folha-btn mini" data-gerar-dia="${d.data}" title="Folhas de obra de todas as OTs do dia (geradas agora no telemóvel)">📄 Folhas do dia</button> `:""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""}${!d.rapida&&AGR&&AGR[d.data]&&(AGR[d.data].ots||[]).length?`<button class="folha-btn mini" data-agr="${d.data}" title="Ver o que foi lido no telemóvel neste dia (não entra nas contas)">⚡ ver leitura rápida</button>`:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
+    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido no telemóvel (MacroDroid).">⚡ leitura rápida</span> ':""}${d.rapida?`<button class="folha-btn mini" data-gerar-dia="${d.data}" title="Folhas de obra de todas as OTs do dia (geradas agora no telemóvel)">📄 Folhas do dia</button> `:""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""}${!d.rapida&&AGR&&AGR[d.data]&&(AGR[d.data].ots||[]).length?`<button class="folha-btn mini" data-agr="${d.data}" title="Ver o que foi lido no telemóvel neste dia (não entra nas contas)">⚡ ver leitura rápida</button>`:""}${d.tel?`<span class="ftg" title="Estado, horas e OTs atualizados pela recolha mais recente no telemóvel">📲 atualizado ${esc(d.tel.hora)}${d.tel.novas?` · ${d.tel.novas} nova${d.tel.novas>1?"s":""}`:""}${d.tel.saiu?` · ${d.tel.saiu} saiu da Agenda`:""}</span> `:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
       ots.map(o=>{const c=o.campos, ok=realizada(o);
         return `<button class="ot" data-d="${esc(d.data)}" data-o="${esc(o.id)}">
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
           <div class="c">${realce(c["Nome de cliente"]||"(sem nome)",q)}</div>
           <div class="m"><span class="mono">${realce(c["Nº OT"]||"",q)}</span> · ${esc(c["Tipo de OT"]||"")}</div>
-          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
+          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
   $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
@@ -1595,7 +1620,7 @@ async function carregar(silencioso){
     FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
     CENTRADA=((data.find(x=>x.pacote&&x.pacote.tipo==="custos_entrada")||{}).pacote||{}).itens||[];
     AGR=((data.find(x=>x.pacote&&x.pacote.tipo==="agenda_rapida")||{}).pacote||{}).dias||{};
-    DIAS=data.map(x=>x.pacote).filter(p=>p&&!["guias","financas","custos_entrada","capturas","agenda_rapida"].includes(p.tipo));
+    DIAS=data.filter(x=>x.pacote&&!["guias","financas","custos_entrada","capturas","agenda_rapida"].includes(x.pacote.tipo)).map(x=>({...x.pacote,_atualizado:x.atualizado}));
     juntarAgendaRapida();
     if(!AUTO_LIDO&&/^#(texto|auto)$/.test(location.hash)){ AUTO_LIDO=true; setTimeout(()=>lerTelemovel(null,true),200); }   // aberto pela macro: lê sozinho
     if(VISTA==="guia") renderGuia();
