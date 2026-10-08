@@ -590,7 +590,7 @@ async function lerAgendaTexto(texto){
     const dias={};
     for(const o of r.ots){ const c=o.campos;
       const ant=(AGR[o.data]?.ots||[]).find(x=>x.campos?.["Nº OT"]===c["Nº OT"]);   // não perder equipamentos/materiais já recolhidos
-      (dias[o.data]=dias[o.data]||[]).push(ant&&ant.completa?{...ant, campos:{...c, ...ant.campos, Estado:c.Estado||ant.campos.Estado}}
+      (dias[o.data]=dias[o.data]||[]).push(ant&&ant.completa?{...ant, campos:{...ant.campos, ...Object.fromEntries(Object.entries(c).filter(([k,v])=>v))}}   // nova recolha: estado e horas da Agenda atualizam
         :{id:"r_"+o.data.replace(/-/g,"")+"_"+(c["Hora início"]||"").replace(":","")+"_"+(c["Nº OT"]||"x"), campos:c}); }
     for(const d in dias) dias[d].sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
