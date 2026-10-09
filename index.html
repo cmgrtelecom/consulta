@@ -165,6 +165,32 @@ dl > :nth-last-child(-n+2){border-bottom:0}
 .acoes a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--accent-ink);background:var(--accent);padding:8px 14px;border-radius:999px;font-weight:600;font-size:14px}
 .acoes a.sec{background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
 .acoes button.sec{font:inherit;font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px;background:var(--surface);color:var(--accent);border:1px solid var(--accent);cursor:pointer}
+
+/* ações da OT: faixa de cartões + painel (segurar para ordenar) */
+.ax{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 0 12px;display:grid;gap:10px;margin-bottom:12px}.ax>*{min-width:0}
+.ax-rol{position:relative;min-width:0;overflow:hidden;padding:0 34px}
+.ax-tr{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 4px 10px;scroll-padding-left:4px;scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+.ax-tr::-webkit-scrollbar{height:4px}.ax-tr::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+.ax-seta{position:absolute;top:calc(50% - 20px);width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font-size:16px;z-index:2;cursor:pointer;padding:0}.ax-seta.e{left:2px}.ax-seta.d{right:2px}
+.ax-t{scroll-snap-align:start;flex:0 0 auto;width:92px;min-height:86px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;text-align:center;font:600 12.5px/1.2 var(--f-body,system-ui);cursor:pointer;transition:transform .15s,border-color .15s;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.ax-t b{font-size:22px;line-height:1}.ax-t small{font-weight:500;color:var(--muted);font-size:11px}
+.ax-t.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;transform:translateY(-2px)}
+.ax-pn{margin:0 12px;border-radius:12px;background:var(--surface-2);padding:12px;min-height:110px;display:grid;gap:5px}
+.ax-pn h4{margin:0;font-size:14px}.ax-big{font-size:21px;font-weight:800}.ax-lin{font-size:13px;color:var(--muted)}.ax-av{font-size:12.5px;color:var(--warn)}
+.ax-go{justify-self:start;margin-top:4px;display:inline-flex;align-items:center;padding:9px 16px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 14px var(--f-body,system-ui);text-decoration:none;border:1px solid var(--accent);cursor:pointer}
+.ax-pts{display:flex;gap:6px;justify-content:center}.ax-pts i{width:6px;height:6px;border-radius:50%;background:var(--line)}.ax-pts i.on{background:var(--accent);width:16px;border-radius:4px}
+.ax-dica{font-size:11.5px;color:var(--muted);text-align:center;margin-top:-4px}
+.ax-ord{display:none;margin:0 12px;gap:8px;flex-wrap:wrap;align-items:center}.ax-ord p{margin:0;font-size:13px;flex:1 1 100%}
+.ax-ord button{padding:8px 14px;border-radius:999px;font:700 13.5px var(--f-body,system-ui);cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--accent)}.ax-ord .ok{background:var(--accent);color:var(--accent-ink)}
+.ax.edit .ax-rol{padding:0 12px}.ax.edit .ax-seta,.ax.edit .ax-pts,.ax.edit .ax-pn,.ax.edit .ax-dica{display:none}.ax.edit .ax-ord{display:flex}
+.ax.edit .ax-tr{flex-wrap:wrap;overflow:visible;scroll-snap-type:none;justify-content:center}
+.ax.edit .ax-t{touch-action:none;cursor:grab;animation:axAbana .35s ease-in-out infinite alternate}.ax.edit .ax-t:nth-child(even){animation-delay:-.17s}
+.ax.edit .ax-t.on{box-shadow:none;border-color:var(--line);transform:none}
+@keyframes axAbana{from{transform:rotate(-1.6deg)}to{transform:rotate(1.6deg)}}
+.ax-t.ph{opacity:.25;border-style:dashed;animation:none!important}
+.ax-fant{position:fixed;z-index:80;pointer-events:none;width:92px;min-height:86px;border-radius:14px;border:2px solid var(--accent);background:var(--surface-2);color:var(--fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;text-align:center;font:600 12.5px/1.2 var(--f-body,system-ui);box-shadow:0 10px 24px rgba(0,0,0,.35);transform:scale(1.08)}
+.ax-fant b{font-size:22px;line-height:1}.ax-fant small{font-weight:500;color:var(--muted);font-size:11px}
+@media (prefers-reduced-motion:reduce){.ax.edit .ax-t{animation:none}}
 /* importar */
 .imp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 .imp h2{font:600 18px var(--f-display);margin:0}
@@ -1203,6 +1229,99 @@ function plcCliente(c){
   return {plc,cli,dist:m<1000?Math.round(m)+" m":(m/1000).toFixed(1).replace(".",",")+" km",
     rota:`https://www.google.com/maps/dir/?api=1&origin=${plc[0]},${plc[1]}&destination=${cli[0]},${cli[1]}&travelmode=${m>800?"driving":"walking"}`};
 }
+// ---------- ações da OT: faixa de cartões com informação; segurar um cartão para mudar a ordem (guardada no telemóvel)
+let AQUI=null, AQUI_PEDIDO=false, AX=null;
+const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","rota","plc","tel","copiar","folha","mapa","perc"];
+function axDist(a,b){ const t=x=>x*Math.PI/180, h=Math.sin(t(b[0]-a[0])/2)**2+Math.cos(t(a[0]))*Math.cos(t(b[0]))*Math.sin(t(b[1]-a[1])/2)**2; return 2*6371*Math.asin(Math.sqrt(h)); }
+const axKm=k=>k<1?Math.round(k*1000)+" m":k.toFixed(1).replace(".",",")+" km";
+function axPedirLocal(){ if(AQUI_PEDIDO||!navigator.geolocation) return; AQUI_PEDIDO=true;
+  navigator.geolocation.getCurrentPosition(p=>{ AQUI=[p.coords.latitude,p.coords.longitude]; if(AX){ const k=AX.atual; AX.atual=null; axMostrar(k); } },
+    ()=>{ AQUI_PEDIDO=false; }, {enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
+function axDeMim(p,carro=true){ if(!p) return "";
+  if(!AQUI) return `<div class="ax-av">📍 Ative a localização do telemóvel para ver a distância de onde está.</div>`;
+  const k=axDist(AQUI,p)*1.3; return `<div><span class="ax-big">${axKm(k)}</span> <span class="ax-lin">de onde está · ≈ ${Math.max(1,Math.round(k/40*60))} min de carro</span></div>`; }
+function axOrdem(){ let g=null; try{ g=JSON.parse(localStorage.getItem(AX_CHAVE)||"null"); }catch(e){}
+  g=Array.isArray(g)?g.filter(k=>AX_PADRAO.includes(k)):[]; return g.concat(AX_PADRAO.filter(k=>!g.includes(k))); }
+function axGuardar(o){ try{ localStorage.setItem(AX_CHAVE,JSON.stringify(o)); }catch(e){} }
+function axPonto(o2){ const p=plcCliente(o2.campos||{}); if(p.cli) return p.cli; if(p.plc) return p.plc; const r=o2.rel||{}; return r.lat&&r.lng?[+r.lat,+r.lng]:null; }
+function axCartoes(d,o,loc){
+  const c=o.campos||{}, r=o.rel||{}, pc=plcCliente(c), C={};
+  const mor=c["Morada Completa"]||c.Morada||"", w=p=>`https://waze.com/ul?ll=${p[0]},${p[1]}&navigate=yes`;
+  const igual=pc.cli&&pc.plc&&axDist(pc.cli,pc.plc)<0.01, cli=igual?null:pc.cli;
+  const hm=v=>String(v||"").match(/\d{1,2}:\d{2}/)?.[0]||"";
+  const jan=(hm(c["Início agendamento"])&&hm(c["Fim agendamento"]))?`${hm(c["Início agendamento"])}–${hm(c["Fim agendamento"])}`:(c["Hora início"]?`${esc(c["Hora início"])}–${esc(c["Hora fim"]||"")}`:"");
+  const linJan=jan||r.agendamento?`<div class="ax-lin">${jan?"Janela "+jan:""}${jan&&r.agendamento?" · ":""}${esc(r.agendamento||"")}</div>`:"";
+  const plcNome=[c.PLC,c["N.º porta PLC"]?"porta "+c["N.º porta PLC"]:""].filter(Boolean).map(esc).join(" · ");
+  const avIgual=igual?`<div class="ax-av">⚠ O Field Service tem para o cliente as mesmas coordenadas do PLC. A navegação usa a morada.</div>`:"";
+  if(cli||mor) C.cli={i:"🚗",n:"Cliente",s:"Waze",t:"Ir para o cliente",url:cli?w(cli):`https://waze.com/ul?q=${encodeURIComponent(mor)}&navigate=yes`,b:"Abrir no Waze",
+    h:()=>(cli?axDeMim(cli):"")+(mor?`<div class="ax-lin">${esc(mor)}</div>`:"")+linJan+avIgual};
+  if(pc.rota){ const k=axDist(pc.plc,pc.cli);
+    C.rota={i:"🗺️",n:"Rota PLC→cliente",s:igual?"mesmo ponto":"≈ "+pc.dist,t:"PLC ⟷ casa do cliente",url:pc.rota,b:"Ver rota no Google Maps",
+      h:()=>igual?`<div><span class="ax-big">0 m</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${avIgual}`
+        :`<div><span class="ax-big">≈ ${pc.dist}</span> <span class="ax-lin">em linha reta · ≈ ${Math.max(1,Math.round(k*1000/80))} min a pé</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}<div class="ax-lin">Ajuda a estimar o cabo de drop.</div>`}; }
+  if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
+  const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
+  if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
+    const alt=[c["Contactos alternativos"],c["Contacto acompanhamento"]&&c["Contacto acompanhamento"]!==c["Contacto de cliente"]?c["Contacto acompanhamento"]:""].filter(Boolean).map(esc).join(" · ");
+    C.tel={i:"📞",n:"Ligar",s:"cliente",t:"Ligar ao cliente",url:"tel:"+tel,b:"Ligar agora",
+      h:()=>`<div class="ax-big">${esc(f)}</div><div class="ax-lin">${esc(c["Nome de cliente"]||"")}</div>${alt?`<div class="ax-lin">Outros: ${alt}</div>`:""}${linJan}`}; }
+  const cp=pc.cli||pc.plc;
+  if(cp) C.copiar={i:"📋",n:"Copiar",s:"coordenadas",t:pc.cli?"Coordenadas do cliente":"Coordenadas do PLC",copiar:`${cp[0]}, ${cp[1]}`,b:"Copiar coordenadas",
+    h:()=>`<div class="ax-big mono" style="font-size:17px">${cp[0]}, ${cp[1]}</div>${pc.cli&&pc.plc?`<div class="ax-lin">PLC: <span class="mono">${pc.plc[0]}, ${pc.plc[1]}</span></div>`:""}${igual?avIgual:""}`};
+  if(o.folha||d.rapida){ const eq=o.equip||[], ser=eq.filter(e=>e["Nº Série"]).length, ns=(o.naoser||[]).length;
+    C.folha={i:"📄",n:"Folha de obra",s:"PDF",t:"Folha de obra",folha:o.folha?{f:o.folha}:{gerar:1},b:"Abrir folha de obra",
+      h:()=>`<div class="ax-big">${eq.length} equipamento${eq.length===1?"":"s"}</div><div class="ax-lin">${ser} com nº de série · ${ns} não seriado${ns===1?"":"s"}</div>${o.folha?"":`<div class="ax-lin">Gerada agora com os dados lidos no telemóvel.</div>`}`}; }
+  if(!loc&&(pc.cli||mor)) loc=pc.cli?`https://www.google.com/maps/search/?api=1&query=${pc.cli[0]},${pc.cli[1]}`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mor)}`;
+  if(loc) C.mapa={i:"📍",n:"Mapa",s:"Google Maps",t:"Abrir no mapa",url:loc,b:"Abrir mapa",h:()=>`<div style="font-size:14px">${esc(mor||"—")}</div>${c.Latitude?"":`<div class="ax-lin">Sem coordenadas do cliente: o mapa usa ${r.lat?"o PLC":"a morada"}.</div>`}`};
+  const lista=d.ots.slice().sort((a,b)=>(a.campos?.["Hora início"]||"99").localeCompare(b.campos?.["Hora início"]||"99")), pos=lista.indexOf(o);
+  if(lista.length>1){ const pts=lista.map(axPonto), prox=lista[pos+1], ant=lista[pos-1];
+    const lig=(x,i)=>{ const a=pts[pos], b=pts[i]; return `${esc(x.campos?.["Hora início"]||"")} · ${esc(x.campos?.["Nome de cliente"]||x.campos?.["Nº OT"]||"")}${a&&b?` (${axKm(axDist(a,b)*1.3)})`:""}`; };
+    let url=d.resumo?.google_maps||""; if(!url){ const ok=pts.filter(Boolean); if(ok.length>1) url="https://www.google.com/maps/dir/"+ok.map(p=>p.join(",")).join("/"); }
+    C.perc={i:"🧭",n:"Percurso",s:"do dia",t:"Percurso do dia",url,b:"Ver percurso",
+      h:()=>`<div class="ax-big">${pos+1}.ª de ${lista.length} OTs</div>${prox?`<div class="ax-lin">Próxima: ${lig(prox,pos+1)}</div>`:`<div class="ax-lin">É a última OT do dia.</div>`}${ant?`<div class="ax-lin">Anterior: ${lig(ant,pos-1)}</div>`:""}`}; }
+  return C;
+}
+function acoesOT(d,o,loc){
+  const C=axCartoes(d,o,loc), ordem=axOrdem().filter(k=>C[k]); if(!ordem.length) return "";
+  AX={C,ordem,atual:null,editar:false};
+  return `<div class="ax" id="ax"><div class="ax-ord"><p>✋ Arraste os cartões para a ordem que quiser.</p><button class="ok" data-ax="ok">Concluir</button><button data-ax="repor">Repor ordem</button></div>
+    <div class="ax-rol"><button class="ax-seta e" data-axs="-1" aria-label="Anterior">‹</button><button class="ax-seta d" data-axs="1" aria-label="Seguinte">›</button><div class="ax-tr" id="axTr"></div></div>
+    <div class="ax-pts" id="axPts"></div><div class="ax-pn" id="axPn" aria-live="polite"></div><div class="ax-dica">Segure um cartão para mudar a ordem</div></div>`;
+}
+const axCards=()=>[...document.querySelectorAll("#axTr .ax-t")];
+function axDesenhar(){ const tr=$("#axTr"); if(!tr||!AX) return;
+  tr.innerHTML=AX.ordem.map(k=>{const c=AX.C[k];return `<button class="ax-t" data-k="${k}" aria-label="${esc(c.t)}"><b>${c.i}</b>${esc(c.n)}<small>${esc(c.s)}</small></button>`}).join("");
+  $("#axPts").innerHTML=AX.ordem.map(()=>"<i></i>").join(""); axCards().forEach(axLigarCartao); AX.atual=null; tr.scrollLeft=0; axMostrar(AX.ordem[0]); }
+function axMostrar(k){ if(!AX||k==null||k===AX.atual||AX.editar||!$("#axPn")) return; AX.atual=k; const c=AX.C[k], pos=AX.ordem.indexOf(k);
+  axCards().forEach(b=>b.classList.toggle("on",b.dataset.k===k)); document.querySelectorAll("#axPts i").forEach((p,j)=>p.classList.toggle("on",j===pos));
+  let bt="";
+  if(c.url) bt=`<a class="ax-go" href="${esc(c.url)}" ${c.url.startsWith("tel:")?"":'target="_blank" rel="noopener"'}>${c.b}</a>`;
+  else if(c.copiar) bt=`<button class="ax-go" data-copiar="${esc(c.copiar)}">${c.b}</button>`;
+  else if(c.folha) bt=c.folha.f?`<button class="ax-go folha-btn" data-f="${esc(c.folha.f)}">${c.b}</button>`:`<button class="ax-go folha-btn" data-gerar="1">${c.b}</button>`;
+  $("#axPn").innerHTML=`<h4>${c.i} ${esc(c.t)}</h4>${c.h()}${bt}`; }
+let axTimer=null, axIni=null, axFant=null, axArr=null;
+function axEntrar(){ AX.editar=true; $("#ax").classList.add("edit"); axCards().forEach(b=>b.classList.remove("on")); try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){} }
+function axSair(){ AX.ordem=axCards().map(b=>b.dataset.k); const resto=axOrdem().filter(k=>!AX.ordem.includes(k)); axGuardar(AX.ordem.concat(resto)); AX.editar=false; $("#ax").classList.remove("edit"); axDesenhar(); }
+function axLigarCartao(b){
+  b.onmouseenter=()=>{ AX.fixo=Date.now(); axMostrar(b.dataset.k); }; b.onclick=()=>{ if(!AX.editar){ AX.fixo=Date.now(); axMostrar(b.dataset.k); } }; b.oncontextmenu=e=>e.preventDefault();
+  b.addEventListener("pointerdown",e=>{ if(AX.editar){ axArrastar(b,e); return; } axIni={x:e.clientX,y:e.clientY}; clearTimeout(axTimer); axTimer=setTimeout(()=>{ axTimer=null; axEntrar(); },450); });
+  b.addEventListener("pointermove",e=>{ if(axTimer&&axIni&&Math.hypot(e.clientX-axIni.x,e.clientY-axIni.y)>8){ clearTimeout(axTimer); axTimer=null; } });
+  ["pointerup","pointercancel","pointerleave"].forEach(t=>b.addEventListener(t,()=>{ clearTimeout(axTimer); axTimer=null; }));
+}
+function axArrastar(b,e){ e.preventDefault(); axArr=b; const r=b.getBoundingClientRect();
+  axFant=document.createElement("div"); axFant.className="ax-fant"; axFant.innerHTML=b.innerHTML; document.body.appendChild(axFant);
+  axFant.dx=e.clientX-r.left; axFant.dy=e.clientY-r.top; axMover(e); b.classList.add("ph");
+  document.addEventListener("pointermove",axMover); document.addEventListener("pointerup",axLargar,{once:true}); document.addEventListener("pointercancel",axLargar,{once:true}); }
+function axMover(e){ if(!axFant) return; axFant.style.left=(e.clientX-axFant.dx)+"px"; axFant.style.top=(e.clientY-axFant.dy)+"px";
+  const tr=$("#axTr"), alvo=document.elementFromPoint(e.clientX,e.clientY)?.closest(".ax-t"); if(!tr||!alvo||alvo===axArr||!tr.contains(alvo)) return;
+  const r=alvo.getBoundingClientRect(); tr.insertBefore(axArr, e.clientX<r.left+r.width/2?alvo:alvo.nextSibling); }
+function axLargar(){ document.removeEventListener("pointermove",axMover); if(axFant){axFant.remove();axFant=null;} if(axArr){axArr.classList.remove("ph");axArr=null;} }
+function axLigar(){ const tr=$("#axTr"); if(!tr) return; axDesenhar(); axPedirLocal();
+  tr.addEventListener("scroll",()=>{ if(AX.editar||Date.now()-(AX.fixo||0)<700) return; const r=tr.getBoundingClientRect(); let best=null,bd=1e9; axCards().forEach(b=>{ const d=Math.abs(b.getBoundingClientRect().left-r.left-4); if(d<bd){bd=d;best=b.dataset.k;} }); axMostrar(best); },{passive:true});
+  document.querySelectorAll("[data-axs]").forEach(b=>b.onclick=()=>{ const n=Math.max(0,Math.min(AX.ordem.length-1,AX.ordem.indexOf(AX.atual)+ +b.dataset.axs)); AX.fixo=Date.now(); axCards()[n].scrollIntoView({behavior:"smooth",inline:"start",block:"nearest"}); axMostrar(AX.ordem[n]); });
+  document.querySelector('[data-ax="ok"]').onclick=axSair;
+  document.querySelector('[data-ax="repor"]').onclick=()=>{ AX.ordem=AX_PADRAO.filter(k=>AX.C[k]); axGuardar(AX_PADRAO.slice()); const tr2=$("#axTr"); tr2.innerHTML=""; AX.ordem.forEach(k=>{ const c=AX.C[k], b=document.createElement("button"); b.className="ax-t"; b.dataset.k=k; b.innerHTML=`<b>${c.i}</b>${esc(c.n)}<small>${esc(c.s)}</small>`; axLigarCartao(b); tr2.appendChild(b); }); };
+}
 function desenharFicha(){
   const {d,o}=ABERTA, c=o.campos, r=o.rel||{};
   document.querySelectorAll("#fTabs button").forEach(b=>{
@@ -1213,13 +1332,7 @@ function desenharFicha(){
   let h="";
   if(TAB==="det"){
     const loc = r.lat&&r.lng ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : (c.Morada?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.Morada)}`:null);
-    h+=`<div class="acoes">${o.folha?`<button class="folha-btn" data-f="${esc(o.folha)}">📄 Folha de obra</button>`:(d.rapida?`<button class="folha-btn" data-gerar="1" title="Gerada agora, com os dados lidos no telemóvel">📄 Folha de obra</button>`:"")}${(()=>{ const n=v=>{ const x=parseFloat(String(v||"").replace(",",".")); return isFinite(x)&&Math.abs(x)>1?+x.toFixed(6):null; };
-      const cli=n(c.Latitude)&&n(c.Longitude)?[n(c.Latitude),n(c.Longitude)]:null, plc=n(c["Latitude PLC"])&&n(c["Longitude PLC"])?[n(c["Latitude PLC"]),n(c["Longitude PLC"])]:null;
-      const mor=c["Morada Completa"]||c.Morada||"", w=p=>`https://waze.com/ul?ll=${p[0]},${p[1]}&navigate=yes`, cp=cli||plc;
-      return (cli?`<a href="${w(cli)}" target="_blank" rel="noopener">🚗 Waze (cliente)</a>`:(mor?`<a href="https://waze.com/ul?q=${encodeURIComponent(mor)}&navigate=yes" target="_blank" rel="noopener">🚗 Waze (morada)</a>`:""))
-        +(plc?`<a class="sec" href="${w(plc)}" target="_blank" rel="noopener">🚗 Waze (PLC)</a>`:"")
-        +(plcCliente(c).rota?`<a class="sec" href="${plcCliente(c).rota}" target="_blank" rel="noopener">🗺 Rota PLC → cliente · ${plcCliente(c).dist}</a>`:"")
-        +(cp?`<button class="sec" data-copiar="${cp[0]}, ${cp[1]}">📋 Coordenadas ${cli?"cliente":"PLC"}</button>`:""); })()}${loc?`<a class="sec" href="${loc}" target="_blank" rel="noopener">Abrir no mapa</a>`:""}${d.resumo?.google_maps?`<a class="sec" href="${esc(d.resumo.google_maps)}" target="_blank" rel="noopener">Percurso do dia</a>`:""}</div>`;
+    h+=acoesOT(d,o,loc);
     if(!realizada(o)||r.reagendada) h+=`<div class="bloco"><h4>Improdutividade</h4><dl><dt>Motivo</dt><dd>${esc(r.motivo||"—")}</dd>${r.reagendada?`<dt>Reagendada para</dt><dd>${esc(r.reagendada)}</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Agendamento prévio</h4><dl><dt>Situação</dt><dd>${esc(r.agendamento||"—")}</dd><dt>Evidência</dt><dd>${esc(r.evidencia||"—")}</dd>${r.km_estrada!=null?`<dt>Desde a OT anterior</dt><dd>${r.km_estrada} km · ≈${fMin(r.min_conducao)} de condução</dd>`:""}</dl></div>`;
     { const pc=plcCliente(c); if(pc.dist&&!c["Distância PLC–cliente"]) c["Distância PLC–cliente"]=pc.dist; }
@@ -1236,7 +1349,7 @@ function desenharFicha(){
     const it=o.feed||[];
     h=it.length?`<div class="bloco feed">`+it.map(e=>`<div class="item"><span class="autor">${esc(e.Autor)}</span> <span class="q">(${esc(e.Perfil||"")}) · ${esc(e.Quando||"")}</span><p>${esc(e.Texto||"")}</p></div>`).join("")+`</div>`:`<div class="vazio">Sem publicações no Feed.</div>`;
   }
-  $("#fCorpo").innerHTML=h; $("#fCorpo").scrollTop=0;
+  $("#fCorpo").innerHTML=h; $("#fCorpo").scrollTop=0; if(TAB==="det") axLigar();
   $("#fCorpo").querySelectorAll(".copiar").forEach(b=>b.onclick=async()=>{
     try{ await navigator.clipboard.writeText(b.dataset.v); toast("Copiado: "+b.dataset.v); }
     catch{ const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents(b.previousElementSibling||b); s.removeAllRanges(); s.addRange(rg); toast("Texto selecionado — copie com Ctrl+C"); }
