@@ -314,8 +314,10 @@ button.itile{cursor:pointer}
       <div class="kpi bad"><div class="l">Sem confirmação TDS</div><div class="v" id="rTds">–</div><div class="s" id="rTdsS">&nbsp;</div></div>
     </section>
     <section class="cartao"><h3>Linha do tempo · execução, condução estimada e espera</h3>
-      <div class="rolar dentro" id="gantt"></div>
-      <div class="leg"><span><i style="background:var(--ok)"></i>Realizada</span><span><i style="background:var(--bad)"></i>Não realizada</span><span><i style="background:var(--accent)"></i>Condução estimada</span><span><i style="background:var(--line)"></i>Espera / pausa</span></div>
+      <div class="dentro" id="gantt"></div>
+    </section>
+    <section class="cartao"><h3>Esperas e pausas · Pareto e oportunidades de melhoria</h3>
+      <div class="dentro" id="rAnalise"></div>
     </section>
     <div class="rcols">
       <section class="cartao"><h3>Percurso entre OTs <span class="grow"></span><select class="selecao" id="rDia" aria-label="Dia do percurso"></select><a class="lnk" id="lnkMaps" target="_blank" rel="noopener">Abrir no Google Maps ↗</a></h3>
@@ -871,7 +873,7 @@ function calcularRel(dias){
       return {data:d.data, id:o.id, ot:c["Nº OT"], cliente:c["Nome de cliente"], tipo:c["Tipo de OT"], estado:c.Estado, ok:realizada(o),
         ini, fim, dur:(ini!=null&&fim!=null&&fim>=ini)?fim-ini:(r.duracao??null), km:r.km_estrada??null, cond:r.min_conducao??null,
         espera:r.espera??null, intervalo:r.intervalo??null, ag:r.agendamento||"Sem registo de agendamento prévio", motivo:r.motivo||"",
-        reag:r.reagendada||"", lat:r.lat, lng:r.lng, morada:c.Morada};})
+        reag:r.reagendada||"", lat:r.lat, lng:r.lng, morada:c.Morada, antec:!!r.antecipacao};})
       .sort((a,b)=>(a.ini??9999)-(b.ini??9999));
     const inis=ots.map(o=>o.ini).filter(v=>v!=null), fins=ots.map(o=>o.fim).filter(v=>v!=null);
     const jor=inis.length&&fins.length?Math.max(...fins)-Math.min(...inis):null;
@@ -905,24 +907,186 @@ function renderRel(){
   if(REL.porDia.some(d=>d.data===atual)) sel.value=atual;
   desenharPercurso();
 }
+// ---------- Linha do tempo com zoom + Pareto das esperas + oportunidades (igual na Consulta e no painel do PC)
+// Entrada: dias = [{data:"AAAA-MM-DD", ots:[{id, ot, cliente, tipo, estado, ok, ini, fim (minutos), cond (min|null), km, ag, motivo, antec}]}]
+const CRT=(()=>{
+  const css=`
+.crt{--crt-ok:#178a48;--crt-bad:#cc5527;--crt-cond:#3069b0;--crt-wait:#c9d3d0;--crt-grid:#e6ebe9;--crt-ink:#1d2a27;--crt-mut:#5f716d;--crt-surf:#fff;--crt-bar:#3069b0;--crt-line:#12343b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .crt{--crt-ok:#33a361;--crt-bad:#e2683a;--crt-cond:#5089d2;--crt-wait:#3d4b47;--crt-grid:#26332f;--crt-ink:#e6efec;--crt-mut:#93a6a1;--crt-surf:#16201e;--crt-bar:#5089d2;--crt-line:#cfe6ea}}
+:root[data-theme="dark"] .crt{--crt-ok:#33a361;--crt-bad:#e2683a;--crt-cond:#5089d2;--crt-wait:#3d4b47;--crt-grid:#26332f;--crt-ink:#e6efec;--crt-mut:#93a6a1;--crt-surf:#16201e;--crt-bar:#5089d2;--crt-line:#cfe6ea}
+.crt{color:var(--crt-ink)}
+.crt .crt-ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 6px}
+.crt .crt-ctl button{font:inherit;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--crt-grid);background:var(--crt-surf);color:var(--crt-ink);cursor:pointer}
+.crt .crt-ctl button.on{background:var(--crt-bar);border-color:var(--crt-bar);color:#fff}
+.crt .crt-ctl .crt-dica{font-size:12px;color:var(--crt-mut);margin-left:4px}
+.crt .crt-tl{position:relative;overflow:hidden;cursor:grab;user-select:none;touch-action:pan-y}
+.crt .crt-tl.drag{cursor:grabbing}
+.crt svg{display:block;width:100%;height:auto;overflow:visible}
+.crt text{font-family:inherit}
+.crt .t-tick{font-size:11px;fill:var(--crt-mut)} .crt .t-dia{font-size:12.5px;font-weight:700;fill:var(--crt-ink)} .crt .t-sem{font-size:11px;fill:var(--crt-mut)}
+.crt .t-lbl{font-size:11px;font-weight:600;fill:#fff;pointer-events:none}
+.crt .t-val{font-size:11.5px;font-weight:600;fill:var(--crt-ink)}
+.crt .seg{cursor:pointer}.crt .seg:hover{filter:brightness(1.12)}
+.crt .crt-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--crt-mut);margin-top:8px}
+.crt .crt-leg i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.crt .crt-h{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--crt-mut);margin:14px 0 6px;font-weight:700}
+.crt table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.crt td,.crt th{padding:6px 8px;border-top:1px solid var(--crt-grid);text-align:left}
+.crt th{color:var(--crt-mut);font-weight:600;font-size:12px}.crt td.n,.crt th.n{text-align:right;font-variant-numeric:tabular-nums}
+.crt .crt-kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:4px 0 6px}
+.crt .crt-kp div{border:1px solid var(--crt-grid);border-radius:10px;padding:9px 11px}.crt .crt-kp b{display:block;font-size:20px}.crt .crt-kp span{font-size:12px;color:var(--crt-mut)}
+.crt .crt-op{display:grid;gap:8px}.crt .crt-op div{border:1px solid var(--crt-grid);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.45}
+.crt .crt-op b{display:block;margin-bottom:2px}.crt .crt-tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;margin-right:6px;border:1px solid var(--crt-grid);color:var(--crt-mut)}
+.crt-tip{position:fixed;pointer-events:none;background:var(--crt-surf,#fff);color:var(--crt-ink,#1d2a27);border:1px solid var(--crt-grid,#e3e8e6);border-radius:10px;padding:7px 10px;font-size:12.5px;line-height:1.4;box-shadow:0 8px 22px rgba(0,0,0,.18);display:none;z-index:99999;max-width:300px}
+.crt-tip b{display:block}`;
+  let tip=null;
+  function prep(){ if(!document.getElementById("crt-css")){ const s=document.createElement("style"); s.id="crt-css"; s.textContent=css; document.head.appendChild(s); }
+    if(!tip){ tip=document.createElement("div"); tip.className="crt crt-tip"; document.body.appendChild(tip);
+      document.addEventListener("pointermove",e=>{ const t=e.target.closest&&e.target.closest(".crt [data-t]"); if(t&&!document.querySelector(".crt-tl.drag")){ tip.innerHTML=t.dataset.t; tip.style.display="block";
+        tip.style.left=Math.min(e.clientX+14,innerWidth-310)+"px"; tip.style.top=Math.min(e.clientY+14,innerHeight-90)+"px"; } else tip.style.display="none"; }); } }
+  const e_=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const fh=m=>m==null?"":String(Math.floor(m/60)).padStart(2,"0")+":"+String(Math.round(m%60)).padStart(2,"0");
+  const fm=m=>m==null?"":m>=60?Math.floor(m/60)+" h "+String(Math.round(m%60)).padStart(2,"0"):Math.round(m)+" min";
+  const MES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"], SEM=["dom","seg","ter","qua","qui","sex","sáb"];
+  const rot=d=>`${+d.slice(8)} ${MES[+d.slice(5,7)-1]}`, sem=d=>SEM[new Date(d+"T12:00:00").getDay()];
+  const condMin=o=>o.cond!=null?o.cond:(o.km!=null?Math.round(o.km/40*60):12);   // 40 km/h; 12 min quando falta a localização
+
+  // intervalos entre OTs: condução estimada + espera; o almoço é a parte da espera entre 12h30 e 13h30
+  function intervalos(dias){
+    const out=[];
+    for(const d of dias){ const l=d.ots.filter(o=>o.ini!=null).sort((a,b)=>a.ini-b.ini);
+      for(let i=1;i<l.length;i++){ const a=l[i-1], b=l[i], fimA=a.fim??a.ini; const gap=b.ini-fimA; if(gap<=0) continue;
+        const cond=Math.min(gap,condMin(b)), esp=gap-cond, s=fimA, e=fimA+esp, alm=Math.max(0,Math.min(e,810)-Math.max(s,750)), resto=esp-alm;
+        const causa=resto<=0?"":resto>90?"Buraco longo na agenda (> 90 min)":!a.ok?"Espera a seguir a OT não realizada":resto>30?"Espera média entre OTs (30–90 min)":"Espera curta entre OTs (≤ 30 min)";
+        out.push({data:d.data, a, b, de:fimA, ate:b.ini, cond, esp, alm, resto, causa}); } }
+    return out;
+  }
+
+  // ---------------- linha do tempo com zoom
+  function linhaTempo(el, dias, op={}){
+    prep(); el.classList.add("crt");
+    const ds=[...dias].filter(d=>d.ots.some(o=>o.ini!=null)).sort((a,b)=>b.data.localeCompare(a.data));
+    if(!ds.length){ el.innerHTML='<div style="padding:18px;color:var(--crt-mut)">Sem dados.</div>'; return; }
+    const todos=ds.flatMap(d=>d.ots).filter(o=>o.ini!=null);
+    const MIN=Math.floor((Math.min(...todos.map(o=>o.ini))-30)/60)*60, MAX=Math.ceil((Math.max(...todos.map(o=>o.fim??o.ini))+30)/60)*60;
+    let v0=MIN, v1=MAX;
+    el.innerHTML=`<div class="crt-ctl"><button data-z="dia" class="on">Dia inteiro</button><button data-z="240">4 h</button><button data-z="120">2 h</button><button data-z="60">1 h</button><button data-z="-">−</button><button data-z="+">+</button><span class="crt-dica">roda do rato = zoom · arrastar = andar no tempo${op.onOT?" · clicar numa OT = abrir":""}</span></div>
+      <div class="crt-tl"><svg role="img" aria-label="Linha do tempo das OTs por dia"></svg></div>
+      <div class="crt-leg"><span><i style="background:var(--crt-ok)"></i>Realizada</span><span><i style="background:var(--crt-bad);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.35) 0 3px,transparent 3px 7px)"></i>Não realizada</span><span><i style="background:var(--crt-cond);height:7px"></i>Condução estimada</span><span><i style="background:var(--crt-wait);height:5px"></i>Espera / pausa</span></div>`;
+    const wrap=el.querySelector(".crt-tl"), svg=el.querySelector("svg"), L=76, R=12, TOP=24, ROW=44, BAR=24;
+    const W=()=>Math.max(320,wrap.clientWidth);
+    function desenhar(){
+      const w=W(), H=TOP+ds.length*ROW+6, x=m=>L+(m-v0)/(v1-v0)*(w-L-R), span=v1-v0, ppm=(w-L-R)/span, passo=[5,10,15,30,60,120,180].find(p=>p*ppm>=(p%60?52:34))||180;
+      svg.setAttribute("viewBox",`0 0 ${w} ${H}`);
+      let h=`<defs><pattern id="crt-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="7" fill="rgba(255,255,255,.28)"/></pattern><clipPath id="crt-cp"><rect x="${L}" y="0" width="${w-L-R}" height="${H}"/></clipPath></defs>`;
+      for(let m=Math.ceil(v0/passo)*passo;m<=v1;m+=passo){ const X=x(m), cheia=m%60===0; h+=`<line x1="${X}" x2="${X}" y1="${TOP-4}" y2="${H-4}" stroke="var(--crt-grid)" ${cheia?"":'stroke-dasharray="2 4"'}/><text class="t-tick" x="${X}" y="13" text-anchor="middle">${cheia?(m/60)+"h":fh(m)}</text>`; }
+      const ints=intervalos(ds);
+      ds.forEach((d,i)=>{ const y=TOP+i*ROW+(ROW-BAR)/2;
+        h+=`<text class="t-dia" x="4" y="${y+11}">${rot(d.data)}</text><text class="t-sem" x="4" y="${y+24}">${sem(d.data)}</text><g clip-path="url(#crt-cp)">`;
+        for(const g of ints.filter(g=>g.data===d.data)){
+          if(g.esp>0) h+=`<rect class="seg" data-t="<b>Espera / pausa · ${fm(g.esp)}</b>${fh(g.de)}–${fh(g.de+g.esp)}${g.alm?` · inclui almoço ${fm(g.alm)}`:""}${g.causa?`<br>${e_(g.causa)}`:""}" x="${x(g.de)}" y="${y+BAR/2-3}" width="${Math.max(1,x(g.de+g.esp)-x(g.de))}" height="6" rx="3" fill="var(--crt-wait)"/>`;
+          if(g.cond>0) h+=`<rect class="seg" data-t="<b>Condução estimada · ${fm(g.cond)}</b>${fh(g.ate-g.cond)}–${fh(g.ate)}${g.b.km!=null?` · ≈ ${String(g.b.km).replace(".",",")} km`:""}<br>até ${e_(g.b.cliente||g.b.ot)}" x="${x(g.ate-g.cond)+1}" y="${y+BAR/2-6}" width="${Math.max(2,x(g.ate)-x(g.ate-g.cond)-2)}" height="12" rx="4" fill="var(--crt-cond)"/>`; }
+        d.ots.filter(o=>o.ini!=null).forEach((o,j)=>{ const fim=o.fim??o.ini+5, X=x(o.ini), bw=Math.max(4,x(fim)-X);
+          const t=`<b>${e_(o.ot)} · ${o.ok?"Realizada":e_(o.estado||"Não realizada")}</b>${e_(o.cliente||"")}${o.tipo?" · "+e_(o.tipo):""}<br>${fh(o.ini)}–${fh(fim)} · ${fm(fim-o.ini)}${!o.ok&&o.motivo?"<br>Motivo: "+e_(o.motivo):""}`;
+          h+=`<g class="seg" data-ot="${i}:${j}" data-t="${t}"><rect x="${X}" y="${y}" width="${bw}" height="${BAR}" rx="5" fill="var(${o.ok?"--crt-ok":"--crt-bad"})"/>${o.ok?"":`<rect x="${X}" y="${y}" width="${bw}" height="${BAR}" rx="5" fill="url(#crt-hatch)"/>`}`;
+          const nome=String(o.ot||""), cli=String(o.cliente||"").split(" ")[0], txt=bw>200?`${nome} · ${o.cliente||""}`:bw>95?nome:bw>52?nome.slice(-5):bw>30?nome.slice(-3):"";
+          const caben=Math.floor((bw-10)/6.4); if(txt) h+=`<text class="t-lbl" x="${X+6}" y="${y+BAR/2+4}">${e_(txt.length>caben?txt.slice(0,Math.max(2,caben-1))+"…":txt)}</text>`;
+          h+=`</g>`; });
+        h+=`</g>`; });
+      svg.innerHTML=h;
+      svg.querySelectorAll("[data-ot]").forEach(g=>g.onclick=()=>{ if(movido) return; const [i,j]=g.dataset.ot.split(":").map(Number), d=ds[i], o=d.ots.filter(o=>o.ini!=null)[j]; op.onOT&&op.onOT(d,o); });
+    }
+    function limitar(a,b){ const s=Math.min(MAX-MIN,Math.max(30,b-a)); if(a<MIN){a=MIN;} if(a+s>MAX){a=MAX-s;} return [a,a+s]; }
+    function zoom(f,cx){ const w=W(), m=v0+(cx-L)/(w-L-R)*(v1-v0), s=(v1-v0)*f; [v0,v1]=limitar(m-(m-v0)*f, m-(m-v0)*f+s); el.querySelectorAll("[data-z]").forEach(b=>b.classList.remove("on")); desenhar(); }
+    wrap.addEventListener("wheel",e=>{ e.preventDefault(); const r=wrap.getBoundingClientRect(); zoom(e.deltaY>0?1.2:1/1.2,e.clientX-r.left); },{passive:false});
+    let arr=null, movido=false; const toq={};
+    wrap.addEventListener("pointerdown",e=>{ toq[e.pointerId]=e.clientX; if(Object.keys(toq).length===1){ arr={x:e.clientX,v0,v1}; movido=false; } });
+    wrap.addEventListener("pointermove",e=>{ const ids=Object.keys(toq);
+      if(ids.length===2&&toq[e.pointerId]!=null){ const o=Math.abs(toq[ids[0]]-toq[ids[1]]); toq[e.pointerId]=e.clientX; const n=Math.abs(toq[ids[0]]-toq[ids[1]]); if(o&&n){ const r=wrap.getBoundingClientRect(); zoom(o/n,(toq[ids[0]]+toq[ids[1]])/2-r.left);} movido=true; return; }
+      if(arr&&Math.abs(e.clientX-arr.x)>4){ if(!movido){ movido=true; wrap.classList.add("drag"); try{wrap.setPointerCapture(e.pointerId);}catch(_){} }
+        const d=(e.clientX-arr.x)/(W()-L-R)*(arr.v1-arr.v0); [v0,v1]=limitar(arr.v0-d,arr.v1-d); desenhar(); } });
+    const fim=e=>{ delete toq[e.pointerId]; arr=null; wrap.classList.remove("drag"); setTimeout(()=>movido=false,0); };
+    wrap.addEventListener("pointerup",fim); wrap.addEventListener("pointercancel",fim);
+    el.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{ const z=b.dataset.z, c=(v0+v1)/2;
+      if(z==="+") return zoom(1/1.5,(W()+L)/2); if(z==="-") return zoom(1.5,(W()+L)/2);
+      if(z==="dia"){ v0=MIN; v1=MAX; } else [v0,v1]=limitar(c-z/2,c+z/2);
+      el.querySelectorAll("[data-z]").forEach(x=>x.classList.toggle("on",x===b)); desenhar(); });
+    if(!el._crtRes){ el._crtRes=true; addEventListener("resize",()=>{ if(el.isConnected) desenhar(); }); }
+    desenhar();
+  }
+
+  // ---------------- Pareto (barras = % do total; linha = % acumulada; o mesmo eixo de 0 a 100 %)
+  function pareto(itens,{alto=280,rotulos}={}){
+    const W=900,H=alto,pl=42,pr=12,pt=22,pb=48, tot=itens.reduce((s,x)=>s+x.v,0)||1, n=itens.length, bw=(W-pl-pr)/n, y=p=>pt+(H-pt-pb)*(1-p/100);
+    let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pareto">`;
+    for(const p of [0,25,50,75,100]) s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(p)}" y2="${y(p)}" stroke="var(--crt-grid)"/><text class="t-tick" x="${pl-6}" y="${y(p)+4}" text-anchor="end">${p}%</text>`;
+    s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(80)}" y2="${y(80)}" stroke="var(--crt-mut)" stroke-dasharray="5 4"/><text class="t-tick" x="${W-pr}" y="${y(80)-5}" text-anchor="end">80 %</text>`;
+    let acc=0; const pts=[];
+    itens.forEach((x,i)=>{ const p=100*x.v/tot; acc+=p; const X=pl+i*bw+Math.min(10,bw*.12), w=bw-2*Math.min(10,bw*.12), t=y(p), r=Math.min(4,w/2);
+      s+=`<path data-t="<b>${e_(x.nome)}</b>${fm(x.v)} · ${p.toFixed(0)} % · acumulado ${acc.toFixed(0)} %${x.extra?"<br>"+x.extra:""}" d="M${X},${y(0)} V${t+r} q0,-${r} ${r},-${r} H${X+w-r} q${r},0 ${r},${r} V${y(0)} Z" fill="var(--crt-bar)" opacity="${x.fraco?.55:1}"/>`;
+      if(p>=3){ const dentro=y(0)-t>30; s+=`<text class="t-val" x="${X+w/2}" y="${dentro?t+18:t-8}" text-anchor="middle" ${dentro?'style="fill:#fff"':""}>${x.rot||fm(x.v)}</text>`; }
+      (x.eixo||[]).forEach((l,k)=>s+=`<text class="t-tick" x="${X+w/2}" y="${y(0)+16+k*14}" text-anchor="middle">${e_(l)}</text>`);
+      pts.push([X+w/2,y(acc)]); });
+    s+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}" fill="none" stroke="var(--crt-line)" stroke-width="2"/>`;
+    s+=pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--crt-line)" stroke="var(--crt-surf)" stroke-width="2"/>`).join("");
+    return s+"</svg>";
+  }
+
+  function analise(el, dias, op={}){
+    prep(); el.classList.add("crt");
+    const VO=op.valorOT||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
+    const tC=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":(t||"Outro");
+    const ots=dias.flatMap(d=>d.ots.map(o=>({...o,data:d.data}))).filter(o=>o.ini!=null), G=intervalos(dias);
+    if(!G.length){ el.innerHTML='<div style="padding:14px;color:var(--crt-mut)">Ainda não há intervalos entre OTs neste período.</div>'; return; }
+    const totEsp=G.reduce((s,g)=>s+g.esp,0), nd=dias.filter(d=>d.ots.length).length||1;
+    const cat={}; for(const g of G){ if(g.alm){ const k="Almoço (12h30–13h30)"; (cat[k]??={v:0,n:0}).v+=g.alm; cat[k].n++; } if(g.causa){ (cat[g.causa]??={v:0,n:0}).v+=g.resto; cat[g.causa].n++; } }
+    const cats=Object.entries(cat).sort((a,b)=>b[1].v-a[1].v);
+    const eix={"Buraco longo na agenda (> 90 min)":["Buraco longo","> 90 min"],"Espera a seguir a OT não realizada":["Após OT","não realizada"],"Espera média entre OTs (30–90 min)":["Espera média","30–90 min"],"Almoço (12h30–13h30)":["Almoço","12h30–13h30"],"Espera curta entre OTs (≤ 30 min)":["Espera curta","≤ 30 min"]};
+    const top=[...G].sort((a,b)=>b.esp-a.esp), top10=top.slice(0,10);
+    let acc=0, nTop=0; for(const g of top){ acc+=g.esp; nTop++; if(acc>=totEsp*.5) break; }
+    const meio=top.filter(g=>g.esp>=60&&g.de<15*60&&g.ate>11*60+30), meioMin=meio.reduce((s,g)=>s+g.esp,0);
+    const exec=ots.filter(o=>o.ok).reduce((s,o)=>s+((o.fim??o.ini)-o.ini),0);
+    const jor=dias.reduce((s,d)=>{ const l=d.ots.filter(o=>o.ini!=null); return l.length?s+Math.max(...l.map(o=>o.fim??o.ini))-Math.min(...l.map(o=>o.ini)):s; },0);
+    const nao=ots.filter(o=>!o.ok), perd=nao.reduce((s,o)=>s+((o.fim??o.ini)-o.ini),0)+G.filter(g=>!g.b.ok).reduce((s,g)=>s+g.cond,0);
+    const horas={}; for(const g of G) for(let m=g.de;m<g.de+g.esp;m++){ const h=Math.floor(m/60); horas[h]=(horas[h]||0)+1; }
+    const hs=Object.keys(horas).map(Number).sort((a,b)=>a-b);
+    // ---- oportunidades (só as que os dados mostram)
+    const opp=[]; const pct=(a,b)=>b?Math.round(100*a/b):0;
+    const ant=ots.filter(o=>o.antec), antOk=ant.filter(o=>o.ok).length;
+    if(meio.length) opp.push(["maior ganho","Encher o buraco do meio-dia com antecipações",`${meio.length} intervalo${meio.length>1?"s":""} de 1 h ou mais entre as 11h30 e as 15h somam ${fm(meioMin)} (${pct(meioMin,totEsp)} % de toda a espera).${ant.length?` Das ${ant.length} antecipações pedidas, ${antOk} resultaram (${pct(antOk,ant.length)} %).`:""} Ao fechar a última OT da manhã, ligar logo aos clientes da tarde a propor antecipar. Recuperar metade dá ≈ ${fm(meioMin/2/nd)} por dia.`]);
+    const ivr=ots.filter(o=>/IVR/i.test(o.ag||"")); if(ivr.length) opp.push(["confirmação","Ligar antes de ir quando só houve IVR",`${ivr.length} OT${ivr.length>1?"s":""} só com "Contactado por IVR, sem confirmação": ${ivr.filter(o=>o.ok).length} realizada${ivr.filter(o=>o.ok).length===1?"":"s"} (${pct(ivr.filter(o=>o.ok).length,ivr.length)} %). Confirmar por telefone antes de sair poupa a viagem e a espera que vem a seguir.`]);
+    const semMot=nao.filter(o=>!o.motivo||/sem motivo/i.test(o.motivo)); if(semMot.length) opp.push(["registo","Escrever sempre o motivo no Feed",`${semMot.length} de ${nao.length} não realizadas sem motivo escrito. Sem motivo não há prova para garantias, reagendamentos ou contestação de débitos.`]);
+    const porT={}; for(const o of ots.filter(o=>o.ok)){ const t=tC(o.tipo), d=(o.fim??o.ini)-o.ini; if(d>0){ (porT[t]??={n:0,m:0}).n++; porT[t].m+=d; } }
+    const rend=Object.entries(porT).filter(([t])=>VO[t]).map(([t,x])=>({t,med:x.m/x.n,eh:VO[t]/(x.m/x.n)*60,n:x.n})).sort((a,b)=>b.eh-a.eh);
+    if(rend.length>1) opp.push(["valor","Preferir as OTs que rendem mais por hora",rend.map(r=>`${r.t}: ${Math.round(r.med)} min em média · ≈ ${Math.round(r.eh)} €/h`).join(" · ")+`. Ao pedir antecipações ou trocas, começar pelas que rendem mais.`]);
+    const prim=dias.map(d=>Math.min(...d.ots.filter(o=>o.ini!=null).map(o=>o.ini))).filter(isFinite); if(prim.length){ const med=prim.reduce((a,b)=>a+b,0)/prim.length; if(med>9*60+5) opp.push(["arranque","Começar à hora",`A 1.ª OT começou em média às ${fh(med)} (entre ${fh(Math.min(...prim))} e ${fh(Math.max(...prim))}). Começar às 09:00 dá ≈ ${fm(med-540)} úteis por dia.`]); }
+    const instNao=nao.filter(o=>tC(o.tipo)==="Instalação"); if(instNao.length>=2) opp.push(["preparação","Confirmar condições antes das Instalações",`${instNao.length} Instalações não realizadas ocuparam ${fm(instNao.reduce((s,o)=>s+((o.fim??o.ini)-o.ini),0)/instNao.length)} cada no local, mais a deslocação. Confirmar PDO, acesso ao prédio e presença do cliente antes de sair.`]);
+    const alm=cat["Almoço (12h30–13h30)"]; if(alm) opp.push(["pausa","O almoço não é o problema",`O almoço (até 60 min, 12h30–13h30) soma ${fm(alm.v)} e fica dentro do buraco do meio-dia. O que se perde é o resto do intervalo à volta dele.`]);
+    el.innerHTML=`<div class="crt-kp">
+        <div><b>${fm(totEsp)}</b><span>de espera e pausa (≈ ${fm(totEsp/nd)} por dia)</span></div>
+        <div><b>${pct(exec,jor)} %</b><span>da jornada a executar OTs (${fm(exec)} de ${fm(jor)})</span></div>
+        <div><b>${pct(nao.length,ots.length)} %</b><span>OTs não realizadas (${nao.length} de ${ots.length}) · ${fm(perd)} perdidas</span></div>
+        <div><b>${nTop} de ${G.length}</b><span>intervalos explicam metade de toda a espera</span></div></div>
+      <div class="crt-h">Pareto da espera por causa</div>${pareto(cats.map(([k,x])=>({nome:k,v:x.v,eixo:eix[k]||[k],extra:`${x.n} vez${x.n>1?"es":""}`})))}
+      <div class="crt-leg"><span><i style="background:var(--crt-bar)"></i>% da espera (barra)</span><span><i style="background:var(--crt-line);height:3px"></i>% acumulada (linha)</span><span>– – 80 %</span></div>
+      <table><thead><tr><th>Causa</th><th class="n">Vezes</th><th class="n">Tempo</th><th class="n">%</th><th class="n">Acumulado</th></tr></thead><tbody>${(()=>{let a=0;return cats.map(([k,x])=>{a+=x.v;return `<tr><td>${e_(k)}</td><td class="n">${x.n}</td><td class="n">${fm(x.v)}</td><td class="n">${pct(x.v,totEsp)} %</td><td class="n">${pct(a,totEsp)} %</td></tr>`;}).join("");})()}</tbody></table>
+      <div class="crt-h">Pareto dos intervalos · os ${top10.length} maiores de ${G.length}</div>
+      ${pareto(top10.map(g=>({nome:`${rot(g.data)} · ${fh(g.de)}–${fh(g.ate)}`,v:g.esp,rot:Math.round(g.esp)+"′",eixo:[rot(g.data),fh(g.de)],fraco:!g.causa.startsWith("Buraco"),extra:`${e_(g.causa||"Almoço")}<br>depois de ${e_(g.a.ot)} (${g.a.ok?"realizada":"não realizada"}) → ${e_(g.b.ot)}`})))}
+      <div class="crt-leg"><span><i style="background:var(--crt-bar)"></i>buraco longo na agenda</span><span><i style="background:var(--crt-bar);opacity:.55"></i>outras esperas</span><span><i style="background:var(--crt-line);height:3px"></i>% acumulada de toda a espera</span></div>
+      <div class="crt-h">A que horas se espera</div>${(()=>{ const W=900,H=200,pl=44,pr=12,pt=14,pb=26, mx=Math.max(60,Math.ceil(Math.max(...hs.map(h=>horas[h]))/60)*60), bw=(W-pl-pr)/hs.length, y=v=>pt+(H-pt-pb)*(1-v/mx);
+        let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Espera por hora">`; for(let v=0;v<=mx;v+=60) s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--crt-grid)"/><text class="t-tick" x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v/60} h</text>`;
+        hs.forEach((h,i)=>{ const v=horas[h], X=pl+i*bw+Math.min(8,bw*.15), w=bw-2*Math.min(8,bw*.15), t=y(v), r=Math.min(4,w/2); s+=`<path data-t="<b>${h}h–${h+1}h</b>${fm(v)} de espera no período" d="M${X},${y(0)} V${t+r} q0,-${r} ${r},-${r} H${X+w-r} q${r},0 ${r},${r} V${y(0)} Z" fill="var(--crt-bar)" opacity="${h>=11&&h<15?1:.55}"/><text class="t-tick" x="${X+w/2}" y="${H-8}" text-anchor="middle">${h}h</text>`; });
+        return s+"</svg>"; })()}
+      <div class="crt-h">Oportunidades de melhoria</div><div class="crt-op">${opp.map(([t,a,b],i)=>`<div><span class="crt-tag">${i+1} · ${t}</span><b>${a}</b>${b}</div>`).join("")||'<div>Sem oportunidades evidentes neste período ✓</div>'}</div>
+      <div style="font-size:12px;color:var(--crt-mut);margin-top:8px">Espera = intervalo entre o fim de uma OT e o início da seguinte, menos a condução estimada (40 km/h; 12 min quando falta a localização). Almoço = parte da espera entre 12h30 e 13h30. "Buraco longo" = espera que, sem o almoço, passa dos 90 min.</div>`;
+  }
+  return {linhaTempo, analise, intervalos};
+})();
+
 function desenharGantt(){
-  const dias=REL.porDia; if(!dias.length){ $("#gantt").innerHTML='<div class="vazio">Sem dados.</div>'; return; }
-  let H0=Math.min(8*60,...dias.map(d=>d.ini??9999)), H1=Math.max(19*60,...dias.map(d=>d.fim??0));
-  H0=Math.floor(H0/60)*60; H1=Math.ceil(H1/60)*60;
-  const W=Math.max(640,(H1-H0)/60*70+120), x=m=>110+(m-H0)/(H1-H0)*(W-125), h=34;
-  let s=`<svg class="gantt" width="${W}" height="${dias.length*h+28}" viewBox="0 0 ${W} ${dias.length*h+28}" role="img" aria-label="Linha do tempo">`;
-  for(let k=H0;k<=H1;k+=60) s+=`<line x1="${x(k)}" x2="${x(k)}" y1="0" y2="${dias.length*h+6}" stroke="var(--line)"/><text x="${x(k)}" y="${dias.length*h+22}" text-anchor="middle">${k/60}h</text>`;
-  [...dias].reverse().forEach((d,i)=>{ const y=i*h+6;
-    s+=`<text class="lbl" x="0" y="${y+16}">${fData(d.data).replace(/ \d{4}$/,"")}</text>`;
-    let ant=null;
-    d.ots.forEach(o=>{ if(o.ini==null) return;
-      if(ant&&ant.fim!=null&&o.ini>ant.fim){ const c=Math.min(o.cond||0,o.ini-ant.fim);
-        s+=`<rect x="${x(ant.fim)}" y="${y+9}" width="${Math.max(0,x(o.ini-c)-x(ant.fim))}" height="6" rx="3" fill="var(--line)"><title>Espera/pausa ${fMin(o.ini-ant.fim-c)}</title></rect>`;
-        if(c) s+=`<rect x="${x(o.ini-c)}" y="${y+6}" width="${x(o.ini)-x(o.ini-c)}" height="12" rx="3" fill="var(--accent)"><title>Condução estimada ${fMin(c)}</title></rect>`; }
-      s+=`<rect x="${x(o.ini)}" y="${y}" width="${Math.max(4,x(o.fim??o.ini+5)-x(o.ini))}" height="24" rx="4" fill="${o.ok?"var(--ok)":"var(--bad)"}"><title>${esc(hhmm(o.ini))}–${esc(hhmm(o.fim))} · ${esc(o.cliente)} · ${esc(o.estado)}</title></rect>`;
-      ant=o; });
-  });
-  $("#gantt").innerHTML=s+"</svg>";
+  const dias=REL.porDia.map(d=>({data:d.data, ots:d.ots.map(o=>({...o}))}));
+  CRT.linhaTempo($("#gantt"), dias, {onOT:(d,o)=>abrir(d.data,o.id)});
+  const VO=(FINC&&FINC.por_mes&&Object.values(FINC.por_mes).find(x=>x.prod&&x.prod.referencia&&x.prod.referencia.valor_ot)?.prod.referencia.valor_ot)||undefined;
+  CRT.analise($("#rAnalise"), dias, {valorOT:VO});
 }
 function desenharAg(){
   const ordem=["Confirmado pelo cliente (TDS automático)","Contactado por IVR, sem confirmação","Cliente incontactável","Sem registo de agendamento prévio"];
