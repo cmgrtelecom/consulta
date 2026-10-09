@@ -177,6 +177,7 @@ dl > :nth-last-child(-n+2){border-bottom:0}
 .ax-t.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;transform:translateY(-2px)}
 .ax-pn{margin:0 12px;border-radius:12px;background:var(--surface-2);padding:12px;min-height:110px;display:grid;gap:5px}
 .ax-pn h4{margin:0;font-size:14px}.ax-big{font-size:21px;font-weight:800}.ax-lin{font-size:13px;color:var(--muted)}.ax-av{font-size:12.5px;color:var(--warn)}
+.ax-loc{font:600 13px var(--f-body,system-ui);color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:999px;padding:5px 12px;cursor:pointer}
 .ax-go{justify-self:start;margin-top:4px;display:inline-flex;align-items:center;padding:9px 16px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 14px var(--f-body,system-ui);text-decoration:none;border:1px solid var(--accent);cursor:pointer}
 .ax-pts{display:flex;gap:6px;justify-content:center}.ax-pts i{width:6px;height:6px;border-radius:50%;background:var(--line)}.ax-pts i.on{background:var(--accent);width:16px;border-radius:4px}
 .ax-dica{font-size:11.5px;color:var(--muted);text-align:center;margin-top:-4px}
@@ -1234,12 +1235,20 @@ let AQUI=null, AQUI_PEDIDO=false, AX=null;
 const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","rota","plc","tel","copiar","folha","mapa","perc"];
 function axDist(a,b){ const t=x=>x*Math.PI/180, h=Math.sin(t(b[0]-a[0])/2)**2+Math.cos(t(a[0]))*Math.cos(t(b[0]))*Math.sin(t(b[1]-a[1])/2)**2; return 2*6371*Math.asin(Math.sqrt(h)); }
 const axKm=k=>k<1?Math.round(k*1000)+" m":k.toFixed(1).replace(".",",")+" km";
-function axPedirLocal(){ if(AQUI_PEDIDO||!navigator.geolocation) return; AQUI_PEDIDO=true;
-  navigator.geolocation.getCurrentPosition(p=>{ AQUI=[p.coords.latitude,p.coords.longitude]; if(AX){ const k=AX.atual; AX.atual=null; axMostrar(k); } },
-    ()=>{ AQUI_PEDIDO=false; }, {enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
-function axDeMim(p,carro=true){ if(!p) return "";
-  if(!AQUI) return `<div class="ax-av">📍 Ative a localização do telemóvel para ver a distância de onde está.</div>`;
+// localização: só é pedida quando o técnico toca em "Ver distância"; se já foi autorizada, é lida sozinha
+function axPedirLocal(forcar){ if(!navigator.geolocation||(AQUI_PEDIDO&&!forcar)) return; AQUI_PEDIDO=true;
+  navigator.geolocation.getCurrentPosition(p=>{ AQUI=[p.coords.latitude,p.coords.longitude]; AX_GEO_ERRO=""; axRefrescar(); },
+    e=>{ AX_GEO_ERRO=e.code===1?"negada":"falhou"; axRefrescar(); }, {enableHighAccuracy:false,timeout:12000,maximumAge:300000}); }
+function axRefrescar(){ if(AX){ const k=AX.atual; AX.atual=null; axMostrar(k); } }
+function axLocalAuto(){ if(AQUI||AQUI_PEDIDO||!navigator.permissions?.query) return;
+  navigator.permissions.query({name:"geolocation"}).then(r=>{ if(r.state==="granted") axPedirLocal(); }).catch(()=>{}); }
+let AX_GEO_ERRO="";
+function axDeMim(p){ if(!p) return "";
+  if(!AQUI){
+    if(AX_GEO_ERRO==="negada") return `<div class="ax-av">📍 A localização está bloqueada para a Consulta. Feche balões e janelas flutuantes (ex.: botão do MacroDroid) e toque em <button class="ax-loc" data-axloc="1">Tentar de novo</button>, ou autorize em Definições → Apps → Consulta → Permissões → Localização.</div>`;
+    return `<div class="ax-lin"><button class="ax-loc" data-axloc="1">📍 Ver distância de onde estou</button>${AX_GEO_ERRO==="falhou"?" · não foi possível obter a posição":""}</div>`; }
   const k=axDist(AQUI,p)*1.3; return `<div><span class="ax-big">${axKm(k)}</span> <span class="ax-lin">de onde está · ≈ ${Math.max(1,Math.round(k/40*60))} min de carro</span></div>`; }
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-axloc]"); if(!b) return; e.preventDefault(); b.disabled=true; b.textContent="A obter localização…"; axPedirLocal(true); });
 function axOrdem(){ let g=null; try{ g=JSON.parse(localStorage.getItem(AX_CHAVE)||"null"); }catch(e){}
   g=Array.isArray(g)?g.filter(k=>AX_PADRAO.includes(k)):[]; return g.concat(AX_PADRAO.filter(k=>!g.includes(k))); }
 function axGuardar(o){ try{ localStorage.setItem(AX_CHAVE,JSON.stringify(o)); }catch(e){} }
@@ -1249,7 +1258,7 @@ function axCartoes(d,o,loc){
   const mor=c["Morada Completa"]||c.Morada||"", w=p=>`https://waze.com/ul?ll=${p[0]},${p[1]}&navigate=yes`;
   const igual=pc.cli&&pc.plc&&axDist(pc.cli,pc.plc)<0.01, cli=igual?null:pc.cli;
   const hm=v=>String(v||"").match(/\d{1,2}:\d{2}/)?.[0]||"";
-  const jan=(hm(c["Início agendamento"])&&hm(c["Fim agendamento"]))?`${hm(c["Início agendamento"])}–${hm(c["Fim agendamento"])}`:(c["Hora início"]?`${esc(c["Hora início"])}–${esc(c["Hora fim"]||"")}`:"");
+  const jan=(hm(c["Início agendamento"])&&hm(c["Fim agendamento"]))?`${hm(c["Início agendamento"])}–${hm(c["Fim agendamento"])}`:(c["Hora início"]&&c["Hora fim"]?`${esc(c["Hora início"])}–${esc(c["Hora fim"])}`:"");
   const linJan=jan||r.agendamento?`<div class="ax-lin">${jan?"Janela "+jan:""}${jan&&r.agendamento?" · ":""}${esc(r.agendamento||"")}</div>`:"";
   const plcNome=[c.PLC,c["N.º porta PLC"]?"porta "+c["N.º porta PLC"]:""].filter(Boolean).map(esc).join(" · ");
   const avIgual=igual?`<div class="ax-av">⚠ O Field Service tem para o cliente as mesmas coordenadas do PLC. A navegação usa a morada.</div>`:"";
@@ -1316,7 +1325,7 @@ function axMover(e){ if(!axFant) return; axFant.style.left=(e.clientX-axFant.dx)
   const tr=$("#axTr"), alvo=document.elementFromPoint(e.clientX,e.clientY)?.closest(".ax-t"); if(!tr||!alvo||alvo===axArr||!tr.contains(alvo)) return;
   const r=alvo.getBoundingClientRect(); tr.insertBefore(axArr, e.clientX<r.left+r.width/2?alvo:alvo.nextSibling); }
 function axLargar(){ document.removeEventListener("pointermove",axMover); if(axFant){axFant.remove();axFant=null;} if(axArr){axArr.classList.remove("ph");axArr=null;} }
-function axLigar(){ const tr=$("#axTr"); if(!tr) return; axDesenhar(); axPedirLocal();
+function axLigar(){ const tr=$("#axTr"); if(!tr) return; axDesenhar(); axLocalAuto();
   tr.addEventListener("scroll",()=>{ if(AX.editar||Date.now()-(AX.fixo||0)<700) return; const r=tr.getBoundingClientRect(); let best=null,bd=1e9; axCards().forEach(b=>{ const d=Math.abs(b.getBoundingClientRect().left-r.left-4); if(d<bd){bd=d;best=b.dataset.k;} }); axMostrar(best); },{passive:true});
   document.querySelectorAll("[data-axs]").forEach(b=>b.onclick=()=>{ const n=Math.max(0,Math.min(AX.ordem.length-1,AX.ordem.indexOf(AX.atual)+ +b.dataset.axs)); AX.fixo=Date.now(); axCards()[n].scrollIntoView({behavior:"smooth",inline:"start",block:"nearest"}); axMostrar(AX.ordem[n]); });
   document.querySelector('[data-ax="ok"]').onclick=axSair;
