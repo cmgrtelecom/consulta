@@ -166,6 +166,26 @@ dl > :nth-last-child(-n+2){border-bottom:0}
 .acoes a.sec{background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
 .acoes button.sec{font:inherit;font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px;background:var(--surface);color:var(--accent);border:1px solid var(--accent);cursor:pointer}
 
+/* reincidência */
+:root{--rei:#a1267f;--rei-bg:#f9e2f2;--rei-ink:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--rei:#f08ad6;--rei-bg:#3b1631;--rei-ink:#2a0b22}}
+:root[data-theme="dark"]{--rei:#f08ad6;--rei-bg:#3b1631;--rei-ink:#2a0b22}
+.chip.rei{background:var(--rei-bg);color:var(--rei)}
+.ot{position:relative}.ot.rein{border-color:var(--rei);box-shadow:inset 4px 0 0 var(--rei)}
+.rein-etq{position:absolute;top:-9px;right:10px;background:var(--rei);color:var(--rei-ink);font:800 11px/1 var(--f-body);letter-spacing:.06em;padding:5px 9px;border-radius:999px;pointer-events:none}
+.ftg.rei{background:var(--rei-bg);color:var(--rei)}
+@media (prefers-reduced-motion:no-preference){.ot.rein.pisca .rein-etq{animation:reiPisca 1.1s ease-in-out infinite}.ot.rein.pisca{animation:reiHalo 2.2s ease-in-out infinite}}
+@keyframes reiPisca{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.96)}}
+@keyframes reiHalo{0%,100%{box-shadow:inset 4px 0 0 var(--rei),0 0 0 0 transparent}50%{box-shadow:inset 4px 0 0 var(--rei),0 0 0 4px var(--rei-bg)}}
+.rein-al{border:2px solid var(--rei);background:var(--rei-bg);border-radius:12px;padding:12px;display:grid;gap:8px;margin-bottom:12px}
+.rein-al .t{font-weight:800;color:var(--rei);display:flex;gap:8px;align-items:center;font-size:15px}
+.rein-al .t span{margin-left:auto;font-size:12px;background:var(--rei);color:var(--rei-ink);padding:2px 8px;border-radius:999px}
+.rein-al .dica{font-size:13px}
+.rein-al .chip.rei{background:var(--surface);border:1px solid var(--rei)}
+.rein-al .rh{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.rein-al .rv{display:grid;grid-template-columns:12px 1fr;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}.rein-al .rv:first-child{border-top:0}
+.rein-al .rv i{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--bad)}.rein-al .rv i.ok{background:var(--ok)}
+.rein-al .l1{font-weight:700;font-size:13.5px}.rein-al .l2{font-size:12.5px;color:var(--muted)}.rein-al q{display:block;font-size:12.5px;font-style:italic;margin-top:3px;quotes:"“" "”"}
 /* ações da OT: faixa de cartões + painel (segurar para ordenar) */
 .ax{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 0 12px;display:grid;gap:10px;margin-bottom:12px}.ax>*{min-width:0}
 .ax-rol{position:relative;min-width:0;overflow:hidden;padding:0 34px}
@@ -689,7 +709,8 @@ async function lerColetaTexto(texto){
   try{
     if(texto==null){ try{ texto=await navigator.clipboard.readText(); }catch(_){ texto=""; } }
     if(!/##OT##/.test(texto||"")){ CAP_MSG="⚠ A área de transferência não tem OTs recolhidas. Corra a macro CR Coleta OT dentro de cada OT."; aviso(CAP_MSG); return; }
-    const ots=fsColeta(texto);
+    // a macro pode trazer a mesma OT 2 vezes (recolha incremental): vale a 1.ª, que é a mais recente
+    const vistas=new Set(), ots=fsColeta(texto).filter(o=>{ const k=o.campos?.["Nº OT"]; if(!k) return true; if(vistas.has(k)) return false; vistas.add(k); return true; });
     if(!ots.length){ CAP_MSG="⚠ Não reconheci OTs no texto recolhido."; aviso(CAP_MSG); return; }
     const dias={};
     for(const o of ots){ const d=o.data||hojeISO(); const base=(AGR[d]?.ots||[]).map(x=>({...x})); (dias[d]=dias[d]||base); 
@@ -869,13 +890,14 @@ function render(){
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
     const r=d.resumo||{};
-    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido no telemóvel (MacroDroid).">⚡ leitura rápida</span> ':""}${d.rapida?`<button class="folha-btn mini" data-gerar-dia="${d.data}" title="Folhas de obra de todas as OTs do dia (geradas agora no telemóvel)">📄 Folhas do dia</button> `:""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""}${!d.rapida&&AGR&&AGR[d.data]&&(AGR[d.data].ots||[]).length?`<button class="folha-btn mini" data-agr="${d.data}" title="Ver o que foi lido no telemóvel neste dia (não entra nas contas)">⚡ ver leitura rápida</button>`:""}${d.tel?`<span class="ftg" title="Estado, horas e OTs atualizados pela recolha mais recente no telemóvel">📲 atualizado ${esc(d.tel.hora)}${d.tel.novas?` · ${d.tel.novas} nova${d.tel.novas>1?"s":""}`:""}${d.tel.saiu?` · ${d.tel.saiu} saiu da Agenda`:""}</span> `:""} <span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
+    blocos.push(`<section class="dia"><h2>${fSem(d.data)}, ${fData(d.data)} ${d.rapida?'<span class="ftg" title="Lido no telemóvel (MacroDroid).">⚡ leitura rápida</span> ':""}${d.rapida?`<button class="folha-btn mini" data-gerar-dia="${d.data}" title="Folhas de obra de todas as OTs do dia (geradas agora no telemóvel)">📄 Folhas do dia</button> `:""}${d.folhas?.dia?`<button class="folha-btn mini" data-f="${esc(d.folhas.dia)}" title="Folhas de obra de todas as OTs do dia">📄 Folhas do dia</button>`:""}${!d.rapida&&AGR&&AGR[d.data]&&(AGR[d.data].ots||[]).length?`<button class="folha-btn mini" data-agr="${d.data}" title="Ver o que foi lido no telemóvel neste dia (não entra nas contas)">⚡ ver leitura rápida</button>`:""}${d.tel?`<span class="ftg" title="Estado, horas e OTs atualizados pela recolha mais recente no telemóvel">📲 atualizado ${esc(d.tel.hora)}${d.tel.novas?` · ${d.tel.novas} nova${d.tel.novas>1?"s":""}`:""}${d.tel.saiu?` · ${d.tel.saiu} saiu da Agenda`:""}</span> `:""} ${(()=>{ const n=ots.filter(o=>reinDe(o)).length; return n?`<span class="ftg rei" title="Clientes onde já houve OT nos últimos ${REIN_DIAS} dias, ou marcados reincidentes no Field Service">🔁 ${n} reincidência${n>1?"s":""}</span> `:""; })()}<span>${ots.length} OT${ots.length>1?"s":""}${r.produtividade!=null&&q.length<2&&ESTADO==="todas"?` · ${r.produtividade}% realizadas · ${(r.km_estrada||0).toLocaleString("pt-PT")} km`:""}</span></h2><div class="lista">`+
       ots.map(o=>{const c=o.campos, ok=realizada(o);
-        return `<button class="ot" data-d="${esc(d.data)}" data-o="${esc(o.id)}">
+        const rn=reinDe(o);
+        return `<button class="ot${rn?" rein"+(rn.porExecutar?" pisca":""):""}" data-d="${esc(d.data)}" data-o="${esc(o.id)}">${rn?'<span class="rein-etq">🔁 REINCIDÊNCIA</span>':""}
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
           <div class="c">${realce(c["Nome de cliente"]||"(sem nome)",q)}</div>
           <div class="m"><span class="mono">${realce(c["Nº OT"]||"",q)}</span> · ${esc(c["Tipo de OT"]||"")}</div>
-          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
+          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
   $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
@@ -1207,13 +1229,61 @@ $("#btnXlsx").onclick=async()=>{
   setTimeout(()=>URL.revokeObjectURL(url),4000); toast("Excel: "+nome);
 };
 
+// ---------- Reincidência: cliente onde já houve OT (contacto, conta de serviço, Access ID ou morada) nos últimos 90 dias,
+// ou marcado Reincidente Manut/RGU no Field Service. Etiqueta a piscar na lista (só OTs por executar) e histórico na ficha.
+const REIN_DIAS=90; let REIN_CACHE={sig:"",mapa:new Map()};
+const reinSim=v=>{ const t=String(v??"").trim(); return !!t&&!/^(n[aã]o|false|0|-|—|no)$/i.test(t); };
+function reinChaves(c){ const k=[], dig=s=>String(s||"").replace(/\D/g,"");
+  const t=dig(c["Contacto de cliente"]).slice(-9); if(t.length===9) k.push("t:"+t);
+  const cs=String(c["Conta de serviço"]||"").trim().toUpperCase(); if(cs.length>4) k.push("c:"+cs);
+  const ai=String(c["Access ID"]||"").trim().toUpperCase(); if(ai.length>4) k.push("a:"+ai);
+  const m=norm(String(c.Morada||"").replace(/,?\s*portugal\s*$/i,"")), n=norm(c["Nome de cliente"]||"").split(" ")[0];
+  if(m.length>8&&n) k.push("m:"+m+"|"+n);
+  return k; }
+const reinMotivo=m=>{ const t=norm(m||""); if(!t||/sem motivo/.test(t)) return "não realizada"; if(/infraestrutura|autoriza|meios/.test(t)) return "infraestrutura";
+  if(/ausente|comparecer/.test(t)) return "cliente ausente"; return String(m).split("/")[0].trim().toLowerCase(); };
+const reinTexto=o=>[...(o.feed||[]).map(f=>f.Texto||""), o.rel?.evidencia||"", o.campos?.["Motivo de suspensão"]||"", o.campos?.Observações||""].join(" \n ");
+const REIN_2TEC=/\b(2|dois)\s*t[eé]c/i, REIN_REAG=/reagend/i;
+function reinCalcular(){
+  const sig=DIAS.map(d=>d.data+":"+(d.ots||[]).length+":"+(d._atualizado||"")+(d.tel?.hora||"")).join("|");
+  if(sig===REIN_CACHE.sig) return REIN_CACHE.mapa;
+  const idx=new Map(), mapa=new Map();
+  for(const d of DIAS) for(const o of d.ots||[]) for(const k of reinChaves(o.campos||{})){ if(!idx.has(k)) idx.set(k,[]); idx.get(k).push({d,o}); }
+  for(const d of DIAS) for(const o of d.ots||[]){ const c=o.campos||{}, t0=Date.parse(d.data), vis=new Map();
+    for(const k of reinChaves(c)) for(const v of idx.get(k)||[]){ if(v.d.data>=d.data) continue; if((t0-Date.parse(v.d.data))/864e5>REIN_DIAS) continue;
+      vis.set(v.d.data+"|"+(v.o.campos?.["Nº OT"]||v.o.id), v); }
+    const ant=[...vis.values()].sort((a,b)=>b.d.data.localeCompare(a.d.data)||(b.o.campos?.["Hora início"]||"").localeCompare(a.o.campos?.["Hora início"]||""));
+    const manut=reinSim(c["Reincidente Manut"]), rgu=reinSim(c["Reincidente RGU"]);
+    const obs=String(c["Observações"]||"")+" "+String(c.Sintoma||""), obsAnt=/ot anterior|teve incumprimento/i.test(obs);
+    if(!ant.length&&!manut&&!rgu&&!obsAnt) continue;
+    const etq=[], ult=ant[0], dm=s=>s.slice(8,10)+"/"+s.slice(5,7);
+    if(ant.length) etq.push(`${ant.length+1}.ª visita`);
+    if(ult) etq.push(realizada(ult.o)?`Esteve cá a ${dm(ult.d.data)}`:`Devolvida · ${reinMotivo(ult.o.rel?.motivo)} (${dm(ult.d.data)})`);
+    if(obsAnt&&!ant.length) etq.push("OT anterior falhada");
+    const txt=ant.map(v=>reinTexto(v.o)).join(" \n ")+" "+obs;
+    if(REIN_2TEC.test(txt)) etq.push("Precisa 2 técnicos");
+    if(ant.some(v=>v.o.rel?.reagendada)||REIN_REAG.test(txt)) etq.push("Reagendada");
+    if(manut) etq.push("Reincidente Manut."); if(rgu) etq.push("Reincidente RGU");
+    mapa.set(o, {ant, etq, porExecutar:!realizada(o)&&!/n[aã]o realizada|cancel|anulad/i.test(c.Estado||"")}); }
+  REIN_CACHE={sig,mapa}; return mapa; }
+const reinDe=o=>reinCalcular().get(o)||null;
+function reinDica(r){ const u=r.ant[0]; if(!u) return "O Field Service marca este cliente como reincidente. Veja o Feed antes de ir.";
+  const p=[]; if(!realizada(u.o)) p.push(`<b>${esc(reinMotivo(u.o.rel?.motivo))}</b>`);
+  if(r.etq.includes("Precisa 2 técnicos")) p.push("<b>precisava de 2 técnicos</b>"); if(r.etq.includes("Reagendada")) p.push("<b>foi reagendada</b>");
+  return p.length?`💡 Da última vez: ${p.join(" e ")}. Confirme com o cliente antes de ir.`:"💡 Já esteve neste cliente: veja o que foi feito da última vez antes de ir."; }
+function reinFicha(r){
+  const vis=r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o), f=(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||"";
+    return `<div class="rv"><i class="${ok?"ok":""}"></i><div><div class="l1">${fdm(v.d.data)} · ${esc(c.Estado||(ok?"Realizada":"Não realizada"))}${!ok&&v.o.rel?.motivo?` · ${esc(v.o.rel.motivo)}`:""}</div>
+      <div class="l2"><span class="mono">${esc(c["Nº OT"]||"")}</span> · ${esc(c["Tipo de OT"]||"")} · ${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}</div>${f?`<q>${esc(f.length>200?f.slice(0,200)+"…":f)}</q>`:""}</div></div>`; }).join("");
+  return `<div class="rein-al"><div class="t">🔁 Cliente REINCIDENTE ${r.ant.length?`<span>${r.ant.length+1}.ª visita</span>`:""}</div>
+    ${vis?`<div class="rh">${vis}</div>`:""}<div class="chips">${r.etq.filter(e=>!/visita$/.test(e)).map(e=>`<span class="chip rei">${esc(e)}</span>`).join("")}</div><div class="dica">${reinDica(r)}</div></div>`; }
 // ---------- ficha
 function abrir(data,id){
   const d=DIAS.find(x=>x.data===data), o=d?.ots.find(x=>x.id===id); if(!o) return;
   ABERTA={d,o}; TAB="det";
   const c=o.campos;
   $("#fTitulo").textContent=c["Nome de cliente"]||c["Nº OT"];
-  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}`;
+  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}`;
   $("#fundo").hidden=false; $("#ficha").hidden=false; desenharFicha(); $("#fFechar").focus();
 }
 function fechar(){ $("#fundo").hidden=true; $("#ficha").hidden=true; ABERTA=null; }
@@ -1341,6 +1411,7 @@ function desenharFicha(){
   let h="";
   if(TAB==="det"){
     const loc = r.lat&&r.lng ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : (c.Morada?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.Morada)}`:null);
+    { const rn=reinDe(o); if(rn) h+=reinFicha(rn); }
     h+=acoesOT(d,o,loc);
     if(!realizada(o)||r.reagendada) h+=`<div class="bloco"><h4>Improdutividade</h4><dl><dt>Motivo</dt><dd>${esc(r.motivo||"—")}</dd>${r.reagendada?`<dt>Reagendada para</dt><dd>${esc(r.reagendada)}</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Agendamento prévio</h4><dl><dt>Situação</dt><dd>${esc(r.agendamento||"—")}</dd><dt>Evidência</dt><dd>${esc(r.evidencia||"—")}</dd>${r.km_estrada!=null?`<dt>Desde a OT anterior</dt><dd>${r.km_estrada} km · ≈${fMin(r.min_conducao)} de condução</dd>`:""}</dl></div>`;
