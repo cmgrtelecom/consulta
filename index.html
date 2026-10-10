@@ -460,9 +460,9 @@ function fundirTelemovel(pc, ag){
   const vistos=new Set(); let mud=0, novas=0, saiu=0;
   for(const a of ag.ots){ const n=k(a); if(!n) continue; vistos.add(n); const o=porN[n];
     if(o){ for(const [c,v] of Object.entries(a.campos||{})) if(v&&!PROTEGIDOS.has(c)&&!/^\*+$/.test(v)) o.campos[c]=v;
-      if(a.completa){ for(const x of ["equip","naoser","feed"]) if((a[x]||[]).length) o[x]=a[x]; o.completa=true; }
+      if(a.completa){ for(const x of ["equip","naoser","feed"]) if((a[x]||[]).length) o[x]=a[x]; for(const x of ["equip_v","equip_total","naoser_total"]) if(a[x]!=null) o[x]=a[x]; o.completa=true; }
       o.tel=hora; mud++; }
-    else { pc.ots.push({id:a.id||("t_"+n), rapida:true, nova:true, campos:a.campos, equip:a.equip||[], naoser:a.naoser||[], feed:a.feed||[], completa:a.completa, tel:hora}); novas++; }
+    else { pc.ots.push({id:a.id||("t_"+n), rapida:true, nova:true, campos:a.campos, equip:a.equip||[], naoser:a.naoser||[], feed:a.feed||[], completa:a.completa, equip_v:a.equip_v, equip_total:a.equip_total, naoser_total:a.naoser_total, tel:hora}); novas++; }
   }
   const total=Math.max(0,...ag.ots.map(a=>+a._total||0)), completa=total&&ag.ots.filter(a=>a._total).length>=total;
   if(completa) for(const o of pc.ots) if(!o.nova&&!vistos.has(k(o))){ o.saiu=true; saiu++; }   // só se a leitura da Agenda apanhou todas as OTs
@@ -476,7 +476,7 @@ function juntarAgendaRapida(){
   const tem=new Set(DIAS.map(d=>d.data));
   for(const [data,d] of Object.entries(AGR||{})){
     if(tem.has(data)){ const pc=DIAS.find(x=>x.data===data&&!x.rapida); if(pc) fundirTelemovel(pc,d); continue; }
-    const dia={data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos, equip:o.equip||[], naoser:o.naoser||[], feed:o.feed||[], completa:!!o.completa}))};
+    const dia={data, rapida:true, resumo:{}, ots:(d.ots||[]).map(o=>({id:o.id, rapida:true, campos:o.campos, equip:o.equip||[], naoser:o.naoser||[], feed:o.feed||[], completa:!!o.completa, equip_v:o.equip_v, equip_total:o.equip_total, naoser_total:o.naoser_total}))};
     relRapido(dia); DIAS.push(dia); kmRapido(dia);
   }
   DIAS.sort((a,b)=>b.data.localeCompare(a.data));
@@ -584,18 +584,32 @@ function fsOT(txt){       // ecrã de uma OT (todos os separadores vêm juntos)
   const passos=um("work_plan_completed_steps");
   return {data, campos:c, relacionados:rel, feed, passos};
 }
-function fsEquipamentos(txt){   // lista "Equipamentos e Serviços" (ou Não Seriados): nome → Ação, Motivo, Nº de série
-  const L=fsLinhas(txt).filter(x=>x.ix>=0), FIXO=/^(Ação|Mensagem de ativação|Motivo e Número de Série|Voltar|Agenda|Técnico|Eqs\. do Dia|Notificações|Perfil|Menu Ações|Ações)$/;
-  const itens=[]; let cur=null;
-  for(let i=0;i<L.length;i++){ const v=L[i].v;
-    if(/^Equipamentos e Servi|^Não Seriados/i.test(v)) continue;
-    if(v==="Ação"){ if(cur) cur.acao=(L[i+1]&&!FIXO.test(L[i+1].v))?L[i+1].v:""; continue; }
-    if(/^Motivo:/.test(v)){ if(cur){ const m=v.match(/^Motivo:\s*(.*?)\s*Número de Série:\s*(.*)$/); if(m){ cur.motivo=m[1]; cur.serie=m[2].replace(/\s+/g,""); } } continue; }
-    if(FIXO.test(v)||(cur&&cur.acao===v)) continue;
-    if(L[i+1]&&L[i+1].v==="Ação"||(L[i+2]&&L[i+2].v==="Ação")){ cur={nome:v,acao:"",motivo:"",serie:""}; itens.push(cur); continue; }
-    if(cur&&!cur.qtd&&/^\d+([.,]\d+)?$/.test(v)) cur.qtd=v;
-  }
-  return itens;
+// A macro lê cada lista em vários ecrãs seguidos (a deslizar). O índice [index:n] recomeça em cada ecrã: separa-se ecrã a ecrã,
+// lê-se só o que está inteiro em cada ecrã e juntam-se os ecrãs pela parte repetida (sem perder nem repetir itens).
+function fsEcras(L){ const ecras=[]; let cur=[], ant=-1; for(const x of L){ if(cur.length&&x.ix<=ant){ ecras.push(cur); cur=[]; } cur.push(x); ant=x.ix; } if(cur.length) ecras.push(cur); return ecras; }
+function fsJuntarEcras(ecras, chave){ let acc=[];
+  ecras.forEach((E,n)=>{ const it=E.slice(); if(n<ecras.length-1) while(it.length&&!it[it.length-1]._ok) it.pop();   // cortado no fundo: vem inteiro no ecrã seguinte
+    let k=Math.min(acc.length,it.length);
+    for(;k>0;k--){ let ig=true; for(let j=0;j<k;j++) if(chave(acc[acc.length-k+j])!==chave(it[j])){ ig=false; break; } if(ig) break; }
+    acc=acc.concat(it.slice(k)); });
+  return acc; }
+function fsSeccao(txt, ini, fim){ const L=fsLinhas(txt).filter(x=>x.ix>=0), i0=L.findIndex(x=>ini.test(x.v)); if(i0<0) return {L:[],total:null};
+  let i1=L.findIndex((x,i)=>i>i0&&fim.test(x.v)); if(i1<0) i1=L.length; const m=L[i0].v.match(/\((\d+)\)/); return {L:L.slice(i0,i1), total:m?+m[1]:null}; }
+function fsEquipamentos(txt){   // lista "Equipamentos e Serviços": nome → Ação → Mensagem → "Motivo: … Número de Série: X"
+  const FIXO=/^(Ação|Mensagem de ativação|Motivo e Número de Série|Voltar|Agenda|Técnico|Eqs\. do Dia|Notificações|Perfil|Menu Ações|Ações)$/;
+  const {L,total}=fsSeccao(txt,/^Equipamentos e Servi[çc]os\s*\(\d+\)/i,/^Não seriados\s*\(\d+\)/i);
+  const ecras=fsEcras(L).map(E=>{ const itens=[]; let cur=null;
+    for(let i=0;i<E.length;i++){ const v=E[i].v, nx=E[i+1]?.v, nx2=E[i+2]?.v;
+      if(/^Equipamentos e Servi|^Não Seriados/i.test(v)) continue;
+      if(v==="Ação"){ if(cur) cur.acao=(nx&&!FIXO.test(nx))?nx:""; continue; }
+      if(v==="Mensagem de ativação"){ if(cur&&nx&&!FIXO.test(nx)&&!/^Motivo:/.test(nx)) cur.mensagem=nx; continue; }
+      if(/^Motivo:/.test(v)){ if(cur){ const m=v.match(/^Motivo:\s*(.*?)\s*Número de Série:\s*(.*)$/); if(m){ cur.motivo=m[1]; cur.serie=m[2].replace(/\s+/g,""); } cur._ok=true; } continue; }   // sem item: fim de um item cortado no topo
+      if(FIXO.test(v)||(cur&&(v===cur.acao||v===cur.mensagem))) continue;
+      if(nx==="Ação"||nx2==="Ação"){ cur={nome:v,acao:"",mensagem:"",motivo:"",serie:"",_ok:false}; itens.push(cur); }
+    }
+    return itens; });
+  const itens=fsJuntarEcras(ecras,x=>x.nome+"|"+x.acao+"|"+x.serie).map(x=>({nome:eqNome(x.nome),acao:x.acao,mensagem:x.mensagem,motivo:x.motivo,serie:x.serie,incompleto:!x._ok}));
+  itens.total=total; return itens;
 }
 
 const FS_MES={JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
@@ -645,21 +659,22 @@ function fsJuntarAgenda(leituras){   // várias leituras (ecrãs a deslizar) →
 
 // lista "Não Seriados": nome → Tipo de não seriado (MAT_x material / TAR_x tarefa) → Quantidade → Unidade. Várias leituras sem repetir.
 function fsNaoSeriados(txt){
-  const L=fsLinhas(txt).filter(x=>x.ix>=0).map(x=>x.v), CHAVE=/^(Tipo de não seriado|Quantidade|Unidade|Voltar|Menu Ações|Ações|Agenda|Técnico|Eqs\. do Dia|Notificações|Perfil)$/i;
-  const por={}; let total=null;
-  for(let i=0;i<L.length;i++){
-    const t=L[i].match(/^Não seriados\s*\((\d+)\)/i); if(t){ total=+t[1]; continue; }
-    if(L[i+1]!=="Tipo de não seriado"||CHAVE.test(L[i])) continue;
-    const it={nome:L[i], tipo:"", qtd:"", unidade:""};
-    for(let j=i+1;j<Math.min(L.length,i+8);j++){
-      if(L[j]==="Tipo de não seriado"&&!CHAVE.test(L[j+1]||"")) it.tipo=L[j+1];
-      else if(L[j]==="Quantidade"&&!CHAVE.test(L[j+1]||"")) it.qtd=L[j+1];
-      else if(L[j]==="Unidade"){ if(L[j+1]&&!CHAVE.test(L[j+1])&&L[j+2]!=="Tipo de não seriado") it.unidade=L[j+1]; break; }
+  const CHAVE=/^(Tipo de não seriado|Quantidade|Unidade|Voltar|Menu Ações|Ações|Agenda|Técnico|Eqs\. do Dia|Notificações|Perfil)$/i;
+  const {L,total}=fsSeccao(txt,/^Não seriados\s*\(\d+\)/i,/^(Procedimentos de Teste|Ações da intervenção|Steps da intervenção)/i);
+  const ecras=fsEcras(L).map(E=>{ const V=E.map(x=>x.v), itens=[];
+    for(let i=0;i<V.length;i++){
+      if(/^Não seriados\s*\(\d+\)/i.test(V[i])||V[i+1]!=="Tipo de não seriado"||CHAVE.test(V[i])) continue;
+      const it={nome:V[i], tipo:"", qtd:"", unidade:"", _ok:false};
+      for(let j=i+1;j<Math.min(V.length,i+8);j++){
+        if(V[j]==="Tipo de não seriado"&&!CHAVE.test(V[j+1]||"")) it.tipo=V[j+1];
+        else if(V[j]==="Quantidade"&&!CHAVE.test(V[j+1]||"")) it.qtd=V[j+1];
+        else if(V[j]==="Unidade"){ if(V[j+1]&&!CHAVE.test(V[j+1])&&V[j+2]!=="Tipo de não seriado") it.unidade=V[j+1]; it._ok=true; break; }
+      }
+      itens.push(it);
     }
-    it.classe=/^MAT_/i.test(it.tipo)?"material":/^TAR_/i.test(it.tipo)?"tarefa":"";
-    const k=it.nome+"|"+it.tipo; if(!por[k]) por[k]=it;
-  }
-  return {total, itens:Object.values(por)};
+    return itens; });
+  const itens=fsJuntarEcras(ecras,x=>x.nome+"|"+x.tipo+"|"+x.qtd).map(({_ok,...x})=>({...x, classe:/^MAT_/i.test(x.tipo)?"material":/^TAR_/i.test(x.tipo)?"tarefa":""}));
+  return {total, itens};
 }
 
 async function lerAgendaTexto(texto){
@@ -692,10 +707,11 @@ function fsColeta(txt){
   const por={};
   for(const b of blocos){
     const o=fsOT(b); const n=o.campos["Nº OT"]; if(!n) continue;
-    const eq=fsEquipamentos(b).filter(e=>e.nome&&!/^(Equipamentos e servi|Não seriados)/i.test(e.nome));
-    const ns=fsNaoSeriados(b).itens;
+    const eqT=fsEquipamentos(b), eq=eqT.filter(e=>e.nome&&!/^(Equipamentos e servi|Não seriados)/i.test(e.nome));
+    const nsT=fsNaoSeriados(b), ns=nsT.itens;
     const ot={data:o.data, campos:o.campos, feed:o.feed.map(f=>f.valores),
-      equip:eqLimpar(eq.map(e=>({"Equipamento / Serviço":e.nome,"Ação":e.acao,"Mensagem":e.motivo||"","Nº Série":e.serie||""}))),
+      equip:eq.map(e=>({"Equipamento / Serviço":e.nome,"Ação":e.acao,"Mensagem":e.mensagem||e.motivo||"","Nº Série":e.serie||"",...(e.incompleto?{"Incompleto":"sim"}:{})})),
+      equip_v:2, equip_total:o.relacionados?.["Equipamentos e serviços"]??eqT.total, naoser_total:o.relacionados?.["Não Seriados"]??nsT.total,
       naoser:ns.map(i=>({"Material / Tarefa":i.nome,"Código":i.tipo,"Quantidade":i.qtd,"Unidade":i.unidade})),
       relacionados:o.relacionados, completa:true};
     const ant=por[n]; if(!ant){ por[n]=ot; continue; }
@@ -716,7 +732,7 @@ async function lerColetaTexto(texto, agendaFresca){
     const dias={};
     for(const o of ots){ const d=o.data||hojeISO(); const base=(AGR[d]?.ots||[]).map(x=>({...x})); (dias[d]=dias[d]||base); 
       const i=dias[d].findIndex(x=>x.campos?.["Nº OT"]===o.campos["Nº OT"]);
-      const novo={id:"r_"+d.replace(/-/g,"")+"_"+(o.campos["Hora início"]||"").replace(":","")+"_"+o.campos["Nº OT"], campos:o.campos, equip:o.equip, naoser:o.naoser, feed:o.feed, completa:true};
+      const novo={id:"r_"+d.replace(/-/g,"")+"_"+(o.campos["Hora início"]||"").replace(":","")+"_"+o.campos["Nº OT"], campos:o.campos, equip:o.equip, naoser:o.naoser, feed:o.feed, completa:true, equip_v:o.equip_v, equip_total:o.equip_total, naoser_total:o.naoser_total};
       // Agenda lida nesta mesma recolha: as horas e o estado dela são os atuais (a OT pode ter mudado de hora sem mudar de estado,
       // e na recolha incremental o ecrã da OT pode vir da leitura anterior)
       const agAtual=agendaFresca&&i>=0?Object.fromEntries(["Hora início","Hora fim","Estado"].map(k=>[k,dias[d][i].campos?.[k]]).filter(([,v])=>v)):{};
@@ -1409,7 +1425,7 @@ function desenharFicha(){
   const {d,o}=ABERTA, c=o.campos, r=o.rel||{};
   document.querySelectorAll("#fTabs button").forEach(b=>{
     b.setAttribute("aria-selected",b.dataset.t===TAB);
-    const n={eq:eqLimpar(o.equip).length,ns:(o.naoser||[]).length,feed:(o.feed||[]).length}[b.dataset.t];
+    const n={eq:o.equip_v>=2?(o.equip||[]).length:eqLimpar(o.equip).length,ns:(o.naoser||[]).length,feed:(o.feed||[]).length}[b.dataset.t];
     b.textContent={det:"Detalhes",eq:"Equipamentos",ns:"Não seriados",feed:"Feed"}[b.dataset.t]+(n!=null?` (${n})`:"");
   });
   let h="";
@@ -1424,8 +1440,11 @@ function desenharFicha(){
     h+=`<div class="bloco"><h4>Detalhes da OT</h4><dl>`+CAMPOS.filter(k=>c[k]).map(k=>{ const prot=PROTEGIDOS.has(k);
       return `<dt>${esc(k)}</dt><dd>${prot?`<span class="mono">******</span> <span style="font-size:12px;color:var(--muted)">🔒 só no PC</span>`:`<span class="${MONO.has(k)?"mono":""}">${esc(c[k])}</span>${COPIAVEIS.has(k)?`<button class="copiar" data-v="${esc(c[k])}">Copiar</button>`:""}`}</dd>`; }).join("")+`</dl></div>`;
   } else if(TAB==="eq"){
-    const it=eqLimpar(o.equip);
-    h=it.length?`<div class="bloco">`+it.map(e=>`<div class="item"><b>${esc(e["Equipamento / Serviço"])}</b><div class="m">${esc(e["Ação"]||"")}${e.Mensagem?` · ${esc(e.Mensagem)}`:""}</div>${e["Nº Série"]?`<div style="display:flex;gap:8px;align-items:center;margin-top:4px"><span class="mono">${esc(e["Nº Série"])}</span><button class="copiar" data-v="${esc(e["Nº Série"])}">Copiar</button></div>`:""}</div>`).join("")+`</div>`:`<div class="vazio">Sem equipamentos registados.</div>`;
+    const it=o.equip_v>=2?(o.equip||[]).map(e=>({...e,"Equipamento / Serviço":eqNome(e["Equipamento / Serviço"])})):eqLimpar(o.equip), ctl=foAnalisar(o).ctl;
+    h+=ctl.antiga?`<div class="bloco" style="padding:10px 12px;color:var(--bad);font-weight:600">⚠ Recolha antiga, sem contagem do Field Service. Refaça a recolha antes de entregar a folha de obra.</div>`
+      :ctl.ok?`<div class="bloco" style="padding:10px 12px;color:var(--ok);font-weight:600">✓ Lista completa: ${ctl.eqLidos}${ctl.eqTotal!=null?` de ${ctl.eqTotal}`:""} equipamentos e serviços · ${ctl.nsLidos}${ctl.nsTotal!=null?` de ${ctl.nsTotal}`:""} não seriados</div>`
+      :`<div class="bloco" style="padding:10px 12px;color:var(--bad);font-weight:600">⚠ Lidos ${ctl.eqLidos}${ctl.eqTotal!=null?` de ${ctl.eqTotal}`:""} equipamentos e serviços · ${ctl.nsLidos}${ctl.nsTotal!=null?` de ${ctl.nsTotal}`:""} não seriados. Confirme no Field Service e refaça a recolha.</div>`;
+    h+=it.length?`<div class="bloco">`+it.map(e=>`<div class="item"><b>${esc(e["Equipamento / Serviço"])}</b>${e.Incompleto?' <span class="chip bad">nº de série por ler</span>':""}<div class="m">${esc(e["Ação"]||"")}${e.Mensagem?` · ${esc(e.Mensagem)}`:""}</div>${e["Nº Série"]?`<div style="display:flex;gap:8px;align-items:center;margin-top:4px"><span class="mono">${esc(e["Nº Série"])}</span><button class="copiar" data-v="${esc(e["Nº Série"])}">Copiar</button></div>`:""}</div>`).join("")+`</div>`:`<div class="vazio">Sem equipamentos registados.</div>`;
   } else if(TAB==="ns"){
     const it=o.naoser||[];
     h=it.length?`<div class="bloco">`+it.map(e=>`<div class="item"><b>${esc(e["Material / Tarefa"])}</b><div class="m"><span class="mono">${esc(e["Código"]||"")}</span> · quantidade ${esc(e.Quantidade||"–")} ${esc(e.Unidade||"")}</div></div>`).join("")+`</div>`:`<div class="vazio">Sem não seriados registados.</div>`;
@@ -1852,18 +1871,23 @@ function eqLimpar(lista){
   return out; }
 function foAnalisar(o){
   const c=o.campos||{}, st=foEstado(c), folha={}, equip=[], mat=[];
-  for(const it of eqLimpar(o.equip)){ const v=it.valores||it;
+  // leitura nova (ecrã a ecrã, equip_v 2): a lista já vem certa; leituras antigas: tirar repetidos
+  const lista=o.equip_v>=2?(o.equip||[]):eqLimpar(o.equip);
+  for(const it of lista){ const v=it.valores||it;
     const nome=v["Equipamento / Serviço"]||"", acao=v["Ação"]||"", serie=String(v["Nº Série"]||"").trim();
-    if(!(FO_FISICO.test(foNorm(nome))||serie)) continue;   // serviço/tarifário: não é equipamento físico
+    if(!(FO_FISICO.test(foNorm(nome))||serie)||/^taxa\b/.test(foNorm(nome))) continue;   // serviço/tarifário/taxa: não é equipamento físico
     const a=foNorm(acao), tipo=/instala/.test(a)?"inst":(/recolh|remo|retir|desinstal|devolu/.test(a)?"ret":null), l=foLinha(nome,FO_EQ);
-    equip.push({nome, acao:acao||"—", serie, linha:l, tipo});
+    equip.push({nome:eqNome(nome), acao:acao||"—", serie, linha:l, tipo, incompleto:!!v.Incompleto});
     if(tipo&&l&&st!=="nao"){ (folha[l]=folha[l]||{inst:0,ret:0})[tipo]+=1; } }
   for(const it of o.naoser||[]){ const v=it.valores||it, nome=v["Material / Tarefa"]||"", cod=String(v["Código"]||"");
     if(!/^\s*MAT/i.test(cod)) continue;   // TAR_ = tarefa
     const q=foNum(v.Quantidade,1), l=foLinha(nome,FO_MAT);
     mat.push({nome, codigo:cod.replace(/\s*Valor:.*/,"").trim(), qtd:q, linha:l, unid:l==="D13"?"mt":String(v.Unidade||"un").toLowerCase()});
     if(l&&st!=="nao"){ (folha[l]=folha[l]||{inst:0,ret:0}).inst+=q; } }
-  return {estado:st, folha, equip, mat};
+  // controlo para auditoria: quantos itens o Field Service indica vs. quantos foram lidos
+  const ctl={eqLidos:lista.length, eqTotal:o.equip_total??null, nsLidos:(o.naoser||[]).length, nsTotal:o.naoser_total??null, antiga:!(o.equip_v>=2)};
+  ctl.ok=!ctl.antiga&&(ctl.eqTotal==null||ctl.eqLidos>=ctl.eqTotal)&&(ctl.nsTotal==null||ctl.nsLidos>=ctl.nsTotal)&&!equip.some(e=>e.incompleto);
+  return {estado:st, folha, equip, mat, ctl};
 }
 const foData=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")?d.split("-").reverse().join("/"):(d||"");
 const foTxt=t=>String(t??"").replace(/[^\x20-\x7E\xA0-\xFF–—…•€‘’“”]/g,"?");   // só caracteres que a Helvetica do PDF sabe escrever
@@ -1941,6 +1965,9 @@ async function foGerarPdf(PDFLib, modelo, ots, data){
     const estN={ok:"Realizada",nao:"Não realizada",previsto:"Por executar"};
     tabela([18,58,100,130,82,62,45],[["#","Horário","Nº OT","Cliente","Tipo de OT","Estado","Equip. / mat."],
       ...ots.map((o,i)=>{ const c=o.campos||{}; return [String(i+1),`${c["Hora início"]||""}–${c["Hora fim"]||""}`,c["Nº OT"]||"",c["Nome de cliente"]||"",c["Tipo de OT"]||"",estN[ans[i].estado],`${ans[i].equip.length} / ${ans[i].mat.length}`]; })],{cab:true});
+    { const mal=ots.map((o,i)=>[o,ans[i]]).filter(([,a])=>!a.ctl.ok);
+      y-=6; if(mal.length) texto(`ATENÇÃO — CONTROLO: ${mal.length} OT${mal.length>1?"s":""} com leitura por confirmar (${mal.map(([o,a])=>`${o.campos?.["Nº OT"]||"?"}${a.ctl.antiga?" recolha antiga":` ${a.ctl.eqLidos}/${a.ctl.eqTotal??"?"}`}`).join(" · ")}). Refaça a recolha antes de entregar.`,{size:9,font:FB,color:rgb(0.75,0.1,0.1)});
+      else texto("CONTROLO OK: todas as OTs com a lista de equipamentos e não seriados completa.",{size:9,font:FB,color:rgb(0.05,0.45,0.2)}); }
     y-=10; texto("Equipamentos — total do dia (OTs realizadas / por executar)",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
     const eqL=Object.values(eqT).sort((a,b)=>(a.acao+a.nome).localeCompare(b.acao+b.nome));
     if(eqL.length) tabela([140,60,30,160,125],[["Equipamento","Ação","Qtd.","Nºs de série","Linha na folha"],...eqL.map(e=>[e.nome,e.acao,String(e.n),{mono:true,t:e.series.join(", ")||"—"},linhaTxt(e.linha)])],{cab:true});
@@ -1973,8 +2000,13 @@ async function foGerarPdf(PDFLib, modelo, ots, data){
     const estTxt={ok:"Realizada",nao:"NÃO REALIZADA — nenhum material aplicado",previsto:"Por executar — material previsto para esta OT"}[an.estado];
     tabela([52,228,52,183],[["Nº OT",c["Nº OT"]||"","Data OT",foData(data)],["Cliente",c["Nome de cliente"]||"","Tipo de OT",c["Tipo de OT"]||""],
       ["Morada",c.Morada||"","Estado",estTxt],["Célula",c["Célula"]||"","Horário",`${c["Hora início"]||""} – ${c["Hora fim"]||""}`]],{fundoCol:[0,2]});
+    { const c2=an.ctl, f=(l,t)=>t==null?`${l}: ${c2[l==="Equipamentos e serviços"?"eqLidos":"nsLidos"]} lidos`:`${l}: ${l==="Equipamentos e serviços"?c2.eqLidos:c2.nsLidos} de ${t}`;
+      y-=8;
+      if(c2.antiga) texto("ATENÇÃO — CONTROLO: recolha antiga, sem contagem do Field Service. Refaça a recolha desta OT antes de entregar esta folha.",{size:9,font:FB,color:rgb(0.75,0.1,0.1)});
+      else if(c2.ok) texto(`CONTROLO OK: ${f("Equipamentos e serviços",c2.eqTotal)} · ${f("Não seriados",c2.nsTotal)} — lista completa.`,{size:9,font:FB,color:rgb(0.05,0.45,0.2)});
+      else texto(`ATENÇÃO — CONTROLO: ${f("Equipamentos e serviços",c2.eqTotal)} · ${f("Não seriados",c2.nsTotal)}${an.equip.some(e=>e.incompleto)?" · há nº de série por ler":""}. Confirme no Field Service e refaça a recolha antes de entregar.`,{size:9,font:FB,color:rgb(0.75,0.1,0.1)}); }
     y-=10; texto("Equipamentos (com número de série)",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
-    if(an.equip.length) tabela([160,70,120,165],[["Equipamento","Ação","Nº de série","Linha na folha (pág. 1)"],...an.equip.map(e=>[e.nome,e.acao,{mono:true,t:e.serie||"—"},linhaTxt(e.linha)])],{cab:true});
+    if(an.equip.length) tabela([160,70,120,165],[["Equipamento","Ação","Nº de série","Linha na folha (pág. 1)"],...an.equip.map(e=>[e.nome,e.acao,{mono:true,t:e.serie||(e.incompleto?"POR LER":"—")},linhaTxt(e.linha)])],{cab:true});
     else texto("Sem equipamentos físicos nesta OT.",{color:rgb(0,0,0),size:8});
     y-=10; texto("Materiais não seriados",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
     if(an.mat.length) tabela([175,70,55,215],[["Material","Código","Qtd.","Linha na folha (pág. 1)"],...an.mat.map(m=>[m.nome,m.codigo,`${foFmtN(m.qtd)} ${m.unid}`,linhaTxt(m.linha)])],{cab:true});
