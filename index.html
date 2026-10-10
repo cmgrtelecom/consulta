@@ -695,11 +695,12 @@ function fsColeta(txt){
     const eq=fsEquipamentos(b).filter(e=>e.nome&&!/^(Equipamentos e servi|Não seriados)/i.test(e.nome));
     const ns=fsNaoSeriados(b).itens;
     const ot={data:o.data, campos:o.campos, feed:o.feed.map(f=>f.valores),
-      equip:eq.map(e=>({"Equipamento / Serviço":e.nome,"Ação":e.acao,"Mensagem":e.motivo||"","Nº Série":e.serie||""})),
+      equip:eqLimpar(eq.map(e=>({"Equipamento / Serviço":e.nome,"Ação":e.acao,"Mensagem":e.motivo||"","Nº Série":e.serie||""}))),
       naoser:ns.map(i=>({"Material / Tarefa":i.nome,"Código":i.tipo,"Quantidade":i.qtd,"Unidade":i.unidade})),
       relacionados:o.relacionados, completa:true};
     const ant=por[n]; if(!ant){ por[n]=ot; continue; }
-    for(const k of ["equip","naoser","feed"]){ const vis=new Set(ant[k].map(x=>JSON.stringify(x))); for(const x of ot[k]) if(!vis.has(JSON.stringify(x))) ant[k].push(x); }
+    // a mesma OT outra vez (recolha incremental: vem 1.º a leitura mais recente) → só completa o que faltar, não junta listas
+    for(const k of ["equip","naoser","feed"]) if(!ant[k].length&&ot[k].length) ant[k]=ot[k];
     for(const [c,v] of Object.entries(ot.campos)) if(v&&!ant.campos[c]) ant.campos[c]=v;
   }
   return Object.values(por);
@@ -1408,7 +1409,7 @@ function desenharFicha(){
   const {d,o}=ABERTA, c=o.campos, r=o.rel||{};
   document.querySelectorAll("#fTabs button").forEach(b=>{
     b.setAttribute("aria-selected",b.dataset.t===TAB);
-    const n={eq:(o.equip||[]).length,ns:(o.naoser||[]).length,feed:(o.feed||[]).length}[b.dataset.t];
+    const n={eq:eqLimpar(o.equip).length,ns:(o.naoser||[]).length,feed:(o.feed||[]).length}[b.dataset.t];
     b.textContent={det:"Detalhes",eq:"Equipamentos",ns:"Não seriados",feed:"Feed"}[b.dataset.t]+(n!=null?` (${n})`:"");
   });
   let h="";
@@ -1423,7 +1424,7 @@ function desenharFicha(){
     h+=`<div class="bloco"><h4>Detalhes da OT</h4><dl>`+CAMPOS.filter(k=>c[k]).map(k=>{ const prot=PROTEGIDOS.has(k);
       return `<dt>${esc(k)}</dt><dd>${prot?`<span class="mono">******</span> <span style="font-size:12px;color:var(--muted)">🔒 só no PC</span>`:`<span class="${MONO.has(k)?"mono":""}">${esc(c[k])}</span>${COPIAVEIS.has(k)?`<button class="copiar" data-v="${esc(c[k])}">Copiar</button>`:""}`}</dd>`; }).join("")+`</dl></div>`;
   } else if(TAB==="eq"){
-    const it=o.equip||[];
+    const it=eqLimpar(o.equip);
     h=it.length?`<div class="bloco">`+it.map(e=>`<div class="item"><b>${esc(e["Equipamento / Serviço"])}</b><div class="m">${esc(e["Ação"]||"")}${e.Mensagem?` · ${esc(e.Mensagem)}`:""}</div>${e["Nº Série"]?`<div style="display:flex;gap:8px;align-items:center;margin-top:4px"><span class="mono">${esc(e["Nº Série"])}</span><button class="copiar" data-v="${esc(e["Nº Série"])}">Copiar</button></div>`:""}</div>`).join("")+`</div>`:`<div class="vazio">Sem equipamentos registados.</div>`;
   } else if(TAB==="ns"){
     const it=o.naoser||[];
@@ -1833,9 +1834,25 @@ const foLinha=(nome,mapa)=>{ const n=foNorm(nome); for(const [rx,l] of mapa) if(
 const foNum=(v,d=1)=>{ const m=String(v??"").match(/\d+(?:[.,]\d+)?/); return m?parseFloat(m[0].replace(",",".")):d; };
 const foFmtN=n=>String(n).replace(".",",");
 function foEstado(c){ const e=foNorm(c.Estado); if(/nao realizada|cancel|anulad/.test(e)) return "nao"; if(/realizada|conclu|fechad/.test(e)) return "ok"; return "previsto"; }
+// ---------- Equipamentos: novos nomes das boxes (atualização SFS, 10/2026) e sem repetidos
+// UMA v1 → NOS BOX v1 · UMA v2 → NOS BOX v2 · Android TV 4K → NOS BOX v3 · NOS BOX v4 sem alteração
+function eqNome(n){ return String(n??"")
+  .replace(/\b(?:box\s+)?uma(?:\s*4k)?\s*v\s*([12])\b/i,"NOS BOX v$1")
+  .replace(/\bandroid\s+tv\s*4k\b/i,"NOS BOX v3")
+  .replace(/\bnos\s+box\s+v\s*([1-4])\b/i,"NOS BOX v$1"); }
+// a macro lê a lista em vários ecrãs (a deslizar) e o mesmo equipamento aparece 2 ou 3 vezes; o que fica cortado no fundo do ecrã vem sem nº de série
+function eqLimpar(lista){
+  const g=it=>it.valores||it, k=it=>{ const v=g(it); return eqNome(v["Equipamento / Serviço"]).toLowerCase()+"|"+String(v["Ação"]||"").toLowerCase(); };
+  const comSerie=new Set(), vistos=new Set(), out=[];
+  for(const it of lista||[]) if(String(g(it)["Nº Série"]||"").trim()) comSerie.add(k(it));
+  for(const it of lista||[]){ const v=g(it), s=String(v["Nº Série"]||"").replace(/\s+/g,"");
+    if(!s&&comSerie.has(k(it))) continue;
+    const chave=k(it)+"|"+s; if(vistos.has(chave)) continue; vistos.add(chave);
+    const nv={...v,"Equipamento / Serviço":eqNome(v["Equipamento / Serviço"])}; out.push(it.valores?{...it,valores:nv}:nv); }
+  return out; }
 function foAnalisar(o){
   const c=o.campos||{}, st=foEstado(c), folha={}, equip=[], mat=[];
-  for(const it of o.equip||[]){ const v=it.valores||it;
+  for(const it of eqLimpar(o.equip)){ const v=it.valores||it;
     const nome=v["Equipamento / Serviço"]||"", acao=v["Ação"]||"", serie=String(v["Nº Série"]||"").trim();
     if(!(FO_FISICO.test(foNorm(nome))||serie)) continue;   // serviço/tarifário: não é equipamento físico
     const a=foNorm(acao), tipo=/instala/.test(a)?"inst":(/recolh|remo|retir|desinstal|devolu/.test(a)?"ret":null), l=foLinha(nome,FO_EQ);
