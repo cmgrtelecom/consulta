@@ -1800,7 +1800,68 @@ async function foGerarPdf(PDFLib, modelo, ots, data){
       for(const p of par.split(/\s+/)){ const t=l?l+" "+p:p; if(font.widthOfTextAtSize(t,size)<=larg){ l=t; continue; }
         if(l) out.push(l); l=p; while(font.widthOfTextAtSize(l,size)>larg&&l.length>1){ let k=l.length; while(k>1&&font.widthOfTextAtSize(l.slice(0,k),size)>larg) k--; out.push(l.slice(0,k)); l=l.slice(k); } }
       out.push(l); } return out; };
-  const capas=await out.copyPages(mod,ots.map(()=>0));   // copiadas de uma vez: a imagem do modelo fica 1 vez no PDF
+  // modelo da PROEF embutido 1 vez (Form XObject) e desenhado numa página nova por OT: cada página tem o seu próprio conteúdo
+  // (antes: copyPages da mesma página partilhava o conteúdo e os textos de todas as OTs ficavam sobrepostos)
+  const [modPg]=await out.embedPages([mod.getPage(0)]), [mW,mH]=[mod.getPage(0).getWidth(),mod.getPage(0).getHeight()];
+  const capas=ots.map(()=>0).concat(ots.length>1?[0]:[]).map(()=>{ const p=PDFLib.PDFPage.create(out); p.setSize(mW,mH); p.drawPage(modPg,{x:0,y:0,width:mW,height:mH}); return p; });
+  let pg=null, y=0;
+  const novaPag=()=>{ pg=out.addPage([595.28,841.89]); y=841.89-36; };
+  const texto=(t,{x=40,size=8.5,font=F,color=cinza,larg=515,lead}={})=>{ lead=lead||size*1.3;
+    for(const l of partir(t,font,size,larg)){ if(y-lead<36) novaPag(); y-=lead; pg.drawText(l,{x,y:y+size*0.25,size,font,color}); } };
+  const tabela=(larguras,linhas,{cab=false,fundoCol=[]}={})=>{ linhas.forEach((cel,ri)=>{
+      const cels=cel.map((v,ci)=>{ const font=(cab&&ri===0)||fundoCol.includes(ci)?F:(v&&v.mono?FM:F), size=(cab&&ri===0)||fundoCol.includes(ci)?8.5:8;
+        return {ls:partir(v&&v.mono?v.t:v,font,size,larguras[ci]-6),font,size}; });
+      const h=Math.max(...cels.map(x=>x.ls.length*x.size*1.25))+6;
+      if(y-h<40){ novaPag(); }
+      let x=40;
+      cels.forEach((cc,ci)=>{ const w=larguras[ci];
+        if((cab&&ri===0)) pg.drawRectangle({x,y:y-h,width:w,height:h,color:azulC});
+        else if(fundoCol.includes(ci)) pg.drawRectangle({x,y:y-h,width:w,height:h,color:amarelo});
+        pg.drawRectangle({x,y:y-h,width:w,height:h,borderColor:linhaC,borderWidth:0.4});
+        let yy=y-3-(h-6-cc.ls.length*cc.size*1.25)/2;
+        for(const l of cc.ls){ yy-=cc.size*1.25; pg.drawText(l,{x:x+3,y:yy+cc.size*0.3,size:cc.size,font:cc.font,color:(cab&&ri===0)||fundoCol.includes(ci)?cinza:rgb(0,0,0)}); }
+        x+=w; });
+      y-=h; }); };
+  const linhaTxt=l=>l?`${l[0]==="E"?"Esq.":"Dir."} ${FO_LINHAS[l]||""}`:"— (sem linha no modelo)";
+  // ---- resumo do dia (só quando há várias OTs): o total geral de todas as OTs vem primeiro
+  if(capas.length>ots.length){
+    const tot={}, eqT={}, matT={}; let nOk=0, nNao=0;
+    const ans=ots.map(o=>foAnalisar(o));
+    ans.forEach((an,i)=>{ if(an.estado==="ok") nOk++; if(an.estado==="nao") nNao++;
+      for(const [l,q] of Object.entries(an.folha)){ const t=(tot[l]=tot[l]||{inst:0,ret:0}); t.inst+=q.inst; t.ret+=q.ret; }
+      if(an.estado==="nao") return;
+      for(const e of an.equip){ const k=e.nome+"|"+e.acao, g=(eqT[k]=eqT[k]||{nome:e.nome,acao:e.acao,n:0,series:[],linha:e.linha}); g.n++; if(e.serie) g.series.push(e.serie); }
+      for(const m of an.mat){ const g=(matT[m.nome]=matT[m.nome]||{nome:m.nome,codigo:m.codigo,qtd:0,unid:m.unid,linha:m.linha}); g.qtd+=m.qtd; } });
+    const p1=capas[ots.length]; out.addPage(p1);
+    const cel=[...new Set(ots.map(o=>o.campos?.["Célula"]).filter(Boolean))].sort().join(", ");
+    ajustado(p1,cel,FO_CAB.celula); ajustado(p1,foData(data),FO_CAB.data); ajustado(p1,"RESUMO DO DIA",FO_CAB.tipo);
+    ajustado(p1,`TOTAL · ${ots.length} OTs`,FO_CAB.ot); ajustado(p1,`${nOk} realizadas de ${ots.length}`,FO_CAB.cliente);
+    for(const [l,q] of Object.entries(tot)){ const col=l[0], idx=+l.slice(1), y0=FO_LIM[idx], y1=FO_LIM[idx+1];
+      for(const k of ["inst","ret"]) if(q[k]){ const [x0,x1]=FO_COLS[col][k], t=foFmtN(+q[k].toFixed(2)), w=FB.widthOfTextAtSize(t,7.5);
+        p1.drawText(t,{x:(x0+x1)/2-w/2,y:FO_H-(y0+y1)/2-2.6,size:7.5,font:FB,color:azul}); } }
+    p1.drawText(foTxt(`TOTAL GERAL DO DIA — soma das ${ots.length} OTs`),{x:62,y:FO_H-174,size:9,font:FB,color:rgb(0.05,0.35,0.2)});
+    const rodR=`Executado por ${FO_EMPRESA} · lista das OTs na pág. 2`;
+    p1.drawText(rodR,{x:527-F.widthOfTextAtSize(rodR,6.5),y:FO_H-174,size:6.5,font:F,color:azul});
+    pg=out.addPage([595.28,841.89]); y=841.89-36;
+    const nPrev=ots.length-nOk-nNao;
+    texto(`FOLHA DE OBRA — Resumo do dia ${foData(data)}`,{size:15,font:FB,color:rgb(0.12,0.235,0.55),lead:19});
+    texto(`Total geral de ${ots.length} OTs · ${nOk} realizadas · ${nNao} não realizadas${nPrev?` · ${nPrev} por executar`:""} · executado por ${FO_EMPRESA} (parceiro PROEF)`); y-=8;
+    texto("OTs do dia",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
+    const estN={ok:"Realizada",nao:"Não realizada",previsto:"Por executar"};
+    tabela([18,58,100,130,82,62,45],[["#","Horário","Nº OT","Cliente","Tipo de OT","Estado","Equip. / mat."],
+      ...ots.map((o,i)=>{ const c=o.campos||{}; return [String(i+1),`${c["Hora início"]||""}–${c["Hora fim"]||""}`,c["Nº OT"]||"",c["Nome de cliente"]||"",c["Tipo de OT"]||"",estN[ans[i].estado],`${ans[i].equip.length} / ${ans[i].mat.length}`]; })],{cab:true});
+    y-=10; texto("Equipamentos — total do dia (OTs realizadas / por executar)",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
+    const eqL=Object.values(eqT).sort((a,b)=>(a.acao+a.nome).localeCompare(b.acao+b.nome));
+    if(eqL.length) tabela([140,60,30,160,125],[["Equipamento","Ação","Qtd.","Nºs de série","Linha na folha"],...eqL.map(e=>[e.nome,e.acao,String(e.n),{mono:true,t:e.series.join(", ")||"—"},linhaTxt(e.linha)])],{cab:true});
+    else texto("Sem equipamentos físicos.",{color:rgb(0,0,0),size:8});
+    y-=10; texto("Materiais não seriados — total do dia",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
+    const matL=Object.values(matT).sort((a,b)=>a.nome.localeCompare(b.nome));
+    if(matL.length) tabela([185,75,65,190],[["Material","Código","Qtd. total","Linha na folha"],...matL.map(m=>[m.nome,m.codigo,`${foFmtN(+m.qtd.toFixed(2))} ${m.unid}`,linhaTxt(m.linha)])],{cab:true});
+    else texto("Sem materiais registados.",{color:rgb(0,0,0),size:8});
+    y-=14; texto("As OTs não realizadas não somam material. O detalhe de cada OT segue nas páginas seguintes.");
+    y-=22; if(y<60) novaPag();
+    pg.drawText("Técnico: ______________________________",{x:43,y,size:9,font:F}); pg.drawText("Assinatura: ______________________________",{x:300,y,size:9,font:F});
+  }
   for(const [i,o] of ots.entries()){
     const c=o.campos||{}, an=foAnalisar(o);
     // ---- página 1: o modelo da PROEF preenchido
@@ -1815,30 +1876,12 @@ async function foGerarPdf(PDFLib, modelo, ots, data){
     const rod=`Executado por ${FO_EMPRESA} · nº de série no anexo (pág. 2)`;
     p1.drawText(rod,{x:527-F.widthOfTextAtSize(rod,6.5),y:FO_H-174,size:6.5,font:F,color:azul});
     // ---- página 2: anexo com equipamentos (nº de série) e materiais
-    let pg=out.addPage([595.28,841.89]), y=841.89-36;
-    const novaPag=()=>{ pg=out.addPage([595.28,841.89]); y=841.89-36; };
-    const texto=(t,{x=40,size=8.5,font=F,color=cinza,larg=515,lead}={})=>{ lead=lead||size*1.3;
-      for(const l of partir(t,font,size,larg)){ if(y-lead<36) novaPag(); y-=lead; pg.drawText(l,{x,y:y+size*0.25,size,font,color}); } };
-    const tabela=(larguras,linhas,{cab=false,fundoCol=[]}={})=>{ linhas.forEach((cel,ri)=>{
-        const cels=cel.map((v,ci)=>{ const font=(cab&&ri===0)||fundoCol.includes(ci)?F:(v&&v.mono?FM:F), size=(cab&&ri===0)||fundoCol.includes(ci)?8.5:8;
-          return {ls:partir(v&&v.mono?v.t:v,font,size,larguras[ci]-6),font,size}; });
-        const h=Math.max(...cels.map(x=>x.ls.length*x.size*1.25))+6;
-        if(y-h<40){ novaPag(); }
-        let x=40;
-        cels.forEach((cc,ci)=>{ const w=larguras[ci];
-          if((cab&&ri===0)) pg.drawRectangle({x,y:y-h,width:w,height:h,color:azulC});
-          else if(fundoCol.includes(ci)) pg.drawRectangle({x,y:y-h,width:w,height:h,color:amarelo});
-          pg.drawRectangle({x,y:y-h,width:w,height:h,borderColor:linhaC,borderWidth:0.4});
-          let yy=y-3-(h-6-cc.ls.length*cc.size*1.25)/2;
-          for(const l of cc.ls){ yy-=cc.size*1.25; pg.drawText(l,{x:x+3,y:yy+cc.size*0.3,size:cc.size,font:cc.font,color:(cab&&ri===0)||fundoCol.includes(ci)?cinza:rgb(0,0,0)}); }
-          x+=w; });
-        y-=h; }); };
+    pg=out.addPage([595.28,841.89]); y=841.89-36;
     texto("FOLHA DE OBRA — Anexo: equipamentos e materiais",{size:15,font:FB,color:rgb(0.12,0.235,0.55),lead:19});
     texto(`Modelo PROEF IP.ET.001.00 · trabalho executado por ${FO_EMPRESA} (parceiro PROEF)`); y-=8;
     const estTxt={ok:"Realizada",nao:"NÃO REALIZADA — nenhum material aplicado",previsto:"Por executar — material previsto para esta OT"}[an.estado];
     tabela([52,228,52,183],[["Nº OT",c["Nº OT"]||"","Data OT",foData(data)],["Cliente",c["Nome de cliente"]||"","Tipo de OT",c["Tipo de OT"]||""],
       ["Morada",c.Morada||"","Estado",estTxt],["Célula",c["Célula"]||"","Horário",`${c["Hora início"]||""} – ${c["Hora fim"]||""}`]],{fundoCol:[0,2]});
-    const linhaTxt=l=>l?`${l[0]==="E"?"Esq.":"Dir."} ${FO_LINHAS[l]||""}`:"— (sem linha no modelo)";
     y-=10; texto("Equipamentos (com número de série)",{size:10.5,font:FB,color:rgb(0,0,0),lead:14}); y-=4;
     if(an.equip.length) tabela([160,70,120,165],[["Equipamento","Ação","Nº de série","Linha na folha (pág. 1)"],...an.equip.map(e=>[e.nome,e.acao,{mono:true,t:e.serie||"—"},linhaTxt(e.linha)])],{cab:true});
     else texto("Sem equipamentos físicos nesta OT.",{color:rgb(0,0,0),size:8});
