@@ -704,7 +704,7 @@ function fsColeta(txt){
   }
   return Object.values(por);
 }
-async function lerColetaTexto(texto){
+async function lerColetaTexto(texto, agendaFresca){
   const aviso=m=>{ const e=$("#capAviso"); if(e){ e.hidden=false; e.innerHTML=m; } else toast(m.replace(/<[^>]+>/g,"")); };
   try{
     if(texto==null){ try{ texto=await navigator.clipboard.readText(); }catch(_){ texto=""; } }
@@ -716,7 +716,10 @@ async function lerColetaTexto(texto){
     for(const o of ots){ const d=o.data||hojeISO(); const base=(AGR[d]?.ots||[]).map(x=>({...x})); (dias[d]=dias[d]||base); 
       const i=dias[d].findIndex(x=>x.campos?.["Nº OT"]===o.campos["Nº OT"]);
       const novo={id:"r_"+d.replace(/-/g,"")+"_"+(o.campos["Hora início"]||"").replace(":","")+"_"+o.campos["Nº OT"], campos:o.campos, equip:o.equip, naoser:o.naoser, feed:o.feed, completa:true};
-      if(i>=0) dias[d][i]={...dias[d][i], ...novo, campos:{...dias[d][i].campos, ...o.campos}}; else dias[d].push(novo); }
+      // Agenda lida nesta mesma recolha: as horas e o estado dela são os atuais (a OT pode ter mudado de hora sem mudar de estado,
+      // e na recolha incremental o ecrã da OT pode vir da leitura anterior)
+      const agAtual=agendaFresca&&i>=0?Object.fromEntries(["Hora início","Hora fim","Estado"].map(k=>[k,dias[d][i].campos?.[k]]).filter(([,v])=>v)):{};
+      if(i>=0) dias[d][i]={...dias[d][i], ...novo, campos:{...dias[d][i].campos, ...o.campos, ...agAtual}}; else dias[d].push(novo); }
     for(const d in dias) dias[d].sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     if(SESSAO) await chamarGuias({acao:"agenda_guardar",lote:"",dias});
     for(const d in dias) AGR[d]={data:d,ots:dias[d],gerado:new Date().toISOString()};
@@ -736,7 +739,7 @@ async function lerTelemovel(texto, auto){
   if(!temAg&&!temOT){ if(auto) return; return pedirTextoAgenda(); }
   const msgs=[];
   if(temAg){ await lerAgendaTexto(agenda); msgs.push(CAP_MSG); }
-  if(temOT){ await lerColetaTexto("##OT##"+ots); msgs.push(CAP_MSG); }
+  if(temOT){ await lerColetaTexto("##OT##"+ots, temAg); msgs.push(CAP_MSG); }
   CAP_MSG=msgs.join("<br>"); aviso(CAP_MSG);
   if(auto&&!/⚠/.test(CAP_MSG)){ try{ history.replaceState(null,"",location.pathname); }catch(_){} }
 }
