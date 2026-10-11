@@ -454,7 +454,12 @@ function fundirTelemovel(pc, ag){
   if(!pc._orig) pc._orig=JSON.parse(JSON.stringify({ots:pc.ots,resumo:pc.resumo||{}}));
   pc.ots=JSON.parse(JSON.stringify(pc._orig.ots)); pc.resumo=JSON.parse(JSON.stringify(pc._orig.resumo)); pc.tel=null;
   const tPC=Date.parse(pc._atualizado||"")||0, tAG=Date.parse(ag.gerado||"")||0;
-  if(!tAG||tAG<=tPC||!(ag.ots||[]).length) return;
+  if(!tAG||!(ag.ots||[]).length) return;
+  if(tAG<=tPC){   // recolha do telemóvel mais antiga que a do PC: não manda, mas preenche os campos que o PC tem vazios (ex.: coordenadas do cliente)
+    const k2=o=>String(o.campos?.["Nº OT"]||"").toUpperCase(), porN2={}; for(const o of pc.ots) porN2[k2(o)]=o;
+    for(const a of ag.ots){ const o=porN2[k2(a)]; if(!o) continue;
+      for(const [c,v] of Object.entries(a.campos||{})) if(v&&!o.campos[c]&&!PROTEGIDOS.has(c)&&!/^\*+$/.test(v)) o.campos[c]=v; }
+    return; }
   const hora=new Date(tAG).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}), k=o=>String(o.campos?.["Nº OT"]||"").toUpperCase();
   const porN={}; for(const o of pc.ots) porN[k(o)]=o;
   const vistos=new Set(); let mud=0, novas=0, saiu=0;
@@ -1358,6 +1363,8 @@ function axCartoes(d,o,loc){
     C.rota={i:"🗺️",n:"Rota PLC→cliente",s:igual?"mesmo ponto":"≈ "+pc.dist,t:"PLC ⟷ casa do cliente",url:pc.rota,b:"Ver rota no Google Maps",
       h:()=>igual?`<div><span class="ax-big">0 m</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${avIgual}`
         :`<div><span class="ax-big">≈ ${pc.dist}</span> <span class="ax-lin">em linha reta · ≈ ${Math.max(1,Math.round(k*1000/80))} min a pé</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}<div class="ax-lin">Ajuda a estimar o cabo de drop.</div>`}; }
+  else if(pc.cli&&!pc.plc&&c.PLC) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. PLC",t:"PLC ⟷ casa do cliente",
+    h:()=>`<div class="ax-av">O Field Service não tem a Latitude/Longitude deste PLC, por isso não há rota nem distância.</div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}`};
   if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
   const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
   if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
