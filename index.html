@@ -168,6 +168,14 @@ dl > :nth-last-child(-n+2){border-bottom:0}
 
 /* reincidência */
 :root{--rei:#a1267f;--rei-bg:#f9e2f2;--rei-ink:#fff}
+/* distância PLC–cliente acima de 250 m: etiqueta laranja/vermelha a piscar */
+.chip.dx{background:#ff3b1f;color:#fff;font-weight:800;letter-spacing:.2px;animation:dxPisca 1s ease-in-out infinite}
+.ax-t.dx{border:2px solid #ff3b1f;background:#fff1ee;color:#b3200a;animation:dxHalo 1.4s ease-in-out infinite}.ax-t.dx small{color:#b3200a;font-weight:800}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ax-t.dx{background:#3a120b;color:#ffb4a6}:root:not([data-theme="light"]) .ax-t.dx small{color:#ffb4a6}}
+:root[data-theme="dark"] .ax-t.dx{background:#3a120b;color:#ffb4a6}:root[data-theme="dark"] .ax-t.dx small{color:#ffb4a6}
+.dx-aviso{margin:6px 0;padding:8px 10px;border-radius:10px;background:#ff3b1f;color:#fff;font-weight:700;animation:dxPisca 1s ease-in-out infinite}
+@keyframes dxPisca{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes dxHalo{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px rgba(255,59,31,.45)}}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--rei:#f08ad6;--rei-bg:#3b1631;--rei-ink:#2a0b22}}
 :root[data-theme="dark"]{--rei:#f08ad6;--rei-bg:#3b1631;--rei-ink:#2a0b22}
 .chip.rei{background:var(--rei-bg);color:var(--rei)}
@@ -922,7 +930,7 @@ function render(){
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
           <div class="c">${realce(c["Nome de cliente"]||"(sem nome)",q)}</div>
           <div class="m"><span class="mono">${realce(c["Nº OT"]||"",q)}</span> · ${esc(c["Tipo de OT"]||"")}</div>
-          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
+          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
   $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
@@ -1308,7 +1316,7 @@ function abrir(data,id){
   ABERTA={d,o}; TAB="det";
   const c=o.campos;
   $("#fTitulo").textContent=c["Nome de cliente"]||c["Nº OT"];
-  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}`;
+  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}`;
   $("#fundo").hidden=false; $("#ficha").hidden=false; desenharFicha(); $("#fFechar").focus();
 }
 function fechar(){ $("#fundo").hidden=true; $("#ficha").hidden=true; ABERTA=null; }
@@ -1325,6 +1333,9 @@ function plcCliente(c){
   return {plc,cli,dist:m<1000?Math.round(m)+" m":(m/1000).toFixed(1).replace(".",",")+" km",
     rota:`https://www.google.com/maps/dir/?api=1&origin=${plc[0]},${plc[1]}&destination=${cli[0]},${cli[1]}&travelmode=${m>800?"driving":"walking"}`};
 }
+// distância PLC–cliente acima de 250 m (em linha reta): "" se não houver as duas coordenadas ou se estiver dentro do limite
+const DX_LIMITE=250;
+function distExcessiva(c){ const p=plcCliente(c||{}); if(!p.plc||!p.cli) return ""; const m=axDist(p.plc,p.cli)*1000; return m>DX_LIMITE?p.dist:""; }
 // ---------- ações da OT: faixa de cartões com informação; segurar um cartão para mudar a ordem (guardada no telemóvel)
 let AQUI=null, AQUI_PEDIDO=false, AX=null;
 const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","rota","plc","tel","copiar","folha","mapa","perc"];
@@ -1360,9 +1371,10 @@ function axCartoes(d,o,loc){
   if(cli||mor) C.cli={i:"🚗",n:"Cliente",s:"Waze",t:"Ir para o cliente",url:cli?w(cli):`https://waze.com/ul?q=${encodeURIComponent(mor)}&navigate=yes`,b:"Abrir no Waze",
     h:()=>(cli?axDeMim(cli):"")+(mor?`<div class="ax-lin">${esc(mor)}</div>`:"")+linJan+avIgual};
   if(pc.rota){ const k=axDist(pc.plc,pc.cli);
-    C.rota={i:"🗺️",n:"Rota PLC→cliente",s:igual?"mesmo ponto":"≈ "+pc.dist,t:"PLC ⟷ casa do cliente",url:pc.rota,b:"Ver rota no Google Maps",
+    const dx=distExcessiva(c);
+    C.rota={i:"🗺️",n:"Rota PLC→cliente",s:igual?"mesmo ponto":(dx?"⚠ ":"≈ ")+pc.dist,x:!!dx,t:"PLC ⟷ casa do cliente",url:pc.rota,b:"Ver rota no Google Maps",
       h:()=>igual?`<div><span class="ax-big">0 m</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${avIgual}`
-        :`<div><span class="ax-big">≈ ${pc.dist}</span> <span class="ax-lin">em linha reta · ≈ ${Math.max(1,Math.round(k*1000/80))} min a pé</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}<div class="ax-lin">Ajuda a estimar o cabo de drop.</div>`}; }
+        :`<div><span class="ax-big">≈ ${pc.dist}</span> <span class="ax-lin">em linha reta · ≈ ${Math.max(1,Math.round(k*1000/80))} min a pé</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}<div class="ax-lin">Ajuda a estimar o cabo de drop.</div>${dx?`<div class="dx-aviso">📏 Distância excessiva (mais de ${DX_LIMITE} m): confirmar as coordenadas do PLC e do cliente no Field Service.</div>`:""}`}; }
   else if(pc.cli&&!pc.plc&&c.PLC) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. PLC",t:"PLC ⟷ casa do cliente",
     h:()=>`<div class="ax-av">O Field Service não tem a Latitude/Longitude deste PLC, por isso não há rota nem distância.</div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}`};
   if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
@@ -1396,7 +1408,7 @@ function acoesOT(d,o,loc){
 }
 const axCards=()=>[...document.querySelectorAll("#axTr .ax-t")];
 function axDesenhar(){ const tr=$("#axTr"); if(!tr||!AX) return;
-  tr.innerHTML=AX.ordem.map(k=>{const c=AX.C[k];return `<button class="ax-t" data-k="${k}" aria-label="${esc(c.t)}"><b>${c.i}</b>${esc(c.n)}<small>${esc(c.s)}</small></button>`}).join("");
+  tr.innerHTML=AX.ordem.map(k=>{const c=AX.C[k];return `<button class="ax-t${c.x?" dx":""}" data-k="${k}" aria-label="${esc(c.t)}"><b>${c.i}</b>${esc(c.n)}<small>${esc(c.s)}</small></button>`}).join("");
   $("#axPts").innerHTML=AX.ordem.map(()=>"<i></i>").join(""); axCards().forEach(axLigarCartao); AX.atual=null; tr.scrollLeft=0; axMostrar(AX.ordem[0]); }
 function axMostrar(k){ if(!AX||k==null||k===AX.atual||AX.editar||!$("#axPn")) return; AX.atual=k; const c=AX.C[k], pos=AX.ordem.indexOf(k);
   axCards().forEach(b=>b.classList.toggle("on",b.dataset.k===k)); document.querySelectorAll("#axPts i").forEach((p,j)=>p.classList.toggle("on",j===pos));
@@ -1426,7 +1438,7 @@ function axLigar(){ const tr=$("#axTr"); if(!tr) return; axDesenhar(); axLocalAu
   tr.addEventListener("scroll",()=>{ if(AX.editar||Date.now()-(AX.fixo||0)<700) return; const r=tr.getBoundingClientRect(); let best=null,bd=1e9; axCards().forEach(b=>{ const d=Math.abs(b.getBoundingClientRect().left-r.left-4); if(d<bd){bd=d;best=b.dataset.k;} }); axMostrar(best); },{passive:true});
   document.querySelectorAll("[data-axs]").forEach(b=>b.onclick=()=>{ const n=Math.max(0,Math.min(AX.ordem.length-1,AX.ordem.indexOf(AX.atual)+ +b.dataset.axs)); AX.fixo=Date.now(); axCards()[n].scrollIntoView({behavior:"smooth",inline:"start",block:"nearest"}); axMostrar(AX.ordem[n]); });
   document.querySelector('[data-ax="ok"]').onclick=axSair;
-  document.querySelector('[data-ax="repor"]').onclick=()=>{ AX.ordem=AX_PADRAO.filter(k=>AX.C[k]); axGuardar(AX_PADRAO.slice()); const tr2=$("#axTr"); tr2.innerHTML=""; AX.ordem.forEach(k=>{ const c=AX.C[k], b=document.createElement("button"); b.className="ax-t"; b.dataset.k=k; b.innerHTML=`<b>${c.i}</b>${esc(c.n)}<small>${esc(c.s)}</small>`; axLigarCartao(b); tr2.appendChild(b); }); };
+  document.querySelector('[data-ax="repor"]').onclick=()=>{ AX.ordem=AX_PADRAO.filter(k=>AX.C[k]); axGuardar(AX_PADRAO.slice()); const tr2=$("#axTr"); tr2.innerHTML=""; AX.ordem.forEach(k=>{ const c=AX.C[k], b=document.createElement("button"); b.className="ax-t"+(c.x?" dx":""); b.dataset.k=k; b.innerHTML=`<b>${c.i}</b>${esc(c.n)}<small>${esc(c.s)}</small>`; axLigarCartao(b); tr2.appendChild(b); }); };
 }
 function desenharFicha(){
   const {d,o}=ABERTA, c=o.campos, r=o.rel||{};
