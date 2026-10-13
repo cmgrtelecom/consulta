@@ -293,6 +293,25 @@ button.itile{cursor:pointer}
 .folha-btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:8px 14px;font-weight:600;cursor:pointer;font:600 14px var(--f-body)}
 .folha-btn.mini{padding:3px 10px;font-size:12.5px;vertical-align:middle;margin-left:6px}
 .folha-btn[disabled]{opacity:.6}
+
+/* ---------- Km (GPS) */
+.kmnav{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kmnav b{font-size:15px}
+.kmk{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:560px){.kmk{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kmbar{display:flex;align-items:flex-end;gap:3px;height:130px}
+.kmb{all:unset;box-sizing:border-box;flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;cursor:pointer}
+.kmb i{display:block;width:100%;max-width:28px;background:var(--accent);border-radius:4px 4px 0 0}
+.kmb.auto i{background:var(--warn)} .kmb.cur i{background:var(--leaf)} .kmb.nada{cursor:default}
+.kmb:focus-visible{outline:2px solid var(--accent)}
+.kmb span{font-size:10.5px;color:var(--muted)}
+.kml{display:flex;flex-direction:column}
+.kmd{all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
+.kmd:first-child{border-top:0} .kmd:hover{background:var(--surface-2)} .kmd:focus-visible{outline:2px solid var(--accent)}
+.kmd small{display:block;color:var(--muted);font-size:12.5px}
+.kmd .r{display:flex;flex-direction:column;align-items:flex-end;gap:3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.kmx{border:0;background:transparent;color:var(--accent);font-weight:600;padding:0;font-size:12.5px;letter-spacing:0;text-transform:none}
+.pin.casa{background:#fff;font-size:14px}
 </style>
 </head>
 <body class="sem-sessao">
@@ -322,6 +341,7 @@ button.itile{cursor:pointer}
       <button data-v="rel" aria-pressed="false">Relatórios</button>
       <button data-v="guia" aria-pressed="false">🚚 Guia</button>
       <button data-v="fin" aria-pressed="false">💶 Finanças</button>
+      <button data-v="km" aria-pressed="false">🛣️ Km</button>
     </div>
   </div>
 
@@ -355,6 +375,7 @@ button.itile{cursor:pointer}
   <div id="vIni" hidden style="flex-direction:column;gap:12px"></div>
   <div id="vGuia" hidden style="flex-direction:column;gap:14px"></div>
   <div id="vFin" hidden style="flex-direction:column;gap:14px"></div>
+  <div id="vKm" hidden style="flex-direction:column;gap:14px"></div>
   <div id="vRel" hidden style="flex-direction:column;gap:14px">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span class="nota" id="rPeriodo"></span><span style="flex:1"></span>
@@ -410,6 +431,7 @@ button.itile{cursor:pointer}
   <button data-v="rel" aria-pressed="false"><i>📊</i>Relatórios</button>
   <button data-v="guia" aria-pressed="false"><i>🚚</i>Guia</button>
   <button data-v="fin" aria-pressed="false"><i>💶</i>Finanças</button>
+  <button data-v="km" aria-pressed="false"><i>🛣️</i>Km</button>
 </nav>
 <button class="fab" id="fab" hidden aria-label="Acrescentar custo">＋</button>
 <div class="toast" id="toast" hidden></div>
@@ -439,16 +461,17 @@ document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{PERIODO=b.datase
 document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{ESTADO=b.dataset.e;document.querySelectorAll("[data-e]").forEach(x=>x.setAttribute("aria-pressed",x===b));render();});
 let tq=null; $("#q").oninput=()=>{clearTimeout(tq);tq=setTimeout(()=>{ if(VISTA==="rel"&&$("#q").value.trim().length>=2) mudarVista("ots"); render(); },150);};
 let VISTA="ini";
-const VISTA_NOME={ini:"Início",ots:"OTs",rel:"Relatórios",guia:"Guia",fin:"Finanças"};
+const VISTA_NOME={ini:"Início",ots:"OTs",rel:"Relatórios",guia:"Guia",fin:"Finanças",km:"Km"};
 function mudarVista(v){ VISTA=v; document.querySelectorAll(".vistas [data-v],.bnav [data-v]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));
-  document.body.classList.remove("v-ini","v-ots","v-rel","v-guia","v-fin"); document.body.classList.add("v-"+v);
+  document.body.classList.remove("v-ini","v-ots","v-rel","v-guia","v-fin","v-km"); document.body.classList.add("v-"+v);
   $("#vIni").hidden=v!=="ini"; $("#vIni").style.display=v==="ini"?"flex":"none";
   $("#fab").hidden=v!=="fin"; window.scrollTo({top:0});
   $("#vOts").style.display=v==="ots"?"flex":"none"; $("#vRel").hidden=v!=="rel"; $("#vRel").style.display=v==="rel"?"flex":"none";
   $("#vGuia").hidden=v!=="guia"; $("#vGuia").style.display=v==="guia"?"flex":"none";
   $("#vFin").hidden=v!=="fin"; $("#vFin").style.display=v==="fin"?"flex":"none";
-  document.querySelector(".filtros").style.display=(v==="guia"||v==="fin"||v==="ini")?"none":"";
-  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); if(v==="guia") renderGuia(); if(v==="fin") renderFin(); if(v==="ini") renderIni(); }
+  $("#vKm").hidden=v!=="km"; $("#vKm").style.display=v==="km"?"flex":"none"; if(v!=="km"&&KM_MAPA){ KM_MAPA.remove(); KM_MAPA=null; }
+  document.querySelector(".filtros").style.display=(v==="guia"||v==="fin"||v==="ini"||v==="km")?"none":"";
+  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); if(v==="guia") renderGuia(); if(v==="fin") renderFin(); if(v==="ini") renderIni(); if(v==="km") renderKm(); }
 document.querySelectorAll(".vistas [data-v],.bnav [data-v]").forEach(b=>b.onclick=()=>mudarVista(b.dataset.v));
 // menu ⋯
 $("#btnMenu").onclick=e=>{ e.stopPropagation(); const p=$("#menu3Pop"); p.hidden=!p.hidden; $("#btnMenu").setAttribute("aria-expanded",String(!p.hidden));
@@ -2062,6 +2085,101 @@ document.addEventListener("click",e=>{
 
 document.addEventListener("click",async e=>{ const b=e.target.closest("[data-copiar]"); if(!b) return; e.preventDefault();
   try{ await navigator.clipboard.writeText(b.dataset.copiar); toast("Coordenadas copiadas: "+b.dataset.copiar); }catch(_){ prompt("Copie as coordenadas:",b.dataset.copiar); } });
+
+// ---------- Km reais (GPS do telemóvel → função "km" → tabela km_dia; só leitura, protegida por RLS)
+let KM=null, KM_P="semana", KM_REF=null, KM_DIA=null, KM_MAPA=null, KM_ERRO="";
+const KM_N={dia:"Dia",semana:"Semana",quinzena:"Quinzena",mes:"Mês"};
+async function carregarKm(){
+  try{ const t=await token(); if(!t) return;
+    const r=await fetch(`${SUPA_URL}/rest/v1/km_dia?select=data,km,hora_saida,hora_chegada,minutos_movimento,minutos_parado,n_pontos,estado&order=data.desc&limit=800`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
+    const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.message||("erro "+r.status));
+    KM=j.map(x=>({...x,km:+x.km||0})); KM_ERRO="";
+  }catch(e){ KM_ERRO=e.message||String(e); }
+  if(VISTA==="km"&&!KM_DIA) renderKm();
+}
+const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function kmIntervalo(p,ref){
+  const d=new Date(ref+"T12:00:00"), y=d.getFullYear(), m=d.getMonth(), ult=new Date(y,m+1,0).getDate();
+  if(p==="dia") return [ref,ref,`${fSem(ref)}, ${fData(ref)}`];
+  if(p==="semana"){ const a=new Date(d); a.setDate(d.getDate()-(d.getDay()+6)%7); const b=new Date(a); b.setDate(a.getDate()+6); return [isoD(a),isoD(b),`Semana ${dt0(isoD(a))} – ${dt0(isoD(b))}`]; }
+  if(p==="quinzena"){ const q1=d.getDate()<=15; return [isoD(new Date(y,m,q1?1:16)),isoD(new Date(y,m,q1?15:ult)),`${q1?"1.ª":"2.ª"} quinzena de ${MESES[m]} ${y}`]; }
+  return [isoD(new Date(y,m,1)),isoD(new Date(y,m,ult)),`${MESES[m]} ${y}`];
+}
+function kmMover(dir){ const [a,b]=kmIntervalo(KM_P,KM_REF); const d=new Date((dir<0?a:b)+"T12:00:00"); d.setDate(d.getDate()+dir); KM_REF=isoD(d); renderKm(); }
+const fkm=v=>(+v||0).toLocaleString("pt-PT",{minimumFractionDigits:1,maximumFractionDigits:1});
+const hLoc=s=>s?new Date(s).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}):"—";
+const otsDoDia=data=>((DIAS||[]).find(x=>x.data===data)||{}).ots||[];
+const kmEstado=x=>x.estado==="em curso"?'<span class="chip acc">em curso</span>':x.estado==="fecho automático"?'<span class="chip warn">fecho automático</span>':"";
+function renderKm(){
+  const el=$("#vKm"); if(!el) return;
+  if(KM_MAPA){ KM_MAPA.remove(); KM_MAPA=null; }
+  if(KM===null){ el.innerHTML=`<div class="vazio">${KM_ERRO?`<b>Não foi possível ler os km.</b><br>${esc(KM_ERRO)}`:"<b>A carregar os km…</b>"}</div>`; if(!KM_ERRO) carregarKm(); return; }
+  if(!KM_REF) KM_REF=KM[0]?.data||hojeISO();
+  if(KM_DIA) return renderKmDia(el);
+  const [a,b,rot]=kmIntervalo(KM_P,KM_REF);
+  const dias=KM.filter(x=>x.data>=a&&x.data<=b).sort((x,y)=>x.data.localeCompare(y.data));
+  const tot=dias.reduce((s,x)=>s+x.km,0), n=dias.length, ots=dias.reduce((s,x)=>s+otsDoDia(x.data).length,0), kmComOt=dias.filter(x=>otsDoDia(x.data).length).reduce((s,x)=>s+x.km,0);
+  const [pa,pb]=kmIntervalo(KM_P,isoD(new Date(new Date(a+"T12:00:00").getTime()-864e5)));
+  const totAnt=KM.filter(x=>x.data>=pa&&x.data<=pb).reduce((s,x)=>s+x.km,0), dif=totAnt>0?Math.round((tot-totAnt)/totAnt*100):null;
+  const todos=[]; for(let d=new Date(a+"T12:00:00"); isoD(d)<=b; d.setDate(d.getDate()+1)) todos.push(isoD(d));
+  const max=Math.max(1,...dias.map(x=>x.km)), por=Object.fromEntries(dias.map(x=>[x.data,x]));
+  const barras=KM_P==="dia"?"":`<section class="cartao"><h3>Km por dia</h3><div class="dentro"><div class="kmbar">${todos.map(d=>{ const x=por[d], h=x?Math.max(4,Math.round(x.km/max*100)):0;
+      return `<button class="kmb ${x?(x.estado==="em curso"?"cur":x.estado==="fecho automático"?"auto":""):"nada"}" ${x?`data-kd="${d}"`:"disabled"} aria-label="${dt0(d)}${x?": "+fkm(x.km)+" km":": sem registo"}" title="${dt0(d)}${x?" · "+fkm(x.km)+" km":""}"><i style="height:${h}%"></i><span>${todos.length>8?((+d.slice(8)===1||+d.slice(8)%5===0||todos.length<=16)?+d.slice(8):"&nbsp;"):fSem(d).slice(0,3)}</span></button>`; }).join("")}</div>
+      <p class="nota" style="margin-top:8px">Toque numa barra para ver o percurso do dia.</p></div></section>`;
+  el.innerHTML=`<div class="seg" role="group" aria-label="Período dos km" style="align-self:flex-start">${Object.entries(KM_N).map(([k,v])=>`<button data-kp="${k}" aria-pressed="${k===KM_P}">${v}</button>`).join("")}</div>
+    <div class="kmnav"><button class="icon-btn" data-km="-1" aria-label="Período anterior">‹</button><b>${esc(rot)}</b><button class="icon-btn" data-km="1" aria-label="Período seguinte">›</button></div>
+    <section class="rkpis kmk" aria-label="Resumo dos km">
+      <div class="kpi"><div class="l">Km</div><div class="v">${fkm(tot)}</div><div class="s">${dif==null?"&nbsp;":(dif>=0?"+":"")+dif+"% vs "+({dia:"dia",semana:"semana",quinzena:"quinzena",mes:"mês"}[KM_P])+" anterior"}</div></div>
+      <div class="kpi"><div class="l">Média / dia</div><div class="v">${n?fkm(tot/n):"–"}</div><div class="s">${n} ${n===1?"dia":"dias"} com registo</div></div>
+      <div class="kpi"><div class="l">Km por OT</div><div class="v">${ots?fkm(kmComOt/ots):"–"}</div><div class="s">${ots} OTs (dias com OTs no sistema)</div></div>
+      <div class="kpi"><div class="l">Em movimento</div><div class="v">${fMin(dias.reduce((s,x)=>s+(x.minutos_movimento||0),0))}</div><div class="s">parado ${fMin(dias.reduce((s,x)=>s+(x.minutos_parado||0),0))}</div></div>
+    </section>
+    ${barras}
+    <section class="cartao"><h3>Dias <span class="grow"></span>${n?'<button class="kmx" id="kmXlsx">Excel ↓</button>':""}</h3>
+      ${n?`<div class="kml">${dias.slice().reverse().map(x=>`<button class="kmd" data-kd="${x.data}"><div><b>${esc(fSem(x.data))} ${dt0(x.data)}</b><small>${hLoc(x.hora_saida)} → ${x.estado==="em curso"?"em curso":hLoc(x.hora_chegada)} · ${otsDoDia(x.data).length} OTs</small></div><div class="r"><b>${fkm(x.km)} km</b>${kmEstado(x)}</div></button>`).join("")}</div>`
+        :`<div class="dentro"><div class="vazio" style="border:0;padding:14px">Sem km registados neste período.<br>Os km aparecem quando o MacroDroid regista um dia (sair de casa → chegar a casa).</div></div>`}
+    </section>
+    <p class="nota">Km reais pelo GPS do telemóvel, de casa a casa (seg–sáb). Pontos com pouca precisão e saltos impossíveis não contam.</p>`;
+  el.querySelectorAll("[data-kp]").forEach(x=>x.onclick=()=>{ KM_P=x.dataset.kp; renderKm(); });
+  el.querySelectorAll("[data-km]").forEach(x=>x.onclick=()=>kmMover(+x.dataset.km));
+  el.querySelectorAll("[data-kd]").forEach(x=>x.onclick=()=>{ KM_DIA=x.dataset.kd; renderKm(); });
+  if($("#kmXlsx")) $("#kmXlsx").onclick=()=>kmExcel(dias,rot);
+}
+async function renderKmDia(el){
+  const x=KM.find(k=>k.data===KM_DIA); if(!x){ KM_DIA=null; return renderKm(); }
+  const lista=otsDoDia(x.data).slice().sort((p,q)=>(hmMin(p.campos["Hora início"])??9999)-(hmMin(q.campos["Hora início"])??9999));
+  const ots=lista.map(o=>({o,p:axPonto(o)})).filter(z=>z.p);
+  el.innerHTML=`<div class="kmnav"><button class="icon-btn" id="kmVolta">‹ Voltar</button><b>${esc(fSem(x.data))}, ${fData(x.data)}</b><span style="width:60px"></span></div>
+    <section class="rkpis kmk" aria-label="Resumo do dia">
+      <div class="kpi"><div class="l">Km</div><div class="v">${fkm(x.km)}</div><div class="s">${esc(x.estado)}</div></div>
+      <div class="kpi"><div class="l">Saída → chegada</div><div class="v" style="font-size:22px">${hLoc(x.hora_saida)} → ${x.estado==="em curso"?"…":hLoc(x.hora_chegada)}</div><div class="s">${x.n_pontos} pontos GPS</div></div>
+      <div class="kpi"><div class="l">Em movimento</div><div class="v">${fMin(x.minutos_movimento)}</div><div class="s">parado ${fMin(x.minutos_parado)}</div></div>
+      <div class="kpi"><div class="l">OTs</div><div class="v">${lista.length}</div><div class="s">${ots.length} com localização</div></div>
+    </section>
+    <section class="cartao"><h3>Percurso real (GPS)</h3><div class="dentro"><div class="mapa" id="kmMapa"></div><p class="nota" id="kmNota" style="margin-top:8px">A carregar o percurso…</p></div></section>`;
+  $("#kmVolta").onclick=()=>{ KM_DIA=null; renderKm(); };
+  let perc=[];
+  try{ const t=await token(); const r=await fetch(`${SUPA_URL}/rest/v1/km_dia?data=eq.${x.data}&select=percurso`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}}); const j=await r.json(); perc=(j[0]&&j[0].percurso)||[]; }catch(_){}
+  if(KM_DIA!==x.data||VISTA!=="km"||!$("#kmMapa")) return;
+  if(typeof L==="undefined"){ $("#kmNota").textContent="O mapa precisa de ligação à internet."; return; }
+  if(KM_MAPA) KM_MAPA.remove();
+  KM_MAPA=L.map("kmMapa",{scrollWheelZoom:false}); camadasMapa(KM_MAPA);
+  const pin=(html,cls)=>L.divIcon({className:"",html:`<div class="pin ${cls}">${html}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+  const lim=[];
+  if(perc.length){ L.polyline(perc,{color:"#1f7f8c",weight:5,opacity:.85}).addTo(KM_MAPA); lim.push(...perc);
+    L.marker(perc[0],{icon:pin("🏠","casa")}).addTo(KM_MAPA).bindPopup("Saída "+hLoc(x.hora_saida)); }
+  ots.forEach((z,i)=>{ L.marker(z.p,{icon:pin(i+1,realizada(z.o)?"ok":"nao"),zIndexOffset:1000-i}).addTo(KM_MAPA)
+      .bindPopup(`<b>${i+1}. ${esc(z.o.campos["Hora início"]||"")}</b> ${esc(z.o.campos["Nome de cliente"]||"")}<br>${esc(z.o.campos.Estado||"")}`); lim.push(z.p); });
+  if(lim.length) KM_MAPA.fitBounds(L.latLngBounds(lim).pad(.15),{maxZoom:15}); else KM_MAPA.setView([41.37,-8.22],11);
+  $("#kmNota").textContent=perc.length?"Linha: percurso real registado pelo GPS. Números: OTs do dia (verde = realizada, vermelho = não realizada).":"Este dia ainda não tem percurso guardado.";
+}
+function kmExcel(dias,rot){
+  if(typeof XLSX==="undefined") return toast("O Excel precisa de ligação à internet.");
+  const L1=dias.map(x=>({Data:x.data,Dia:fSem(x.data),"Saída":hLoc(x.hora_saida),Chegada:hLoc(x.hora_chegada),Km:+x.km.toFixed(2),OTs:otsDoDia(x.data).length,"Min. movimento":x.minutos_movimento,"Min. parado":x.minutos_parado,Estado:x.estado}));
+  L1.push({Data:"Total",Km:+dias.reduce((s,x)=>s+x.km,0).toFixed(2),OTs:dias.reduce((s,x)=>s+otsDoDia(x.data).length,0)});
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(L1),"Km");
+  XLSX.writeFile(wb,`CACTUS_km_${norm(rot).replace(/[^a-z0-9]+/g,"_")}.xlsx`);
+}
 // ---------- dados (Supabase: login + leitura protegida por RLS; sem bibliotecas externas)
 const SUPA_URL="https://bkgcidryvwafdbiagata.supabase.co", SUPA_KEY="sb_publishable_H1EabITuWmtxVq9U0ddx6Q_D2MpwMYb", CHAVE_SESSAO="cr-consulta-sessao";
 let SESSAO=null, A_CARREGAR=false, ULTIMA=0;
@@ -2100,6 +2218,7 @@ async function carregar(silencioso){
     if(VISTA==="guia") renderGuia();
     if(VISTA==="fin"&&!FIN_ADD) renderFin();
     if(VISTA==="ini") renderIni();
+    carregarKm();
     const ult=data.reduce((m,x)=>x.atualizado>m?x.atualizado:m,"");
     $("#sinc").textContent=ult?("atualizado "+new Date(ult).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})):"";
     if(!DIAS.length) $("#dias").innerHTML='<div class="vazio"><b>Ainda não há dias online.</b><br>Aparecem aqui depois da próxima coleta (ou no painel do PC: ☁ Online → Enviar tudo agora).</div>';
