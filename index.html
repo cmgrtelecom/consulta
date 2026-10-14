@@ -320,6 +320,8 @@ button.itile{cursor:pointer}
 .crt .crt-sel button[aria-pressed="true"],.crt .crt-med button[aria-pressed="true"]{background:var(--crt-bar);border-color:var(--crt-bar);color:#fff}
 .crt tr[data-mot],.crt tr[data-oti]{cursor:pointer} .crt tr[data-mot]:hover,.crt tr[data-oti]:hover,.crt tr.sel{background:color-mix(in srgb,var(--crt-bar) 12%,transparent)}
 .crt .crt-lista{overflow-x:auto}
+.crt td.n{white-space:nowrap}
+.crt td.crt-feed{font-size:12.5px;line-height:1.4;max-width:460px}.crt td.crt-feed small{display:block;color:var(--crt-mut);font-size:11.5px;margin-top:2px}
 </style>
 </head>
 <body class="sem-sessao">
@@ -528,6 +530,23 @@ function juntarAgendaRapida(){
 // ---------- leitura rápida: duração (horas da Agenda) e km estimado (código postal → coordenadas, linha reta × 1,3, como no PC)
 const hmMin=h=>{ const m=String(h||"").match(/^(\d{1,2})[:.](\d{2})/); return m?(+m[1])*60+(+m[2]):null; };
 // agendamento prévio / motivo / reagendamento a partir do Feed — igual a relatorios.py do PC
+
+// ---------- Feed → nota do técnico e motivo da não realização (mesmas regras do relatorios.py: FEED_AUTO / MOTIVO_REGRAS)
+const FEED_AUTO=/^\s*(fecho autom[aá]tico|#|cliente contactado via ivr|grau de reincid|pdo-|morada em gdi|criado ticket|conforme informado|lat@)/i;
+const MOTIVO_REGRAS=[[/n[aã]o pode comparecer|ausente|n[aã]o estava|n[aã]o atende|ningu[eé]m em casa/i,"Cliente ausente / não pode comparecer"],[/incontact/i,"Cliente incontactável"],
+  [/plc sem sinal|sem sinal (no|na|nas|nos) (plc|porta)|portas? [\d, e]+ sem sinal|rede exterior|encaminhar (para )?rede|avaria (de|na) rede|rede .{0,20}ca[ií]da|cabo .{0,15}(partido|ca[ií]do|cortado)/i,"Rede exterior / PLC sem sinal"],
+  [/poste|conduta|tra[cç]ado|falta rec|\brec\b|viabilidade|cobertura probabil|sem passagem|obra civil|autoriza|sinaliza|2 tec|infraestrutura complexa|\bdmi\b/i,"Infraestrutura (postes, conduta, REC, autorizações)"],
+  [/(cliente|cli\.?)[^.]{0,25}(quer|pretende|solicitou|pediu|prefere)[^.]{0,40}reagend|solicitou reagendar|pediu para reagendar|reagendad[oa] a pedido/i,"Cliente pediu reagendamento"],[/cancel/i,"Cancelada"]];
+function notaFeed(o){
+  const fe=(o.feed||[]).map(f=>({t:String(f.Texto||"").trim(),a:f.Autor||""})).filter(x=>x.t);
+  const n=fe.find(x=>!FEED_AUTO.test(x.t))||fe.find(x=>/^\s*lat@/i.test(x.t));
+  return n?{t:n.t,a:n.a,auto:false,n:fe.length}:(fe[0]?{t:fe[0].t,a:fe[0].a,auto:true,n:fe.length}:{t:"",a:"",auto:true,n:0});
+}
+function motivoFeed(o){
+  const nota=notaFeed(o).t, tudo=(o.feed||[]).map(f=>String(f.Texto||"")).join(" ");
+  for(const txt of [nota,tudo]){ if(!txt) continue; const r=MOTIVO_REGRAS.find(([rx])=>rx.test(txt)); if(r) return r[1]; }
+  return "Sem motivo no Feed";
+}
 function agendamentoFeed(o){
   const textos=(o.feed||[]).map(f=>String(f.Texto||"")), txt=textos.join(" "), n=txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   let ag, ev;
@@ -538,8 +557,7 @@ function agendamentoFeed(o){
   const antecipacao=/antecipa/.test(n);
   if(antecipacao&&ag.startsWith("Sem registo")) ev=textos.find(t=>/antecipa/i.test(t))||ev;
   const real=/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"");
-  const regras=[[/n[aã]o pode comparecer|ausente|n[aã]o estava|n[aã]o atende/i,"Cliente ausente / não pode comparecer"],[/autoriza|sinaliza|2 tec|infraestrutura complexa|dmi/i,"Infraestrutura / autorizações / meios"],[/incontact/i,"Cliente incontactável"],[/cancel/i,"Cancelada"]];
-  const motivo=real?"":((regras.find(([rx])=>rx.test(txt))||[0,"Sem motivo no Feed"])[1]);
+  const motivo=real?"":motivoFeed(o);
   const m=txt.match(/agendad[oa]\s+(\d{2}-\d{2}-\d{4})(?:.{0,40}?(\d{1,2}h\d{2})\s*[àa]s\s*(\d{1,2}h\d{2}))?/i);
   return {agendamento:ag, evidencia:ev, antecipacao, motivo, reagendada:m?m[1]+(m[2]?` ${m[2]}–${m[3]}`:""):"", realizada:real};
 }
@@ -985,7 +1003,8 @@ function calcularRel(dias){
     const ots=(d.ots||[]).map(o=>{const c=o.campos, r=o.rel||{}, ini=hm(c["Hora início"]), fim=hm(c["Hora fim"]);
       return {data:d.data, id:o.id, ot:c["Nº OT"], cliente:c["Nome de cliente"], tipo:c["Tipo de OT"], estado:c.Estado, ok:realizada(o),
         ini, fim, dur:(ini!=null&&fim!=null&&fim>=ini)?fim-ini:(r.duracao??null), km:r.km_estrada??null, cond:r.min_conducao??null,
-        espera:r.espera??null, intervalo:r.intervalo??null, ag:r.agendamento||"Sem registo de agendamento prévio", motivo:r.motivo||"",
+        espera:r.espera??null, intervalo:r.intervalo??null, ag:r.agendamento||"Sem registo de agendamento prévio", motivo:realizada(o)?"":((o.feed||[]).length?motivoFeed(o):(r.motivo||"")),
+        ...(nf=>({feed:nf.t, feedAutor:nf.a, feedAuto:nf.auto, feedN:nf.n}))(notaFeed(o)),
         reag:r.reagendada||"", lat:r.lat, lng:r.lng, morada:c.Morada, antec:!!r.antecipacao};})
       .sort((a,b)=>(a.ini??9999)-(b.ini??9999));
     const inis=ots.map(o=>o.ini).filter(v=>v!=null), fins=ots.map(o=>o.fim).filter(v=>v!=null);
@@ -1180,7 +1199,9 @@ const CRT=(()=>{
         <div class="crt-lista" id="crtMotLista"><span style="color:var(--crt-mut);font-size:12.5px">Toque num motivo (barra ou linha) para ver as OTs.</span></div></div>`
       :(nT?`<div data-ps="nao"><div class="crt-h">Sub-Pareto · não realizadas</div><div style="padding:8px 0;color:var(--crt-mut)">Sem OTs não realizadas neste período ✓</div></div>`:"");
     const motDica=k=>/ausente|comparecer/i.test(k)?["Confirmar o cliente antes de sair",`confirmar por telefone 30 min antes de sair para a OT (${MOT[k].ots.filter(o=>/IVR|sem registo/i.test(o.ag||"")).length} destas não tinham confirmação direta do cliente).`]
-      :/infra|autoriza|meios/i.test(k)?["Preparar a infraestrutura na véspera",`confirmar PDO, acesso ao prédio e autorizações antes do dia (${MOT[k].ots.filter(o=>tC(o.tipo)==="Instalação").length} eram Instalações).`]
+      :/rede exterior|plc/i.test(k)?["Validar a rede antes de sair",`ver o sinal do PLC/PDO (ou pedir à NOS o estado da rede) antes de ir; com PLC sem sinal, abrir logo o pedido à rede exterior e reagendar sem deslocação.`]
+      :/infra|autoriza|meios/i.test(k)?["Preparar a infraestrutura na véspera",`confirmar postes, conduta, traçado do drop, REC/viabilidade e autorizações antes do dia (${MOT[k].ots.filter(o=>tC(o.tipo)==="Instalação").length} eram Instalações).`]
+      :/reagend/i.test(k)?["Fechar o horário com o cliente antes de ir",`confirmar a janela horária no dia anterior e propor logo alternativa ou antecipação quando o cliente não pode.`]
       :/incontact/i.test(k)?["Usar os contactos alternativos",`ligar para os contactos alternativos e mandar SMS antes de sair; se não houver resposta, pedir reagendamento sem deslocação.`]
       :/cancel/i.test(k)?["Confirmar que a OT continua ativa",`ver no Field Service se a OT continua ativa antes de sair.`]
       :/sem motivo/i.test(k)?["Escrever sempre o motivo no Feed",`sem motivo não há prova para garantias, reagendamentos ou contestação de débitos.`]
@@ -1193,7 +1214,7 @@ const CRT=(()=>{
       el.querySelectorAll("[data-pmed]").forEach(b=>b.onclick=()=>{ try{ localStorage.setItem("cr-paretos-med",b.dataset.pmed); }catch(_){} analise(el,dias,op); });
       const abrirMot=i=>{ const m=mots[i]; if(!m) return; el.querySelectorAll("tr[data-mot]").forEach(r=>r.classList.toggle("sel",+r.dataset.mot===i));
         const box=el.querySelector("#crtMotLista"); if(!box) return;
-        box.innerHTML=`<div class="crt-h" style="margin-top:10px">${e_(m.k)} · ${m.n} OT${m.n>1?"s":""}</div><table><thead><tr><th>Data</th><th>Hora</th><th>Nº OT</th><th>Cliente</th><th>Tipo</th><th>Agendamento prévio</th><th class="n">€</th></tr></thead><tbody>${m.ots.map((o,j)=>`<tr data-oti="${j}"><td>${rot(o.data)}</td><td>${fh(o.ini)}</td><td>${e_(o.ot||"")}</td><td>${e_(o.cliente||"")}</td><td>${e_(tC(o.tipo))}</td><td>${e_(o.ag||"")}</td><td class="n">${fEur(vOT(o))}</td></tr>`).join("")}</tbody></table>${op.onOT?'<div style="font-size:12px;color:var(--crt-mut);margin-top:4px">Toque numa OT para a abrir.</div>':""}`;
+        box.innerHTML=`<div class="crt-h" style="margin-top:10px">${e_(m.k)} · ${m.n} OT${m.n>1?"s":""}</div><table><thead><tr><th>Data</th><th>Hora</th><th>Nº OT</th><th>Cliente</th><th>Tipo</th><th style="min-width:260px">Feed</th><th class="n">€</th></tr></thead><tbody>${m.ots.map((o,j)=>`<tr data-oti="${j}"><td style="white-space:nowrap">${rot(o.data)}</td><td>${fh(o.ini)}</td><td style="white-space:nowrap">${e_(o.ot||"")}</td><td>${e_(o.cliente||"")}</td><td>${e_(tC(o.tipo))}</td><td class="crt-feed" ${o.feedAuto?'style="color:var(--crt-mut)"':""}>${o.feed?e_(o.feed):'<span style="color:var(--crt-mut)">Feed não recolhido</span>'}${o.feed?`<small>${e_(o.feedAuto?"só nota automática":(o.feedAutor||""))}${o.feedN>1?` · ${o.feedN} entradas no Feed`:""}</small>`:""}</td><td class="n">${fEur(vOT(o))}</td></tr>`).join("")}</tbody></table>${op.onOT?'<div style="font-size:12px;color:var(--crt-mut);margin-top:4px">Toque numa OT para a abrir.</div>':""}`;
         if(op.onOT) box.querySelectorAll("tr[data-oti]").forEach(r=>r.onclick=()=>{ const o=m.ots[+r.dataset.oti]; op.onOT(dias.find(d=>d.data===o.data)||{data:o.data},o); });
         box.scrollIntoView({behavior:"smooth",block:"nearest"}); };
       el.querySelectorAll("[data-pi]").forEach(b=>b.addEventListener("click",()=>{ const k=b.dataset.pi;
@@ -1253,7 +1274,7 @@ function desenharGantt(){
   const dias=REL.porDia.map(d=>({data:d.data, ots:d.ots.map(o=>({...o}))}));
   CRT.linhaTempo($("#gantt"), dias, {onOT:(d,o)=>abrir(d.data,o.id)});
   const VO=(FINC&&FINC.por_mes&&Object.values(FINC.por_mes).find(x=>x.prod&&x.prod.referencia&&x.prod.referencia.valor_ot)?.prod.referencia.valor_ot)||undefined;
-  CRT.analise($("#rAnalise"), dias, {valorOT:VO});
+  CRT.analise($("#rAnalise"), dias, {valorOT:VO, onOT:(d,o)=>{ abrir(d.data,o.id); const t=document.querySelector('#fTabs [data-t="feed"]'); if(t) t.click(); }});
 }
 function desenharAg(){
   const ordem=["Confirmado pelo cliente (TDS automático)","Contactado por IVR, sem confirmação","Cliente incontactável","Sem registo de agendamento prévio"];
