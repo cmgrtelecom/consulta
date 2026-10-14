@@ -1148,7 +1148,11 @@ const CRT=(()=>{
 
   // ---------------- Pareto (barras = % do total; linha = % acumulada; o mesmo eixo de 0 a 100 %)
   function pareto(itens,{alto=280,rotulos,semLinha=false}={}){
-    const W=900,H=alto,pl=42,pr=12,pt=22,pb=48, tot=itens.reduce((s,x)=>s+x.v,0)||1, n=itens.length, bw=(W-pl-pr)/n, y=p=>pt+(H-pt-pb)*(1-p/100);
+    const W=900,pl=42,pr=12,pt=22, tot=itens.reduce((s,x)=>s+x.v,0)||1, n=itens.length, bw=(W-pl-pr)/n;
+    const maxC=Math.max(6,Math.floor((bw-8)/6.6));   // ≈ caracteres que cabem por linha debaixo de cada barra
+    const quebrar=t=>{ const out=[]; let l=""; for(const w of String(t).split(/\s+/)){ if(!w) continue; if(!l) l=w; else if((l+" "+w).length<=maxC) l+=" "+w; else { out.push(l); l=w; } } if(l) out.push(l); return out; };
+    const eixos=itens.map(x=>{ let ls=(x.eixo||[]).flatMap(quebrar); if(ls.length>3){ ls=ls.slice(0,3); ls[2]=ls[2].replace(/.{0,2}$/,"")+"…"; } return ls.map(s=>s.length>maxC+2?s.slice(0,maxC)+"…":s); });
+    const nl=Math.max(1,...eixos.map(e=>e.length)), pb=Math.max(48,24+14*nl), H=alto+Math.max(0,pb-48), y=p=>pt+(H-pt-pb)*(1-p/100);
     let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pareto">`;
     for(const p of [0,25,50,75,100]) s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(p)}" y2="${y(p)}" stroke="var(--crt-grid)"/><text class="t-tick" x="${pl-6}" y="${y(p)+4}" text-anchor="end">${p}%</text>`;
     s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(80)}" y2="${y(80)}" stroke="var(--crt-mut)" stroke-dasharray="5 4"/><text class="t-tick" x="${W-pr}" y="${y(80)-5}" text-anchor="end">80 %</text>`;
@@ -1156,7 +1160,7 @@ const CRT=(()=>{
     itens.forEach((x,i)=>{ const p=100*x.v/tot; acc+=p; const X=pl+i*bw+Math.min(10,bw*.12), w=bw-2*Math.min(10,bw*.12), t=y(p), r=Math.min(4,w/2);
       s+=`<path ${x.pi!=null?`data-pi="${x.pi}" style="cursor:pointer"`:""} data-t="<b>${e_(x.nome)}</b>${x.rot||fm(x.v)} · ${p.toFixed(0)} %${semLinha?"":` · acumulado ${acc.toFixed(0)} %`}${x.extra?"<br>"+x.extra:""}" d="M${X},${y(0)} V${t+r} q0,-${r} ${r},-${r} H${X+w-r} q${r},0 ${r},${r} V${y(0)} Z" fill="${x.cor||"var(--crt-bar)"}" opacity="${x.fraco?.55:1}"/>`;
       if(p>=3){ const dentro=y(0)-t>30; s+=`<text class="t-val" x="${X+w/2}" y="${dentro?t+18:t-8}" text-anchor="middle" ${dentro?'style="fill:#fff"':""}>${x.rot||fm(x.v)}</text>`; }
-      (x.eixo||[]).forEach((l,k)=>s+=`<text class="t-tick" x="${X+w/2}" y="${y(0)+16+k*14}" text-anchor="middle">${e_(l)}</text>`);
+      eixos[i].forEach((l,k)=>s+=`<text class="t-tick" x="${X+w/2}" y="${y(0)+16+k*14}" text-anchor="middle">${e_(l)}</text>`);
       pts.push([X+w/2,y(acc)]); });
     if(!semLinha){ s+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}" fill="none" stroke="var(--crt-line)" stroke-width="2"/>`;
     s+=pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--crt-line)" stroke="var(--crt-surf)" stroke-width="2"/>`).join(""); }
@@ -1193,7 +1197,7 @@ const CRT=(()=>{
                   {nome:"Não realizadas",v:somaM(NAO),rot:MD.r(somaM(NAO)),eixo:["Não realizadas"],cor:"var(--crt-bad)",pi:"nao",extra:`${NAO.length} OTs · toque para ver os motivos`}],{alto:240,semLinha:true})}
         <div class="crt-leg"><span>Toque em <b style="color:var(--crt-bad)">Não realizadas</b> para abrir o sub-Pareto dos motivos.</span></div></div>`:"";
     const SEC_NAO=NAO.length?`<div data-ps="nao"><div class="crt-h">Sub-Pareto · não realizadas por motivo · o que mais tira produtividade (${MD.l})</div>
-        ${pareto(mots.map((m,i)=>{ const ac=mots.slice(0,i).reduce((s,x)=>s+x.v,0)/totNaoM; return {nome:m.k,v:m.v,rot:MD.r(m.v),eixo:m.k.split(/\s*\/\s*| · /).slice(0,2),cor:"var(--crt-bad)",fraco:ac>=.8,pi:"m"+i,extra:`${m.n} OT${m.n>1?"s":""} · ≈ ${fEur(m.e)} · ${fm(m.t)}`}; }))}
+        ${pareto(mots.map((m,i)=>{ const ac=mots.slice(0,i).reduce((s,x)=>s+x.v,0)/totNaoM; return {nome:m.k,v:m.v,rot:MD.r(m.v),eixo:[m.k],cor:"var(--crt-bad)",fraco:ac>=.8,pi:"m"+i,extra:`${m.n} OT${m.n>1?"s":""} · ≈ ${fEur(m.e)} · ${fm(m.t)}`}; }))}
         <div class="crt-leg"><span><i style="background:var(--crt-bad)"></i>causas que fazem os primeiros 80 %</span><span><i style="background:var(--crt-bad);opacity:.55"></i>restantes</span><span><i style="background:var(--crt-line);height:3px"></i>% acumulada</span></div>
         <div class="crt-lista"><table><thead><tr><th>Motivo</th><th class="n">OTs</th><th class="n">€ por faturar</th><th class="n">Tempo perdido</th><th class="n">% (${MD.l})</th><th class="n">Acumulado</th><th class="n">Produtividade se resolvido</th></tr></thead><tbody>${(()=>{let a=0;return mots.map((m,i)=>{a+=m.v;return `<tr data-mot="${i}"><td>${e_(m.k)}</td><td class="n">${m.n}</td><td class="n">${fEur(m.e)}</td><td class="n">${fm(m.t)}</td><td class="n">${Math.round(100*m.v/totNaoM)} %</td><td class="n">${Math.round(100*a/totNaoM)} %</td><td class="n" style="color:var(--crt-ok)">${pPct(REA.length+m.n,nT).toLocaleString("pt-PT")} %</td></tr>`;}).join("");})()}</tbody></table></div>
         <div class="crt-lista" id="crtMotLista"><span style="color:var(--crt-mut);font-size:12.5px">Toque num motivo (barra ou linha) para ver as OTs.</span></div></div>`
