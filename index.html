@@ -312,6 +312,14 @@ button.itile{cursor:pointer}
 .kmd .r{display:flex;flex-direction:column;align-items:flex-end;gap:3px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .kmx{border:0;background:transparent;color:var(--accent);font-weight:600;padding:0;font-size:12.5px;letter-spacing:0;text-transform:none}
 .pin.casa{background:#fff;font-size:14px}
+
+/* ---------- Paretos: seletor e medida */
+.crt .crt-sel,.crt .crt-med{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:2px 0 8px}
+.crt .crt-med span{font-size:12px;color:var(--crt-mut);margin-right:2px}
+.crt .crt-sel button,.crt .crt-med button{font:inherit;font-size:12.5px;border:1px solid var(--crt-grid);background:transparent;color:var(--crt-mut);border-radius:99px;padding:4px 11px;cursor:pointer}
+.crt .crt-sel button[aria-pressed="true"],.crt .crt-med button[aria-pressed="true"]{background:var(--crt-bar);border-color:var(--crt-bar);color:#fff}
+.crt tr[data-mot],.crt tr[data-oti]{cursor:pointer} .crt tr[data-mot]:hover,.crt tr[data-oti]:hover,.crt tr.sel{background:color-mix(in srgb,var(--crt-bar) 12%,transparent)}
+.crt .crt-lista{overflow-x:auto}
 </style>
 </head>
 <body class="sem-sessao">
@@ -1120,19 +1128,19 @@ const CRT=(()=>{
   }
 
   // ---------------- Pareto (barras = % do total; linha = % acumulada; o mesmo eixo de 0 a 100 %)
-  function pareto(itens,{alto=280,rotulos}={}){
+  function pareto(itens,{alto=280,rotulos,semLinha=false}={}){
     const W=900,H=alto,pl=42,pr=12,pt=22,pb=48, tot=itens.reduce((s,x)=>s+x.v,0)||1, n=itens.length, bw=(W-pl-pr)/n, y=p=>pt+(H-pt-pb)*(1-p/100);
     let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pareto">`;
     for(const p of [0,25,50,75,100]) s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(p)}" y2="${y(p)}" stroke="var(--crt-grid)"/><text class="t-tick" x="${pl-6}" y="${y(p)+4}" text-anchor="end">${p}%</text>`;
     s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(80)}" y2="${y(80)}" stroke="var(--crt-mut)" stroke-dasharray="5 4"/><text class="t-tick" x="${W-pr}" y="${y(80)-5}" text-anchor="end">80 %</text>`;
     let acc=0; const pts=[];
     itens.forEach((x,i)=>{ const p=100*x.v/tot; acc+=p; const X=pl+i*bw+Math.min(10,bw*.12), w=bw-2*Math.min(10,bw*.12), t=y(p), r=Math.min(4,w/2);
-      s+=`<path data-t="<b>${e_(x.nome)}</b>${fm(x.v)} · ${p.toFixed(0)} % · acumulado ${acc.toFixed(0)} %${x.extra?"<br>"+x.extra:""}" d="M${X},${y(0)} V${t+r} q0,-${r} ${r},-${r} H${X+w-r} q${r},0 ${r},${r} V${y(0)} Z" fill="var(--crt-bar)" opacity="${x.fraco?.55:1}"/>`;
+      s+=`<path ${x.pi!=null?`data-pi="${x.pi}" style="cursor:pointer"`:""} data-t="<b>${e_(x.nome)}</b>${x.rot||fm(x.v)} · ${p.toFixed(0)} %${semLinha?"":` · acumulado ${acc.toFixed(0)} %`}${x.extra?"<br>"+x.extra:""}" d="M${X},${y(0)} V${t+r} q0,-${r} ${r},-${r} H${X+w-r} q${r},0 ${r},${r} V${y(0)} Z" fill="${x.cor||"var(--crt-bar)"}" opacity="${x.fraco?.55:1}"/>`;
       if(p>=3){ const dentro=y(0)-t>30; s+=`<text class="t-val" x="${X+w/2}" y="${dentro?t+18:t-8}" text-anchor="middle" ${dentro?'style="fill:#fff"':""}>${x.rot||fm(x.v)}</text>`; }
       (x.eixo||[]).forEach((l,k)=>s+=`<text class="t-tick" x="${X+w/2}" y="${y(0)+16+k*14}" text-anchor="middle">${e_(l)}</text>`);
       pts.push([X+w/2,y(acc)]); });
-    s+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}" fill="none" stroke="var(--crt-line)" stroke-width="2"/>`;
-    s+=pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--crt-line)" stroke="var(--crt-surf)" stroke-width="2"/>`).join("");
+    if(!semLinha){ s+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}" fill="none" stroke="var(--crt-line)" stroke-width="2"/>`;
+    s+=pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--crt-line)" stroke="var(--crt-surf)" stroke-width="2"/>`).join(""); }
     return s+"</svg>";
   }
 
@@ -1140,8 +1148,61 @@ const CRT=(()=>{
     prep(); el.classList.add("crt");
     const VO=op.valorOT||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
     const tC=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":(t||"Outro");
+
+    // ---- Produtividade: realizadas × não realizadas, e sub-Pareto das não realizadas por motivo (foco: o que mais tira resultado)
+    const TODAS=dias.flatMap(d=>d.ots.map(o=>({...o,data:d.data}))), REA=TODAS.filter(o=>o.ok), NAO=TODAS.filter(o=>!o.ok);
+    const vOT=o=>VO[tC(o.tipo)]||0, tOT=o=>Math.max(0,(o.fim??o.ini??0)-(o.ini??0))+(o.cond||0);
+    let PSEL=null, MED="n"; try{ PSEL=JSON.parse(localStorage.getItem("cr-paretos")||"null"); MED=localStorage.getItem("cr-paretos-med")||"n"; }catch(_){}
+    if(!Array.isArray(PSEL)) PSEL=["prod","nao","esp","opp"];
+    const MEDS={n:{l:"nº de OTs",f:o=>1,r:v=>String(Math.round(v))},e:{l:"€",f:vOT,r:v=>Math.round(v).toLocaleString("pt-PT")+" €"},t:{l:"tempo",f:tOT,r:v=>fm(v)}}, MD=MEDS[MED]||MEDS.n;
+    const somaM=l=>l.reduce((s,o)=>s+MD.f(o),0), nT=TODAS.length, pPct=(a,b)=>b?Math.round(1000*a/b)/10:0;
+    const motK=o=>(o.motivo&&!/sem motivo/i.test(o.motivo))?o.motivo:"Sem motivo no Feed";
+    const MOT={}; for(const o of NAO){ const k=motK(o); (MOT[k]??={k,ots:[],n:0,e:0,t:0}).ots.push(o); MOT[k].n++; MOT[k].e+=vOT(o); MOT[k].t+=tOT(o); }
+    const mots=Object.values(MOT).map(m=>({...m,v:somaM(m.ots)})).sort((a,b)=>b.v-a.v||b.n-a.n);
+    const top2=[...mots].sort((a,b)=>b.n-a.n).slice(0,2), ganhoN=top2.reduce((s,m)=>s+m.n,0), ganhoE=top2.reduce((s,m)=>s+m.e,0);
+    const totNaoM=mots.reduce((s,m)=>s+m.v,0)||1;
+    const fEur=v=>Math.round(v).toLocaleString("pt-PT")+" €";
+    const SEL_N={prod:"Produtividade",nao:"Não realizadas · motivos",esp:"Espera por causa",int:"Maiores intervalos",hor:"A que horas se espera",opp:"Oportunidades"};
+    const CHIPS=`<div class="crt-sel" role="group" aria-label="Paretos a mostrar">${Object.entries(SEL_N).map(([k,v])=>`<button data-psel="${k}" aria-pressed="${PSEL.includes(k)}">${v}</button>`).join("")}</div>`;
+    const MEDB=`<div class="crt-med" role="group" aria-label="Medir por"><span>Medir por</span>${Object.entries(MEDS).map(([k,x])=>`<button data-pmed="${k}" aria-pressed="${k===MED}">${x.l}</button>`).join("")}</div>`;
+    const SEC_PROD=nT?`<div data-ps="prod"><div class="crt-h">Pareto de produtividade · realizadas × não realizadas</div>
+        <div class="crt-kp"><div><b>${pPct(REA.length,nT).toLocaleString("pt-PT")} %</b><span>produtividade (${REA.length} de ${nT} OTs realizadas)</span></div>
+          <div><b style="color:var(--crt-bad)">${NAO.length}</b><span>não realizadas · ≈ ${fEur(NAO.reduce((s,o)=>s+vOT(o),0))} por faturar · ${fm(NAO.reduce((s,o)=>s+tOT(o),0))} perdidas</span></div>
+          ${top2.length?`<div><b style="color:var(--crt-ok)">${pPct(REA.length+ganhoN,nT).toLocaleString("pt-PT")} %</b><span>se resolver ${top2.length===1?"a maior causa":"as 2 maiores causas"} (+${ganhoN} OTs · ≈ +${fEur(ganhoE)})</span></div>`:""}</div>
+        ${MEDB}
+        ${pareto([{nome:"Realizadas",v:somaM(REA),rot:MD.r(somaM(REA)),eixo:["Realizadas"],cor:"var(--crt-ok)",extra:`${REA.length} OTs · ≈ ${fEur(REA.reduce((s,o)=>s+vOT(o),0))}`},
+                  {nome:"Não realizadas",v:somaM(NAO),rot:MD.r(somaM(NAO)),eixo:["Não realizadas"],cor:"var(--crt-bad)",pi:"nao",extra:`${NAO.length} OTs · toque para ver os motivos`}],{alto:240,semLinha:true})}
+        <div class="crt-leg"><span>Toque em <b style="color:var(--crt-bad)">Não realizadas</b> para abrir o sub-Pareto dos motivos.</span></div></div>`:"";
+    const SEC_NAO=NAO.length?`<div data-ps="nao"><div class="crt-h">Sub-Pareto · não realizadas por motivo · o que mais tira produtividade (${MD.l})</div>
+        ${pareto(mots.map((m,i)=>{ const ac=mots.slice(0,i).reduce((s,x)=>s+x.v,0)/totNaoM; return {nome:m.k,v:m.v,rot:MD.r(m.v),eixo:m.k.split(/\s*\/\s*| · /).slice(0,2),cor:"var(--crt-bad)",fraco:ac>=.8,pi:"m"+i,extra:`${m.n} OT${m.n>1?"s":""} · ≈ ${fEur(m.e)} · ${fm(m.t)}`}; }))}
+        <div class="crt-leg"><span><i style="background:var(--crt-bad)"></i>causas que fazem os primeiros 80 %</span><span><i style="background:var(--crt-bad);opacity:.55"></i>restantes</span><span><i style="background:var(--crt-line);height:3px"></i>% acumulada</span></div>
+        <div class="crt-lista"><table><thead><tr><th>Motivo</th><th class="n">OTs</th><th class="n">€ por faturar</th><th class="n">Tempo perdido</th><th class="n">% (${MD.l})</th><th class="n">Acumulado</th><th class="n">Produtividade se resolvido</th></tr></thead><tbody>${(()=>{let a=0;return mots.map((m,i)=>{a+=m.v;return `<tr data-mot="${i}"><td>${e_(m.k)}</td><td class="n">${m.n}</td><td class="n">${fEur(m.e)}</td><td class="n">${fm(m.t)}</td><td class="n">${Math.round(100*m.v/totNaoM)} %</td><td class="n">${Math.round(100*a/totNaoM)} %</td><td class="n" style="color:var(--crt-ok)">${pPct(REA.length+m.n,nT).toLocaleString("pt-PT")} %</td></tr>`;}).join("");})()}</tbody></table></div>
+        <div class="crt-lista" id="crtMotLista"><span style="color:var(--crt-mut);font-size:12.5px">Toque num motivo (barra ou linha) para ver as OTs.</span></div></div>`
+      :(nT?`<div data-ps="nao"><div class="crt-h">Sub-Pareto · não realizadas</div><div style="padding:8px 0;color:var(--crt-mut)">Sem OTs não realizadas neste período ✓</div></div>`:"");
+    const motDica=k=>/ausente|comparecer/i.test(k)?["Confirmar o cliente antes de sair",`confirmar por telefone 30 min antes de sair para a OT (${MOT[k].ots.filter(o=>/IVR|sem registo/i.test(o.ag||"")).length} destas não tinham confirmação direta do cliente).`]
+      :/infra|autoriza|meios/i.test(k)?["Preparar a infraestrutura na véspera",`confirmar PDO, acesso ao prédio e autorizações antes do dia (${MOT[k].ots.filter(o=>tC(o.tipo)==="Instalação").length} eram Instalações).`]
+      :/incontact/i.test(k)?["Usar os contactos alternativos",`ligar para os contactos alternativos e mandar SMS antes de sair; se não houver resposta, pedir reagendamento sem deslocação.`]
+      :/cancel/i.test(k)?["Confirmar que a OT continua ativa",`ver no Field Service se a OT continua ativa antes de sair.`]
+      :/sem motivo/i.test(k)?["Escrever sempre o motivo no Feed",`sem motivo não há prova para garantias, reagendamentos ou contestação de débitos.`]
+      :["Atacar esta causa primeiro",`é das que mais pesa nas não realizadas.`];
+    const oppNao=[...mots].sort((a,b)=>b.n-a.n).slice(0,2).map(m=>{ const [t,txt]=motDica(m.k); return ["não realizadas",`${t} · ${m.k}`,`${m.n} de ${NAO.length} não realizadas (${Math.round(100*m.n/(NAO.length||1))} %, ≈ ${fEur(m.e)} por faturar): ${txt} Resolver esta causa leva a produtividade para ${pPct(REA.length+m.n,nT).toLocaleString("pt-PT")} %.`]; });
+    const ligar=()=>{
+      el.querySelectorAll("[data-ps]").forEach(s=>s.hidden=!PSEL.includes(s.dataset.ps));
+      el.querySelectorAll("[data-psel]").forEach(b=>b.onclick=()=>{ const k=b.dataset.psel; PSEL=PSEL.includes(k)?PSEL.filter(x=>x!==k):[...PSEL,k];
+        try{ localStorage.setItem("cr-paretos",JSON.stringify(PSEL)); }catch(_){} b.setAttribute("aria-pressed",PSEL.includes(k)); el.querySelectorAll(`[data-ps="${k}"]`).forEach(s=>s.hidden=!PSEL.includes(k)); });
+      el.querySelectorAll("[data-pmed]").forEach(b=>b.onclick=()=>{ try{ localStorage.setItem("cr-paretos-med",b.dataset.pmed); }catch(_){} analise(el,dias,op); });
+      const abrirMot=i=>{ const m=mots[i]; if(!m) return; el.querySelectorAll("tr[data-mot]").forEach(r=>r.classList.toggle("sel",+r.dataset.mot===i));
+        const box=el.querySelector("#crtMotLista"); if(!box) return;
+        box.innerHTML=`<div class="crt-h" style="margin-top:10px">${e_(m.k)} · ${m.n} OT${m.n>1?"s":""}</div><table><thead><tr><th>Data</th><th>Hora</th><th>Nº OT</th><th>Cliente</th><th>Tipo</th><th>Agendamento prévio</th><th class="n">€</th></tr></thead><tbody>${m.ots.map((o,j)=>`<tr data-oti="${j}"><td>${rot(o.data)}</td><td>${fh(o.ini)}</td><td>${e_(o.ot||"")}</td><td>${e_(o.cliente||"")}</td><td>${e_(tC(o.tipo))}</td><td>${e_(o.ag||"")}</td><td class="n">${fEur(vOT(o))}</td></tr>`).join("")}</tbody></table>${op.onOT?'<div style="font-size:12px;color:var(--crt-mut);margin-top:4px">Toque numa OT para a abrir.</div>':""}`;
+        if(op.onOT) box.querySelectorAll("tr[data-oti]").forEach(r=>r.onclick=()=>{ const o=m.ots[+r.dataset.oti]; op.onOT(dias.find(d=>d.data===o.data)||{data:o.data},o); });
+        box.scrollIntoView({behavior:"smooth",block:"nearest"}); };
+      el.querySelectorAll("[data-pi]").forEach(b=>b.addEventListener("click",()=>{ const k=b.dataset.pi;
+        if(k==="nao"){ if(!PSEL.includes("nao")){ PSEL=[...PSEL,"nao"]; try{ localStorage.setItem("cr-paretos",JSON.stringify(PSEL)); }catch(_){} } ligar(); el.querySelector('[data-ps="nao"]')?.scrollIntoView({behavior:"smooth",block:"start"}); }
+        else if(k.startsWith("m")) abrirMot(+k.slice(1)); }));
+      el.querySelectorAll("tr[data-mot]").forEach(r=>r.onclick=()=>abrirMot(+r.dataset.mot));
+    };
     const ots=dias.flatMap(d=>d.ots.map(o=>({...o,data:d.data}))).filter(o=>o.ini!=null), G=intervalos(dias);
-    if(!G.length){ el.innerHTML='<div style="padding:14px;color:var(--crt-mut)">Ainda não há intervalos entre OTs neste período.</div>'; return; }
+    if(!G.length){ el.innerHTML=CHIPS+SEC_PROD+SEC_NAO+'<div data-ps="esp"><div style="padding:14px;color:var(--crt-mut)">Ainda não há intervalos entre OTs neste período.</div></div>'; ligar(); return; }
     const totEsp=G.reduce((s,g)=>s+g.esp,0), nd=dias.filter(d=>d.ots.length).length||1;
     const cat={}; for(const g of G){ if(g.alm){ const k="Almoço (12h30–13h30)"; (cat[k]??={v:0,n:0}).v+=g.alm; cat[k].n++; } if(g.causa){ (cat[g.causa]??={v:0,n:0}).v+=g.resto; cat[g.causa].n++; } }
     const cats=Object.entries(cat).sort((a,b)=>b[1].v-a[1].v);
@@ -1155,7 +1216,7 @@ const CRT=(()=>{
     const horas={}; for(const g of G) for(let m=g.de;m<g.de+g.esp;m++){ const h=Math.floor(m/60); horas[h]=(horas[h]||0)+1; }
     const hs=Object.keys(horas).map(Number).sort((a,b)=>a-b);
     // ---- oportunidades (só as que os dados mostram)
-    const opp=[]; const pct=(a,b)=>b?Math.round(100*a/b):0;
+    const opp=[...oppNao]; const pct=(a,b)=>b?Math.round(100*a/b):0;
     const ant=ots.filter(o=>o.antec), antOk=ant.filter(o=>o.ok).length;
     if(meio.length) opp.push(["maior ganho","Encher o buraco do meio-dia com antecipações",`${meio.length} intervalo${meio.length>1?"s":""} de 1 h ou mais entre as 11h30 e as 15h somam ${fm(meioMin)} (${pct(meioMin,totEsp)} % de toda a espera).${ant.length?` Das ${ant.length} antecipações pedidas, ${antOk} resultaram (${pct(antOk,ant.length)} %).`:""} Ao fechar a última OT da manhã, ligar logo aos clientes da tarde a propor antecipar. Recuperar metade dá ≈ ${fm(meioMin/2/nd)} por dia.`]);
     const ivr=ots.filter(o=>/IVR/i.test(o.ag||"")); if(ivr.length) opp.push(["confirmação","Ligar antes de ir quando só houve IVR",`${ivr.length} OT${ivr.length>1?"s":""} só com "Contactado por IVR, sem confirmação": ${ivr.filter(o=>o.ok).length} realizada${ivr.filter(o=>o.ok).length===1?"":"s"} (${pct(ivr.filter(o=>o.ok).length,ivr.length)} %). Confirmar por telefone antes de sair poupa a viagem e a espera que vem a seguir.`]);
@@ -1166,7 +1227,7 @@ const CRT=(()=>{
     const prim=dias.map(d=>Math.min(...d.ots.filter(o=>o.ini!=null).map(o=>o.ini))).filter(isFinite); if(prim.length){ const med=prim.reduce((a,b)=>a+b,0)/prim.length; if(med>9*60+5) opp.push(["arranque","Começar à hora",`A 1.ª OT começou em média às ${fh(med)} (entre ${fh(Math.min(...prim))} e ${fh(Math.max(...prim))}). Começar às 09:00 dá ≈ ${fm(med-540)} úteis por dia.`]); }
     const instNao=nao.filter(o=>tC(o.tipo)==="Instalação"); if(instNao.length>=2) opp.push(["preparação","Confirmar condições antes das Instalações",`${instNao.length} Instalações não realizadas ocuparam ${fm(instNao.reduce((s,o)=>s+((o.fim??o.ini)-o.ini),0)/instNao.length)} cada no local, mais a deslocação. Confirmar PDO, acesso ao prédio e presença do cliente antes de sair.`]);
     const alm=cat["Almoço (12h30–13h30)"]; if(alm) opp.push(["pausa","O almoço não é o problema",`O almoço (até 60 min, 12h30–13h30) soma ${fm(alm.v)} e fica dentro do buraco do meio-dia. O que se perde é o resto do intervalo à volta dele.`]);
-    el.innerHTML=`<div class="crt-kp">
+    el.innerHTML=`${CHIPS}${SEC_PROD}${SEC_NAO}<div data-ps="esp"><div class="crt-h">Esperas e pausas</div><div class="crt-kp">
         <div><b>${fm(totEsp)}</b><span>de espera e pausa (≈ ${fm(totEsp/nd)} por dia)</span></div>
         <div><b>${pct(exec,jor)} %</b><span>da jornada a executar OTs (${fm(exec)} de ${fm(jor)})</span></div>
         <div><b>${pct(nao.length,ots.length)} %</b><span>OTs não realizadas (${nao.length} de ${ots.length}) · ${fm(perd)} perdidas</span></div>
@@ -1174,15 +1235,16 @@ const CRT=(()=>{
       <div class="crt-h">Pareto da espera por causa</div>${pareto(cats.map(([k,x])=>({nome:k,v:x.v,eixo:eix[k]||[k],extra:`${x.n} vez${x.n>1?"es":""}`})))}
       <div class="crt-leg"><span><i style="background:var(--crt-bar)"></i>% da espera (barra)</span><span><i style="background:var(--crt-line);height:3px"></i>% acumulada (linha)</span><span>– – 80 %</span></div>
       <table><thead><tr><th>Causa</th><th class="n">Vezes</th><th class="n">Tempo</th><th class="n">%</th><th class="n">Acumulado</th></tr></thead><tbody>${(()=>{let a=0;return cats.map(([k,x])=>{a+=x.v;return `<tr><td>${e_(k)}</td><td class="n">${x.n}</td><td class="n">${fm(x.v)}</td><td class="n">${pct(x.v,totEsp)} %</td><td class="n">${pct(a,totEsp)} %</td></tr>`;}).join("");})()}</tbody></table>
-      <div class="crt-h">Pareto dos intervalos · os ${top10.length} maiores de ${G.length}</div>
+      </div><div data-ps="int"><div class="crt-h">Pareto dos intervalos · os ${top10.length} maiores de ${G.length}</div>
       ${pareto(top10.map(g=>({nome:`${rot(g.data)} · ${fh(g.de)}–${fh(g.ate)}`,v:g.esp,rot:Math.round(g.esp)+"′",eixo:[rot(g.data),fh(g.de)],fraco:!g.causa.startsWith("Buraco"),extra:`${e_(g.causa||"Almoço")}<br>depois de ${e_(g.a.ot)} (${g.a.ok?"realizada":"não realizada"}) → ${e_(g.b.ot)}`})))}
       <div class="crt-leg"><span><i style="background:var(--crt-bar)"></i>buraco longo na agenda</span><span><i style="background:var(--crt-bar);opacity:.55"></i>outras esperas</span><span><i style="background:var(--crt-line);height:3px"></i>% acumulada de toda a espera</span></div>
-      <div class="crt-h">A que horas se espera</div>${(()=>{ const W=900,H=200,pl=44,pr=12,pt=14,pb=26, mx=Math.max(60,Math.ceil(Math.max(...hs.map(h=>horas[h]))/60)*60), bw=(W-pl-pr)/hs.length, y=v=>pt+(H-pt-pb)*(1-v/mx);
+      </div><div data-ps="hor"><div class="crt-h">A que horas se espera</div>${(()=>{ const W=900,H=200,pl=44,pr=12,pt=14,pb=26, mx=Math.max(60,Math.ceil(Math.max(...hs.map(h=>horas[h]))/60)*60), bw=(W-pl-pr)/hs.length, y=v=>pt+(H-pt-pb)*(1-v/mx);
         let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Espera por hora">`; for(let v=0;v<=mx;v+=60) s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--crt-grid)"/><text class="t-tick" x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v/60} h</text>`;
         hs.forEach((h,i)=>{ const v=horas[h], X=pl+i*bw+Math.min(8,bw*.15), w=bw-2*Math.min(8,bw*.15), t=y(v), r=Math.min(4,w/2); s+=`<path data-t="<b>${h}h–${h+1}h</b>${fm(v)} de espera no período" d="M${X},${y(0)} V${t+r} q0,-${r} ${r},-${r} H${X+w-r} q${r},0 ${r},${r} V${y(0)} Z" fill="var(--crt-bar)" opacity="${h>=11&&h<15?1:.55}"/><text class="t-tick" x="${X+w/2}" y="${H-8}" text-anchor="middle">${h}h</text>`; });
         return s+"</svg>"; })()}
-      <div class="crt-h">Oportunidades de melhoria</div><div class="crt-op">${opp.map(([t,a,b],i)=>`<div><span class="crt-tag">${i+1} · ${t}</span><b>${a}</b>${b}</div>`).join("")||'<div>Sem oportunidades evidentes neste período ✓</div>'}</div>
-      <div style="font-size:12px;color:var(--crt-mut);margin-top:8px">Espera = intervalo entre o fim de uma OT e o início da seguinte, menos a condução estimada (40 km/h; 12 min quando falta a localização). Almoço = parte da espera entre 12h30 e 13h30. "Buraco longo" = espera que, sem o almoço, passa dos 90 min.</div>`;
+      </div><div data-ps="opp"><div class="crt-h">Oportunidades de melhoria</div><div class="crt-op">${opp.map(([t,a,b],i)=>`<div><span class="crt-tag">${i+1} · ${t}</span><b>${a}</b>${b}</div>`).join("")||'<div>Sem oportunidades evidentes neste período ✓</div>'}</div></div>
+      <div style="font-size:12px;color:var(--crt-mut);margin-top:8px">Produtividade = OTs realizadas ÷ OTs do período. € = valor de referência por tipo de OT (Auto_Envio). Tempo perdido = tempo no local + condução estimada até à OT. Espera = intervalo entre o fim de uma OT e o início da seguinte, menos a condução estimada (40 km/h; 12 min quando falta a localização). Almoço = parte da espera entre 12h30 e 13h30. "Buraco longo" = espera que, sem o almoço, passa dos 90 min.</div>`;
+    ligar();
   }
   return {linhaTempo, analise, intervalos};
 })();
