@@ -631,7 +631,7 @@ function fsOT(txt){       // ecrã de uma OT (todos os separadores vêm juntos)
   for(let i=0;i<ix.length;i++){ const r=ix[i].v; if(!rot.has(r)) continue;
     const nx=ix[i+1]; const val=(nx&&!rot.has(nx.v)&&nx.ix-ix[i].ix>0&&nx.ix-ix[i].ix<=2)?nx.v:"";
     if(!val&&c[r==="N.º OT"?"Nº OT":r]) continue;   // rótulo sem valor (fim do ecrã) não apaga o lido noutro ecrã
-    c[r==="N.º OT"?"Nº OT":r]=(FS_PROTEGIDOS.has(r)&&val)?"******":val; }
+    c[r==="N.º OT"?"Nº OT":r]=(FS_PROTEGIDOS.has(r)&&val)?"******":val; if(FS_PROTEGIDOS.has(r)&&val) c._pw_claro=val; }
   const [hi,hf]=(um("saoverview_timespan").match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/)||[]).slice(1);
   const sub=um("subtitle").split("•").map(s=>s.trim());
   const MES={janeiro:1,fevereiro:2,"março":3,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
@@ -790,6 +790,7 @@ async function lerColetaTexto(texto, agendaFresca){
     if(!/##OT##/.test(texto||"")){ CAP_MSG="⚠ A área de transferência não tem OTs recolhidas. Corra a macro CR Coleta OT dentro de cada OT."; aviso(CAP_MSG); return; }
     // a macro pode trazer a mesma OT 2 vezes (recolha incremental): vale a 1.ª, que é a mais recente
     const vistas=new Set(), ots=fsColeta(texto).filter(o=>{ const k=o.campos?.["Nº OT"]; if(!k) return true; if(vistas.has(k)) return false; vistas.add(k); return true; });
+    await cifrarPw(ots);   // Password ONT: sai do telemóvel só cifrada (só o PC a lê); aqui fica "******"
     if(!ots.length){ CAP_MSG="⚠ Não reconheci OTs no texto recolhido."; aviso(CAP_MSG); return; }
     const dias={};
     for(const o of ots){ const d=o.data||hojeISO(); const base=(AGR[d]?.ots||[]).map(x=>({...x})); (dias[d]=dias[d]||base); 
@@ -2174,6 +2175,13 @@ document.addEventListener("click",async e=>{ const b=e.target.closest("[data-cop
   try{ await navigator.clipboard.writeText(b.dataset.copiar); toast("Coordenadas copiadas: "+b.dataset.copiar); }catch(_){ prompt("Copie as coordenadas:",b.dataset.copiar); } });
 
 // ---------- Km reais (GPS do telemóvel → função "km" → tabela km_dia; só leitura, protegida por RLS)
+// ---------- combustível (enviado pelo painel do PC: posto, preço/L de cada dia (DGEG, com IVA), consumo, IVA recuperável)
+let COMB=null, KM_MODO=(()=>{ try{ return localStorage.getItem("cr-km-modo")||""; }catch(_){ return ""; } })();
+const kmReal=()=>(KM_MODO||COMB?.modo||"com")==="real";
+const fEu=(v,d=2)=>v==null?"–":(+v).toLocaleString("pt-PT",{minimumFractionDigits:d,maximumFractionDigits:d});
+function kmPreco(data){ const p=COMB?.precos||{}, ks=Object.keys(p).sort(); if(!ks.length) return null; const a=ks.filter(k=>k<=data); return p[a.length?a[a.length-1]:ks[0]]; }
+function kmCusto(x){ const pr=kmPreco(x.data), c=COMB?.consumo; if(!pr||!c) return null; const com=x.km*c/100*pr;
+  return kmReal()?com*(COMB.fator_real??(1-(0.23/1.23)*(+COMB.iva_pct||0)/100)):com; }
 let KM=null, KM_P="semana", KM_REF=null, KM_DIA=null, KM_MAPA=null, KM_ERRO="";
 const KM_N={dia:"Dia",semana:"Semana",quinzena:"Quinzena",mes:"Mês"};
 async function carregarKm(){
@@ -2208,6 +2216,13 @@ function renderKm(){
   const tot=dias.reduce((s,x)=>s+x.km,0), n=dias.length, ots=dias.reduce((s,x)=>s+otsDoDia(x.data).length,0), kmComOt=dias.filter(x=>otsDoDia(x.data).length).reduce((s,x)=>s+x.km,0);
   const [pa,pb]=kmIntervalo(KM_P,isoD(new Date(new Date(a+"T12:00:00").getTime()-864e5)));
   const totAnt=KM.filter(x=>x.data>=pa&&x.data<=pb).reduce((s,x)=>s+x.km,0), dif=totAnt>0?Math.round((tot-totAnt)/totAnt*100):null;
+  const comC=dias.filter(x=>kmCusto(x)!=null), cTot=comC.length?comC.reduce((s,x)=>s+kmCusto(x),0):null, kmC=comC.reduce((s,x)=>s+x.km,0),
+    otsC=comC.reduce((s,x)=>s+otsDoDia(x.data).length,0), cOts=comC.filter(x=>otsDoDia(x.data).length).reduce((s,x)=>s+kmCusto(x),0);
+  const pHoje=kmPreco(hojeISO()), pMostra=pHoje!=null?(kmReal()?pHoje*(COMB.fator_real??1):pHoje):null, po=COMB?.posto;
+  const combCard=COMB?`<section class="cartao"><h3>⛽ Combustível <span class="grow"></span><span class="seg" role="group" aria-label="Mostrar custo"><button data-kmm="com" aria-pressed="${!kmReal()}">Com IVA</button><button data-kmm="real" aria-pressed="${kmReal()}">Custo real</button></span></h3>
+      <div class="dentro" style="font-size:14px">${po?`<b>${esc(po.marca||"")} · ${esc(po.localidade||po.municipio||"")}</b>${po.morada?`<br><small class="nota">${esc(po.morada)}</small>`:""}`:"Posto ainda não detetado (escolha no painel do PC)."}
+      <div style="margin-top:6px">${pMostra!=null?`<b>${fEu(pMostra,3)} €/L</b> ${kmReal()?"custo real":"com IVA"} · ${COMB.fonte_hoje==="manual"?"preço à mão":"DGEG"+(COMB.dgeg_atualizado?" "+esc(String(COMB.dgeg_atualizado).slice(8,10)+"/"+String(COMB.dgeg_atualizado).slice(5,7)):"")}`:"Sem preço por litro."} · consumo ${COMB.consumo?fEu(COMB.consumo,1)+" L/100":"<b>por definir</b>"}</div>
+      <p class="nota" style="margin-top:6px">Consumo, posto e IVA recuperável (${fEu(COMB.iva_pct,0)}%) mudam-se no painel do PC (aba Km).</p></div></section>`:"";
   const todos=[]; for(let d=new Date(a+"T12:00:00"); isoD(d)<=b; d.setDate(d.getDate()+1)) todos.push(isoD(d));
   const max=Math.max(1,...dias.map(x=>x.km)), por=Object.fromEntries(dias.map(x=>[x.data,x]));
   const barras=KM_P==="dia"?"":`<section class="cartao"><h3>Km por dia</h3><div class="dentro"><div class="kmbar">${todos.map(d=>{ const x=por[d], h=x?Math.max(4,Math.round(x.km/max*100)):0;
@@ -2219,15 +2234,19 @@ function renderKm(){
       <div class="kpi"><div class="l">Km</div><div class="v">${fkm(tot)}</div><div class="s">${dif==null?"&nbsp;":(dif>=0?"+":"")+dif+"% vs "+({dia:"dia",semana:"semana",quinzena:"quinzena",mes:"mês"}[KM_P])+" anterior"}</div></div>
       <div class="kpi"><div class="l">Média / dia</div><div class="v">${n?fkm(tot/n):"–"}</div><div class="s">${n} ${n===1?"dia":"dias"} com registo</div></div>
       <div class="kpi"><div class="l">Km por OT</div><div class="v">${ots?fkm(kmComOt/ots):"–"}</div><div class="s">${ots} OTs (dias com OTs no sistema)</div></div>
+      ${COMB?`<div class="kpi"><div class="l">Combustível ${kmReal()?"(real)":"(c/ IVA)"}</div><div class="v">${cTot!=null?fEu(cTot)+" €":"–"}</div><div class="s">${cTot!=null&&otsC?fEu(cOts/otsC)+" € por OT":"&nbsp;"}</div></div>
+      <div class="kpi"><div class="l">Custo por km</div><div class="v">${cTot!=null&&kmC>0?fEu(cTot/kmC,3)+" €":"–"}</div><div class="s">${pMostra!=null?fEu(pMostra,3)+" €/L":"&nbsp;"}</div></div>`:""}
       <div class="kpi"><div class="l">Em movimento</div><div class="v">${fMin(dias.reduce((s,x)=>s+(x.minutos_movimento||0),0))}</div><div class="s">parado ${fMin(dias.reduce((s,x)=>s+(x.minutos_parado||0),0))}</div></div>
     </section>
+    ${combCard}
     ${barras}
     <section class="cartao"><h3>Dias <span class="grow"></span>${n?'<button class="kmx" id="kmXlsx">Excel ↓</button>':""}</h3>
-      ${n?`<div class="kml">${dias.slice().reverse().map(x=>`<button class="kmd" data-kd="${x.data}"><div><b>${esc(fSem(x.data))} ${dt0(x.data)}</b><small>${hLoc(x.hora_saida)} → ${x.estado==="em curso"?"em curso":hLoc(x.hora_chegada)} · ${otsDoDia(x.data).length} OTs</small></div><div class="r"><b>${fkm(x.km)} km</b>${kmEstado(x)}</div></button>`).join("")}</div>`
+      ${n?`<div class="kml">${dias.slice().reverse().map(x=>`<button class="kmd" data-kd="${x.data}"><div><b>${esc(fSem(x.data))} ${dt0(x.data)}</b><small>${hLoc(x.hora_saida)} → ${x.estado==="em curso"?"em curso":hLoc(x.hora_chegada)} · ${otsDoDia(x.data).length} OTs</small></div><div class="r"><b>${fkm(x.km)} km</b>${kmCusto(x)!=null?`<small>${fEu(kmCusto(x))} €</small>`:""}${kmEstado(x)}</div></button>`).join("")}</div>`
         :`<div class="dentro"><div class="vazio" style="border:0;padding:14px">Sem km registados neste período.<br>Os km aparecem quando o MacroDroid regista um dia (sair de casa → chegar a casa).</div></div>`}
     </section>
     <p class="nota">Km reais pelo GPS do telemóvel, de casa a casa (seg–sáb). Pontos com pouca precisão e saltos impossíveis não contam.</p>`;
   el.querySelectorAll("[data-kp]").forEach(x=>x.onclick=()=>{ KM_P=x.dataset.kp; renderKm(); });
+  el.querySelectorAll("[data-kmm]").forEach(x=>x.onclick=()=>{ KM_MODO=x.dataset.kmm; try{ localStorage.setItem("cr-km-modo",KM_MODO); }catch(_){ } renderKm(); });
   el.querySelectorAll("[data-km]").forEach(x=>x.onclick=()=>kmMover(+x.dataset.km));
   el.querySelectorAll("[data-kd]").forEach(x=>x.onclick=()=>{ KM_DIA=x.dataset.kd; renderKm(); });
   if($("#kmXlsx")) $("#kmXlsx").onclick=()=>kmExcel(dias,rot);
@@ -2268,6 +2287,14 @@ function kmExcel(dias,rot){
   XLSX.writeFile(wb,`CACTUS_km_${norm(rot).replace(/[^a-z0-9]+/g,"_")}.xlsx`);
 }
 // ---------- dados (Supabase: login + leitura protegida por RLS; sem bibliotecas externas)
+// ---------- Password ONT cifrada para o PC (RSA-OAEP/SHA-256). A chave privada está só no PC; a nuvem guarda só "_pwc".
+const PW_JWK=(()=>{ try{ return JSON.parse(atob("eyJrdHkiOiJSU0EiLCJuIjoiMGt4eTVfOHBhNFVIcnJiWnFPYTc2VlBMQXVQR015UmY0dkVlRm1DQ0ExZUpZeDFzczI2UDBWWFpkUXJnTjZTUG03SmZjbmRyLVkwY3IzUEJMRHFMeFdUX0NxZ0R6dXZ0ai1qRm9PT1lmZUdneXRHSDlaeWZRZ1VDSnJoTWtTTGRfdWlFVGRwY215WF9nY25PaVdRWE1ZcXoyZ1phUTVOWnVCR1ZQR2lGdkZSOGNEM3pUYVRQZzFPS3BBc2xjSGd5WUN6dTkyZkl5RFlHNnlUdVVNSW1VOGlVaTFUeWp1LWFzXzQ4WHlFUm1EbFBFWi1kS0xWTlZzQkRKU1l2Sl9GU3JueVVzQ2oyb2pwVjFuZlF0TnhFWVlDd3pFaC1iRmJST1hhbHhNUjUtSWJLaWhnTWlnWkhreE83ZmExZjBhRDZkQUwwS3hEOGN6X3RNSWRwclZZdGlRIiwiZSI6IkFRQUIiLCJhbGciOiJSU0EtT0FFUC0yNTYiLCJleHQiOnRydWV9")); }catch(_){ return null; } })(); let PW_CHAVE=null;
+async function cifrarPw(ots){
+  for(const o of ots||[]){ const c=o.campos||{}, v=c._pw_claro; delete c._pw_claro; if(!v||!PW_JWK) continue;
+    try{ PW_CHAVE=PW_CHAVE||await crypto.subtle.importKey("jwk",PW_JWK,{name:"RSA-OAEP",hash:"SHA-256"},false,["encrypt"]);
+      const b=new Uint8Array(await crypto.subtle.encrypt({name:"RSA-OAEP"},PW_CHAVE,new TextEncoder().encode(v)));
+      c._pwc="rsa1:"+btoa(String.fromCharCode(...b)); }catch(_){ } }
+}
 const SUPA_URL="https://bkgcidryvwafdbiagata.supabase.co", SUPA_KEY="sb_publishable_H1EabITuWmtxVq9U0ddx6Q_D2MpwMYb", CHAVE_SESSAO="cr-consulta-sessao";
 let SESSAO=null, A_CARREGAR=false, ULTIMA=0;
 const lerSessao=()=>{ try{ return JSON.parse(localStorage.getItem(CHAVE_SESSAO)||"null"); }catch(e){ return null; } };
@@ -2299,7 +2326,8 @@ async function carregar(silencioso){
     FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
     CENTRADA=((data.find(x=>x.pacote&&x.pacote.tipo==="custos_entrada")||{}).pacote||{}).itens||[];
     AGR=((data.find(x=>x.pacote&&x.pacote.tipo==="agenda_rapida")||{}).pacote||{}).dias||{};
-    DIAS=data.filter(x=>x.pacote&&!["guias","financas","custos_entrada","capturas","agenda_rapida"].includes(x.pacote.tipo)).map(x=>({...x.pacote,_atualizado:x.atualizado}));
+    COMB=(data.find(x=>x.pacote&&x.pacote.tipo==="combustivel")||{}).pacote||null;
+    DIAS=data.filter(x=>x.pacote&&!["guias","financas","custos_entrada","capturas","agenda_rapida","combustivel"].includes(x.pacote.tipo)).map(x=>({...x.pacote,_atualizado:x.atualizado}));
     juntarAgendaRapida();
     if(!AUTO_LIDO&&/^#(texto|auto)$/.test(location.hash)){ AUTO_LIDO=true; setTimeout(()=>lerTelemovel(null,true),200); }   // aberto pela macro: lê sozinho
     if(VISTA==="guia") renderGuia();
