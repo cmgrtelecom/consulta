@@ -322,6 +322,99 @@ button.itile{cursor:pointer}
 .crt .crt-lista{overflow-x:auto}
 .crt td.n{white-space:nowrap}
 .crt td.crt-feed{font-size:12.5px;line-height:1.4;max-width:460px}.crt td.crt-feed small{display:block;color:var(--crt-mut);font-size:11.5px;margin-top:2px}
+
+/* ---------- Pré-venda P2P */
+.pv-topo{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pv-h{font:700 24px/1.15 var(--f-display);margin:0}
+.fmut{color:var(--muted);font-size:12.5px}
+.pv-badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:99px;background:var(--bad);color:#fff;font-size:11.5px;line-height:18px;text-align:center}
+.pv-aviso{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--fg);border-radius:var(--r);padding:12px 14px;margin-bottom:12px;font-size:13.5px}
+.pv-aviso.ok{background:var(--ok-bg)}
+.pv-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px}
+@media (max-width:900px){.pv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pv-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.pv-busca{flex:1 1 220px}
+.pv-cartao{grid-template-columns:1fr!important}
+.pv-cartao .pv-c1{display:flex;justify-content:space-between;gap:8px}
+.pv-mim{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.pv-chip{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pv-e0{background:var(--surface-2);color:var(--muted)}
+.pv-e1{background:var(--warn-bg);color:var(--warn)}
+.pv-e2{background:var(--ok-bg);color:var(--ok)}
+.pv-e3{background:#e8e7fb;color:#3d3a8f}
+.pv-e4{background:var(--accent-soft);color:var(--accent)}
+.pv-e5{background:var(--fg);color:var(--bg)}
+.pv-ex{background:var(--bad-bg);color:var(--bad)}
+.pv-p-gestor{background:var(--accent-soft);color:var(--accent)} .pv-p-vendedor{background:var(--surface-2);color:var(--fg)}
+.pv-p-tecnico{background:var(--warn-bg);color:var(--warn)} .pv-p-proef{background:#e8e7fb;color:#3d3a8f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pv-e3,:root:not([data-theme="light"]) .pv-p-proef{background:#25234d;color:#c4c1ff}}
+:root[data-theme="dark"] .pv-e3,:root[data-theme="dark"] .pv-p-proef{background:#25234d;color:#c4c1ff}
+.pv-ficha{display:flex;flex-direction:column;gap:12px}
+.pv-fcab{display:flex;align-items:center;gap:12px}
+.pv-fcab>div{flex:1;min-width:0}
+.pv-barra{display:flex;gap:4px}
+.pv-barra i{flex:1;height:7px;border-radius:4px;background:var(--line)}
+.pv-barra i.ok{background:var(--accent)} .pv-barra i.cur{background:#6c68c9} .pv-barra i.mau{background:var(--bad)}
+.pv-etapas{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;font-size:10.5px;color:var(--muted);margin-top:-6px}
+@media (max-width:560px){.pv-etapas{display:none}}
+.pv-acao{border-color:var(--accent)}
+.pv-in{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.pv-in p{margin:0}
+.pv-form,.pv-pess{display:flex;flex-direction:column;gap:12px}
+.pv-in label,.pv-op>span:first-child{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+.pv-in input:not([type=radio]):not([type=checkbox]),.pv-in select,.pv-in textarea{font:16px var(--f-body);padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);min-width:0;width:100%;box-sizing:border-box}
+.pv-in textarea{resize:vertical}
+.pv-in input[readonly]{opacity:.7}
+.pv-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pv-op{display:flex;flex-direction:column;gap:6px}
+.pv-pills{display:flex;flex-wrap:wrap;gap:6px}
+.pv-pills label{flex-direction:row!important;color:var(--fg)!important;font-size:14px!important;font-weight:600}
+.pv-pills input{position:absolute;opacity:0;width:1px;height:1px}
+.pv-pills span{display:inline-flex;align-items:center;justify-content:center;min-height:42px;min-width:42px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
+.pv-pills input:checked+span{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.pv-pills input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.pv-num span{min-width:48px;font:700 17px var(--f-display)}
+.pv-eq{display:flex;flex-direction:column;gap:6px}
+.pv-eq label{flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px;color:var(--fg)!important;font-size:14px!important;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:10px}
+.pv-eq label input{width:84px!important;text-align:center;padding:8px!important}
+.pv-eq label:last-child input{width:55%!important;text-align:left}
+.pv-plcs{display:flex;flex-direction:column;gap:6px}
+.pv-plcs label{flex-direction:row!important;align-items:flex-start;gap:10px;color:var(--fg)!important;font-size:14px!important;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.pv-plcs label input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)}
+.pv-plcs label small{display:block;color:var(--muted);font-size:12px}
+.pv-plcs label.dx{border-color:#ff3b1f}
+.pv-dx{color:#ff3b1f;font-weight:800}
+.pv-gps{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--accent);background:var(--accent-soft);border-radius:12px;padding:10px 12px}
+.pv-gps>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pv-mapa{height:220px;border-radius:10px;border:1px solid var(--line);z-index:0}
+.pv-btn{font:600 14px var(--f-body);min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer}
+.pv-btn[disabled]{opacity:.55;cursor:default}
+.pv-prim{background:var(--accent);color:var(--accent-ink)}
+.pv-ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.pv-warn{border-color:var(--warn);color:var(--warn)}
+.pv-mau{border-color:var(--bad);color:var(--bad)}
+.pv-grande{min-height:52px;font-size:16px;font-weight:700;width:100%}
+.pv-dec{display:flex;flex-direction:column;gap:8px}
+.pv-lnk{border:0;background:transparent;color:var(--accent);font:600 13.5px var(--f-body);padding:8px 4px;cursor:pointer;min-height:36px}
+.pv-erro{color:var(--bad);font-size:14px;min-height:0}
+.pv-erro:empty{display:none}
+.pv-consent{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45}
+.pv-consent input{width:22px;height:22px;margin:0;flex:none;accent-color:var(--accent)}
+.pv-canc summary{cursor:pointer;color:var(--bad);font-weight:600;font-size:13.5px;padding:4px 0}
+.pv-canc[open]{display:flex;flex-direction:column;gap:8px}
+.pv-hl{display:grid;grid-template-columns:12px 1fr;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
+.pv-hl:first-child{border-top:0}
+.pv-hl i{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--ok)} .pv-hl i.mau{background:var(--bad)}
+.pv-hl div{display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.pv-pl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.pv-pl>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pv-plb{display:flex;gap:6px}
+.pv-visor{position:fixed;inset:0;z-index:9998;background:var(--bg);overflow:auto;padding:16px}
+/* vendedores, técnicos e PROEF só veem a pré-venda */
+body.so-pv .vistas,body.so-pv .bnav,body.so-pv .filtros,body.so-pv .top .busca,body.so-pv #fab,body.so-pv #sinc{display:none!important}
+body.so-pv main{padding-bottom:40px}
+.pv-ficha dd{display:block}
+@media (max-width:560px){.pv-kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pv-kpis .kpi{padding:10px}.pv-kpis .kpi .v{font-size:24px}.pv-kpis .kpi .l{font-size:10.5px}.pv-kpis .kpi .s{font-size:11px}}
 </style>
 </head>
 <body class="sem-sessao">
@@ -331,7 +424,7 @@ button.itile{cursor:pointer}
   <label class="busca" for="q"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="OT, cliente, telefone, morada, nº de série, PLC…" autocomplete="off"></label>
   <span class="sinc" id="sinc"></span><button class="icon-btn" id="btnAtual" title="Ir buscar os dados mais recentes">↻</button>
   <div class="menu3" id="menu3"><button class="icon-btn" id="btnMenu" aria-label="Mais opções" aria-expanded="false">⋯</button>
-    <div class="menu3-pop" id="menu3Pop" hidden><div class="menu3-info" id="menuInfo"></div><button id="btnSair">↪ Sair</button></div></div>
+    <div class="menu3-pop" id="menu3Pop" hidden><div class="menu3-info" id="menuInfo"></div><button id="btnSenha">🔑 Mudar palavra-passe</button><button id="btnSair">↪ Sair</button></div></div>
 </div></div>
 
 <main>
@@ -352,6 +445,7 @@ button.itile{cursor:pointer}
       <button data-v="guia" aria-pressed="false">🚚 Guia</button>
       <button data-v="fin" aria-pressed="false">💶 Finanças</button>
       <button data-v="km" aria-pressed="false">🛣️ Km</button>
+      <button data-v="pv" aria-pressed="false">🤝 Pré-venda</button>
     </div>
   </div>
 
@@ -386,6 +480,7 @@ button.itile{cursor:pointer}
   <div id="vGuia" hidden style="flex-direction:column;gap:14px"></div>
   <div id="vFin" hidden style="flex-direction:column;gap:14px"></div>
   <div id="vKm" hidden style="flex-direction:column;gap:14px"></div>
+  <div id="vPv" hidden style="flex-direction:column;gap:14px"></div>
   <div id="vRel" hidden style="flex-direction:column;gap:14px">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span class="nota" id="rPeriodo"></span><span style="flex:1"></span>
@@ -442,6 +537,7 @@ button.itile{cursor:pointer}
   <button data-v="guia" aria-pressed="false"><i>🚚</i>Guia</button>
   <button data-v="fin" aria-pressed="false"><i>💶</i>Finanças</button>
   <button data-v="km" aria-pressed="false"><i>🛣️</i>Km</button>
+  <button data-v="pv" aria-pressed="false"><i>🤝</i>Pré-venda</button>
 </nav>
 <button class="fab" id="fab" hidden aria-label="Acrescentar custo">＋</button>
 <div class="toast" id="toast" hidden></div>
@@ -471,17 +567,19 @@ document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{PERIODO=b.datase
 document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{ESTADO=b.dataset.e;document.querySelectorAll("[data-e]").forEach(x=>x.setAttribute("aria-pressed",x===b));render();});
 let tq=null; $("#q").oninput=()=>{clearTimeout(tq);tq=setTimeout(()=>{ if(VISTA==="rel"&&$("#q").value.trim().length>=2) mudarVista("ots"); render(); },150);};
 let VISTA="ini";
-const VISTA_NOME={ini:"Início",ots:"OTs",rel:"Relatórios",guia:"Guia",fin:"Finanças",km:"Km"};
+const VISTA_NOME={ini:"Início",ots:"OTs",rel:"Relatórios",guia:"Guia",fin:"Finanças",km:"Km",pv:"Pré-venda"};
 function mudarVista(v){ VISTA=v; document.querySelectorAll(".vistas [data-v],.bnav [data-v]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));
-  document.body.classList.remove("v-ini","v-ots","v-rel","v-guia","v-fin","v-km"); document.body.classList.add("v-"+v);
+  if(PV_SO()&&v!=="pv") v="pv"; VISTA=v; document.querySelectorAll(".vistas [data-v],.bnav [data-v]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));
+  document.body.classList.remove("v-ini","v-ots","v-rel","v-guia","v-fin","v-km","v-pv"); document.body.classList.add("v-"+v);
   $("#vIni").hidden=v!=="ini"; $("#vIni").style.display=v==="ini"?"flex":"none";
   $("#fab").hidden=v!=="fin"; window.scrollTo({top:0});
   $("#vOts").style.display=v==="ots"?"flex":"none"; $("#vRel").hidden=v!=="rel"; $("#vRel").style.display=v==="rel"?"flex":"none";
   $("#vGuia").hidden=v!=="guia"; $("#vGuia").style.display=v==="guia"?"flex":"none";
   $("#vFin").hidden=v!=="fin"; $("#vFin").style.display=v==="fin"?"flex":"none";
+  $("#vPv").hidden=v!=="pv"; $("#vPv").style.display=v==="pv"?"flex":"none"; if(v!=="pv") pvLimparMapas();
   $("#vKm").hidden=v!=="km"; $("#vKm").style.display=v==="km"?"flex":"none"; if(v!=="km"&&KM_MAPA){ KM_MAPA.remove(); KM_MAPA=null; }
-  document.querySelector(".filtros").style.display=(v==="guia"||v==="fin"||v==="ini"||v==="km")?"none":"";
-  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); if(v==="guia") renderGuia(); if(v==="fin") renderFin(); if(v==="ini") renderIni(); if(v==="km") renderKm(); }
+  document.querySelector(".filtros").style.display=(v==="guia"||v==="fin"||v==="ini"||v==="km"||v==="pv")?"none":"";
+  $("#segEstado").style.display=v==="rel"?"none":""; if(v==="rel") renderRel(); if(v==="guia") renderGuia(); if(v==="fin") renderFin(); if(v==="ini") renderIni(); if(v==="km") renderKm(); if(v==="pv") renderPv(); }
 document.querySelectorAll(".vistas [data-v],.bnav [data-v]").forEach(b=>b.onclick=()=>mudarVista(b.dataset.v));
 // menu ⋯
 $("#btnMenu").onclick=e=>{ e.stopPropagation(); const p=$("#menu3Pop"); p.hidden=!p.hidden; $("#btnMenu").setAttribute("aria-expanded",String(!p.hidden));
@@ -933,6 +1031,7 @@ function renderIni(){
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%;background:${pct>=100?"var(--ok)":pct>=80?"var(--warn)":"var(--bad)"}"></i></div>
       <span>${dP&&dP.ots?esc(fmix(dP.mix))+" · ":""}${dP?sug:"Ainda sem OTs de hoje no painel (aparecem depois da coleta)."}</span></button>
+    ${pvTileIni()}
     <div class="ig2 q4">
       <button class="itile" data-ir="ots"><span class="t">📋 OTs ${dia?"hoje":"(último dia)"}</span><b>${dia?otsHoje:(ultimo?ultimo.ots.length:"—")}</b><span>${dia?realHoje+(realHoje===1?" realizada":" realizadas"):(ultimo?dt0(ultimo.data):"sem dados")}</span></button>
       <button class="itile" data-ir="guia"><span class="t">🚚 Guia</span><b style="font-size:19px">${g?esc(String(g.numero||"").replace(/^GT\s*/,"GT ")):"—"}</b><span>${g?(g.codigo_at?"AT "+esc(g.codigo_at)+" ✓":"sem código AT"):"sem guias"}</span></button>
@@ -2319,6 +2418,9 @@ async function carregar(silencioso){
   if(!silencioso) $("#sinc").textContent="a atualizar…";
   try{
     const t=await token(); if(!t) throw new Error("A sessão terminou. Entre de novo.");
+    try{ await pvCarregar(); }catch(e){ console.warn("Pré-venda:",e.message); }
+    if(PV_SO()||(PV.eu&&!PV.eu.perfis.length&&PV.eu.email!=="cmgrtelecom@gmail.com")){ $("#sinc").textContent=""; mudarVista("pv"); ULTIMA=Date.now(); return; }
+    if(VISTA==="pv") renderPv();
     const r=await fetch(`${SUPA_URL}/rest/v1/dias?select=data,pacote,atualizado&order=data.desc&limit=2000`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}});
     if(r.status===401){ gravarSessao(null); sessao(false); throw new Error("A sessão terminou. Entre de novo."); }
     const data=await r.json(); if(!r.ok) throw new Error(data.message||("erro "+r.status));
@@ -2338,6 +2440,7 @@ async function carregar(silencioso){
     $("#sinc").textContent=ult?("atualizado "+new Date(ult).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})):"";
     if(!DIAS.length) $("#dias").innerHTML='<div class="vazio"><b>Ainda não há dias online.</b><br>Aparecem aqui depois da próxima coleta (ou no painel do PC: ☁ Online → Enviar tudo agora).</div>';
     else { render(); if(VISTA==="rel") renderRel(); }
+    if(VISTA==="pv") renderPv();
     if(ABERTA){ const d=DIAS.find(x=>x.data===ABERTA.d.data); const o=d?.ots.find(x=>x.id===ABERTA.o.id); if(o){ABERTA={d,o};desenharFicha();} }
     ULTIMA=Date.now();
   }catch(e){
@@ -2346,6 +2449,539 @@ async function carregar(silencioso){
     else toast("Sem atualização: "+(e.message||e));
   }finally{ A_CARREGAR=false; }
 }
+// ====================================================================== PRÉ-VENDA P2P (20/10/2026)
+// Vendedor → técnico (vistoria) → PROEF (venda) → instalação (ligada pelo PC à OT pela Conta de serviço).
+// A ordem das etapas e quem pode fazer o quê são impostos no Supabase (funções pv_*); aqui é só o ecrã.
+const PV_VAPID="BAT3dMn-8lCoKg9l4Xng78TSz-a40iEEjXu0dQM8Mch7BPnVR2qMGjXz6KDGGQ9o9YryBU6N4yfD0Wv4WFakE58";
+const PV_EST={
+  aguarda_vistoria:{n:"Aguarda vistoria",c:"pv-e0",etapa:1}, vistoria:{n:"Vistoria em curso",c:"pv-e1",etapa:2},
+  aprovada:{n:"Aprovada",c:"pv-e2",etapa:3}, reprovada:{n:"Reprovada",c:"pv-ex",etapa:3,fim:1},
+  na_proef:{n:"Na PROEF",c:"pv-e3",etapa:4}, vendida:{n:"Vendida",c:"pv-e4",etapa:5}, nao_vendida:{n:"Não vendida",c:"pv-ex",etapa:5,fim:1},
+  instalada:{n:"Instalada",c:"pv-e5",etapa:6,fim:1}, cancelada:{n:"Cancelada",c:"pv-ex",etapa:0,fim:1}};
+const PV_ETAPAS=["Pré-venda","Vistoria","Decisão técnica","Venda PROEF","Venda concluída","Instalada"];
+const PV_PERFIL_NOME={gestor:"Gestor",vendedor:"Vendedor",tecnico:"Técnico",proef:"PROEF"};
+const PV_EQUIP=["ONT","NOS BOX v4","NOS BOX v3","Super Extender Wi-Fi Plume","Equipamento TV OTT","Cartão cabo","Cartão DTH"];
+const PV_ACESSO={aereo:"Aéreo / poste",fachada:"Fachada",conduta:"Conduta / subterrâneo",predio:"Prédio / ATI"};
+const PV={eu:null, instalado:null, enc:[], sub:"lista", filtro:null, aberta:null, hist:{}, pessoas:null, editar:null, senha:null,
+  q:"", dupOk:false, gps:null, push:null, pushGuardado:false, ocupado:false, mapas:[]};
+const pvLS={ ler:k=>{ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(_){ return null; } },
+  gravar:(k,v)=>{ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v)); }catch(_){ } } };
+const pvTem=p=>!!PV.eu&&(PV.eu.perfis.includes(p)||PV.eu.perfis.includes("gestor"));
+const pvGestor=()=>!!PV.eu&&PV.eu.perfis.includes("gestor");
+const PV_SO=()=>!!PV.eu&&!PV.eu.perfis.includes("gestor");   // vendedor / técnico / PROEF: só vê a pré-venda
+const pvEu=()=>PV.eu?.email||"";
+const pvNum=v=>{ const x=parseFloat(String(v??"").replace(",",".")); return isFinite(x)&&Math.abs(x)>1&&Math.abs(x)<90?x:null; };
+const pvTelFmt=t=>String(t||"").replace(/^(\d{3})(\d{3})(\d{3})$/,"$1 $2 $3");
+const pvDH=iso=>iso?new Date(iso).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+function pvIdade(iso){ const m=Math.max(0,Math.round((Date.now()-Date.parse(iso||0))/60000));
+  return m<60?`há ${m} min`:m<48*60?`há ${Math.round(m/60)} h`:`há ${Math.round(m/1440)} dias`; }
+const pvHoras=iso=>(Date.now()-Date.parse(iso||0))/3600000;
+const pvMin=m=>m==null?"—":(m>=60?`${Math.floor(m/60)} h${m%60?" "+String(m%60).padStart(2,"0"):""}`:`${m} min`);
+
+async function pvPedido(caminho,opc={}){
+  const t=await token(); if(!t) throw new Error("A sessão terminou. Entre de novo.");
+  const r=await fetch(`${SUPA_URL}${caminho}`,{...opc,headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t,"Content-Type":"application/json",...(opc.headers||{})}});
+  const txt=await r.text(); let j=null; try{ j=txt?JSON.parse(txt):null; }catch(_){ j={message:txt}; }
+  if(!r.ok){ const e=new Error((j&&(j.message||j.erro||j.msg))||("erro "+r.status)); e.status=r.status; e.code=j&&j.code; throw e; }
+  return j;
+}
+const pvRpc=(nome,args)=>pvPedido(`/rest/v1/rpc/${nome}`,{method:"POST",body:JSON.stringify(args||{})});
+async function pvFuncao(corpo){
+  const t=await token(); if(!t) throw new Error("A sessão terminou. Entre de novo.");
+  const r=await fetch(`${SUPA_URL}/functions/v1/prevenda`,{method:"POST",headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify(corpo)});
+  const j=await r.json().catch(()=>({}));
+  if(r.status===404) throw new Error("A função 'prevenda' ainda não está instalada no Supabase.");
+  if(!r.ok) throw new Error(j.erro||("erro "+r.status));
+  return j;
+}
+const pvNotificar=id=>pvFuncao({acao:"notificar",id}).catch(e=>console.warn("Pré-venda: notificação não enviada —",e.message));
+
+// ---------------------------------------------------------------- carregar
+async function pvCarregar(){
+  try{ PV.eu=await pvRpc("pv_eu_info",{}); PV.instalado=true; }
+  catch(e){ if(e.status===404||e.code==="PGRST202"){ PV.instalado=false; PV.eu=null; return; } PV.instalado=PV.instalado??null; throw e; }
+  document.body.classList.toggle("so-pv",PV_SO());
+  if(!PV.eu.perfis.length){ PV.enc=[]; return; }
+  PV.enc=await pvPedido("/rest/v1/pv_encomendas?select=*&order=criado_em.desc&limit=1000")||[];
+  if(PV.aberta&&PV.hist[PV.aberta]) pvCarregarHist(PV.aberta,true);
+  pvPushEstado().then(s=>{ PV.push=s; if(s==="ativo"&&!PV.pushGuardado) pvGuardarSub(true); if(VISTA==="pv") pvRenderTopo(); });
+  const m=/^#pv=([0-9a-f-]{36})$/i.exec(location.hash||"");
+  if(m){ try{ history.replaceState(null,"",location.pathname); }catch(_){ } pvAbrir(m[1]); }
+}
+async function pvRecarregar(){ try{ PV.enc=await pvPedido("/rest/v1/pv_encomendas?select=*&order=criado_em.desc&limit=1000")||[]; }catch(e){ toast("⚠ "+e.message); } }
+async function pvCarregarHist(id,silencioso){
+  try{ PV.hist[id]=await pvPedido(`/rest/v1/pv_historico?encomenda=eq.${id}&select=*&order=id.asc`)||[]; }
+  catch(e){ if(!silencioso) toast("⚠ "+e.message); }
+  if(VISTA==="pv"&&PV.sub==="ficha"&&PV.aberta===id){ const h=$("#pvHist"); if(h) h.innerHTML=pvHistHtml(id); }
+}
+function pvAbrir(id){ PV.sub="ficha"; PV.aberta=id; if(VISTA!=="pv") mudarVista("pv"); else renderPv(); pvCarregarHist(id); window.scrollTo({top:0}); }
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message",e=>{ const id=e.data&&e.data.pv; if(id&&SESSAO) pvRecarregar().then(()=>pvAbrir(id)); });
+
+// ---------------------------------------------------------------- notificações no telemóvel
+function pvB64(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); const b=atob(s+"=".repeat((4-s.length%4)%4)); return Uint8Array.from(b,c=>c.charCodeAt(0)); }
+async function pvPushEstado(){
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!navigator.standalone) return "ios";
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)) return "sem_suporte";
+  if(Notification.permission==="denied") return "bloqueado";
+  try{ const r=await navigator.serviceWorker.getRegistration(); if(!r) return "desligado";
+    const s=await r.pushManager.getSubscription(); return s&&Notification.permission==="granted"?"ativo":"desligado"; }catch(_){ return "desligado"; }
+}
+async function pvGuardarSub(silencioso){
+  try{ const reg=await navigator.serviceWorker.ready;
+    const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pvB64(PV_VAPID)});
+    await pvRpc("pv_push_guardar",{p_sub:sub.toJSON()}); PV.pushGuardado=true; PV.push="ativo"; return true;
+  }catch(e){ if(!silencioso) toast("⚠ Notificações: "+(e.message||e)); return false; }
+}
+async function pvAtivarPush(){
+  if(PV_VAPID.startsWith("__")) return toast("Notificações ainda não configuradas nesta página.");
+  const p=await Notification.requestPermission();
+  if(p!=="granted"){ PV.push=p==="denied"?"bloqueado":"desligado"; pvRenderTopo(); return toast("Sem autorização para notificações."); }
+  if(await pvGuardarSub(false)){ toast("Notificações ligadas ✓"); pvRenderTopo(); }
+}
+function pvPushHtml(){
+  const s=PV.push; if(!s||s==="ativo") return "";
+  const txt={desligado:"Ligue as notificações para receber os alertas das encomendas (novas vistorias, aprovações, vendas) mesmo com a app fechada.",
+    bloqueado:"As notificações estão bloqueadas para esta app. Em Definições do Chrome → Definições de sites → Notificações, permita cmgrtelecom.github.io.",
+    ios:"No iPhone, as notificações só funcionam com a app no ecrã principal: Partilhar → Adicionar ao ecrã principal, e abra-a por lá.",
+    sem_suporte:"Este navegador não recebe notificações. Use o Chrome (Android) com a app instalada no ecrã inicial."}[s]||"";
+  return `<div class="pv-aviso"><span>${esc(txt)}</span>${s==="desligado"?'<button class="pv-btn" id="pvPush">🔔 Ligar notificações</button>':""}</div>`;
+}
+
+// ---------------------------------------------------------------- regras de ecrã
+function pvParaMim(e){
+  const eu=pvEu();
+  if(pvTem("tecnico")&&["aguarda_vistoria","vistoria"].includes(e.estado)&&(e.tecnico_email===eu||pvGestor())) return true;
+  if(pvTem("proef")&&(e.estado==="aprovada"||(e.estado==="na_proef"&&(e.proef_email===eu||pvGestor())))) return true;
+  return false;
+}
+function pvAtraso(e){
+  const h=pvHoras(e.atualizado_em);
+  if(["aguarda_vistoria","vistoria"].includes(e.estado)&&h>24) return {c:"bad",t:`vistoria parada ${pvIdade(e.atualizado_em)}`};
+  if(e.estado==="aprovada"&&h>48) return {c:"warn",t:`PROEF por pegar ${pvIdade(e.atualizado_em)}`};
+  if(e.estado==="na_proef"&&h>120) return {c:"warn",t:`venda em curso ${pvIdade(e.atualizado_em)}`};
+  return null;
+}
+const pvChip=e=>{ const s=PV_EST[e.estado]||{n:e.estado,c:""}; return `<span class="pv-chip ${s.c}">${esc(s.n)}</span>`; };
+function pvBarra(e){
+  const s=PV_EST[e.estado]||{etapa:0}, mau=["reprovada","nao_vendida","cancelada"].includes(e.estado);
+  return `<div class="pv-barra" role="img" aria-label="Etapa ${s.etapa} de 6">${PV_ETAPAS.map((n,i)=>{ const k=i+1;
+    const c=k<s.etapa||(k===s.etapa&&s.fim&&!mau)?"ok":k===s.etapa?(mau?"mau":"cur"):"";
+    return `<i class="${c}" title="${esc(n)}"></i>`; }).join("")}</div>`;
+}
+
+// ---------------------------------------------------------------- render
+function pvLimparMapas(){ for(const m of PV.mapas) try{ m.remove(); }catch(_){ } PV.mapas=[]; }
+function renderPv(){
+  const el=$("#vPv"); if(!el) return; pvLimparMapas();
+  if(PV.instalado===false){ el.innerHTML=`<div class="vazio"><b>O módulo de pré-venda ainda não está instalado no Supabase.</b><br>Corra o ficheiro <span class="mono">prevenda.sql</span> no SQL Editor do Supabase e volte a abrir esta página.</div>`; return; }
+  if(!PV.eu){ el.innerHTML=`<div class="vazio"><b>A carregar a pré-venda…</b></div>`; return; }
+  if(!PV.eu.perfis.length){ el.innerHTML=`<div class="vazio"><b>O seu email (${esc(PV.eu.email)}) ainda não tem acesso à pré-venda.</b><br>Peça à CR Telecom para o registar.</div>`; return; }
+  el.innerHTML=`<div id="pvTopo"></div><div id="pvCorpo"></div>`;
+  pvRenderTopo();
+  const c=$("#pvCorpo");
+  if(PV.sub==="nova"&&pvTem("vendedor")) c.innerHTML=pvNovaHtml();
+  else if(PV.sub==="pessoas"&&pvGestor()) c.innerHTML=pvPessoasHtml();
+  else if(PV.sub==="ficha"&&PV.aberta) c.innerHTML=pvFichaHtml();
+  else { PV.sub="lista"; c.innerHTML=pvListaHtml(); }
+  pvLigar();
+}
+function pvRenderTopo(){
+  const t=$("#pvTopo"); if(!t||!PV.eu) return;
+  const tabs=[["lista","Encomendas"]]; if(pvTem("vendedor")) tabs.push(["nova","＋ Nova pré-venda"]); if(pvGestor()) tabs.push(["pessoas","Pessoas"]);
+  const n=PV.enc.filter(pvParaMim).length;
+  t.innerHTML=`<div class="pv-topo"><div><h2 class="pv-h">Pré-venda</h2><span class="fmut">${esc(PV.eu.nome)} · ${PV.eu.perfis.map(p=>PV_PERFIL_NOME[p]||p).join(" + ")}</span></div>
+    <div class="seg" role="tablist">${tabs.map(([k,n2])=>`<button data-pvsub="${k}" aria-pressed="${PV.sub===k||(k==="lista"&&PV.sub==="ficha")}">${n2}${k==="lista"&&n?` <b class="pv-badge">${n}</b>`:""}</button>`).join("")}</div></div>${pvPushHtml()}`;
+  t.querySelectorAll("[data-pvsub]").forEach(b=>b.onclick=()=>{ PV.sub=b.dataset.pvsub; PV.senha=null; if(PV.sub==="pessoas") pvCarregarPessoas(); renderPv(); window.scrollTo({top:0}); });
+  const pb=$("#pvPush"); if(pb) pb.onclick=pvAtivarPush;
+}
+
+// ---------- lista
+function pvListaHtml(){
+  const eu=pvEu(), todos=PV.enc;
+  const grupos={mim:todos.filter(pvParaMim), curso:todos.filter(e=>!PV_EST[e.estado]?.fim),
+    fech:todos.filter(e=>PV_EST[e.estado]?.fim), todas:todos};
+  if(!PV.filtro) PV.filtro=grupos.mim.length?"mim":"curso";
+  const q=norm(PV.q.trim());
+  let lista=(grupos[PV.filtro]||todos).filter(e=>!q||norm([e.numero,e.cliente_nome,e.cliente_tel,e.morada,e.cp,e.localidade,e.vendedor_nome,e.venda?.conta_servico].join(" ")).includes(q));
+  let kpi="";
+  if(pvGestor()){
+    const mes=new Date().toISOString().slice(0,7), M=todos.filter(e=>String(e.criado_em).slice(0,7)===mes), cnt=f=>M.filter(f).length;
+    const vend=cnt(e=>["vendida","instalada"].includes(e.estado));
+    kpi=`<div class="pv-kpis">
+      <div class="kpi"><div class="l">Pré-vendas no mês</div><div class="v">${M.length}</div><div class="s">${new Set(M.map(e=>e.vendedor_email)).size} vendedor(es)</div></div>
+      <div class="kpi"><div class="l">Em vistoria</div><div class="v">${cnt(e=>["aguarda_vistoria","vistoria"].includes(e.estado))}</div><div class="s">${todos.filter(e=>pvAtraso(e)?.c==="bad").length} paradas &gt; 24 h</div></div>
+      <div class="kpi"><div class="l">Na PROEF</div><div class="v">${cnt(e=>["aprovada","na_proef"].includes(e.estado))}</div><div class="s">${cnt(e=>e.estado==="aprovada")} por pegar</div></div>
+      <div class="kpi ok"><div class="l">Vendidas</div><div class="v">${vend}</div><div class="s">${M.length?Math.round(100*vend/M.length):0}% das pré-vendas</div></div>
+      <div class="kpi"><div class="l">Instaladas</div><div class="v">${cnt(e=>e.estado==="instalada")}</div><div class="s">ligadas à OT</div></div></div>`;
+  }
+  const f=[["mim","Para mim",grupos.mim.length],["curso","Em curso",grupos.curso.length],["fech","Fechadas",grupos.fech.length],["todas","Todas",todos.length]];
+  return `${kpi}<div class="pv-filtros"><div class="seg">${f.map(([k,n,c])=>`<button data-pvf="${k}" aria-pressed="${PV.filtro===k}">${n} · ${c}</button>`).join("")}</div>
+    <label class="busca pv-busca"><span aria-hidden="true">⌕</span><input id="pvQ" type="search" placeholder="Cliente, telefone, morada, PV…" value="${esc(PV.q)}"></label></div>
+    ${lista.length?`<div class="lista">${lista.map(pvCartaoHtml).join("")}</div>`
+      :`<div class="vazio"><b>${PV.filtro==="mim"?"Nada à sua espera ✓":"Sem encomendas aqui."}</b>${pvTem("vendedor")&&!todos.length?'<br>Comece por "＋ Nova pré-venda".':""}</div>`}`;
+}
+function pvCartaoHtml(e){
+  const a=pvAtraso(e), mim=pvParaMim(e);
+  return `<button class="ot pv-cartao${mim?" pv-mim":""}" data-pvid="${e.id}">
+    <div class="pv-c1"><span class="mono">${esc(e.numero)}</span><span class="fmut">${pvIdade(e.criado_em)}</span></div>
+    <div class="c">${esc(e.cliente_nome)}</div>
+    <div class="m">${esc(e.localidade)} · ${esc((e.interesse||[]).join(" + ")||"—")} · ${esc(e.vendedor_nome||"")}</div>
+    <div class="chips">${pvChip(e)}${mim?'<span class="chip acc">à sua espera</span>':""}${a?`<span class="chip ${a.c}">${esc(a.t)}</span>`:""}${e.vistoria?.plc_dist_m>DX_LIMITE?`<span class="chip dx">📏 PLC a ${e.vistoria.plc_dist_m} m</span>`:""}</div>
+  </button>`;
+}
+
+// ---------- nova pré-venda
+function pvNovaHtml(){
+  const r=pvLS.ler("pv_rascunho")||{}; const g=PV.gps||r.gps||null; PV.gps=g;
+  const v=k=>esc(r[k]||""); const ch=(k,x)=>(r[k]||[]).includes(x)?"checked":"";
+  return `<form class="pv-form" id="pvForm" autocomplete="off">
+    <section class="bloco"><h4>Cliente</h4><div class="pv-in">
+      <label>Nome completo<input id="pvNome" name="cliente_nome" value="${v("cliente_nome")}" autocomplete="off" required></label>
+      <label>Telemóvel de contacto<input id="pvTel" name="cliente_tel" type="tel" inputmode="tel" value="${v("cliente_tel")}" placeholder="9 dígitos" required></label>
+    </div></section>
+    <section class="bloco"><h4>Morada da instalação</h4><div class="pv-in">
+      <div class="pv-gps"><div><b>Coordenadas</b><span class="mono" id="pvGpsTxt">${g?`${g.lat.toFixed(6).replace(".",",")} · ${g.lng.toFixed(6).replace(".",",")}`:"ainda não lidas"}</span>
+        <span class="fmut" id="pvGpsInfo">${g?esc(g.info||""):"Leia junto à porta do cliente: preenche a morada sozinha."}</span></div>
+        <button type="button" class="pv-btn" id="pvGps">📍 Ler a minha localização</button></div>
+      <div class="pv-mapa" id="pvMapa" ${g?"":"hidden"}></div>
+      <label>Rua e número<input id="pvMorada" name="morada" value="${v("morada")}" required></label>
+      <div class="pv-2"><label>Andar / porta<input id="pvPorta" name="porta" value="${v("porta")}" placeholder="opcional"></label>
+        <label>Código postal<input id="pvCp" name="cp" value="${v("cp")}" inputmode="numeric" placeholder="0000-000" required></label></div>
+      <label>Localidade<input id="pvLoc" name="localidade" value="${v("localidade")}" required></label>
+    </div></section>
+    <section class="bloco"><h4>Venda</h4><div class="pv-in">
+      <div class="pv-op"><span>Onde foi feita</span><div class="pv-pills">
+        <label><input type="radio" name="local_venda" value="porta" ${r.local_venda!=="evento"?"checked":""}><span>Porta a porta</span></label>
+        <label><input type="radio" name="local_venda" value="evento" ${r.local_venda==="evento"?"checked":""}><span>Evento / loja</span></label></div></div>
+      <label>Nome do evento ou local (se não foi porta a porta)<input name="evento" value="${v("evento")}"></label>
+      <div class="pv-op"><span>Interesse do cliente</span><div class="pv-pills">
+        ${["Fibra","TV","Telemóvel","Fixo"].map(x=>`<label><input type="checkbox" name="interesse" value="${x}" ${ch("interesse",x)}><span>${x}</span></label>`).join("")}</div></div>
+      <label>Notas para o técnico<textarea name="notas_vendedor" rows="2" placeholder="Horário, acesso, animais…">${v("notas_vendedor")}</textarea></label>
+    </div></section>
+    <label class="pv-consent"><input type="checkbox" name="consentimento" ${r.consentimento?"checked":""}>
+      <span>O cliente autoriza que a CR Telecom e a PROEF usem estes dados para a vistoria técnica e o contacto da venda.</span></label>
+    <div id="pvErro" class="pv-erro" role="alert"></div>
+    <button type="submit" class="pv-btn pv-prim pv-grande" id="pvEnviar">Enviar para vistoria técnica</button>
+    <button type="button" class="pv-lnk" id="pvLimpar">Limpar o formulário</button>
+  </form>`;
+}
+function pvLerForm(f){
+  const fd=new FormData(f), o={};
+  for(const [k,v] of fd.entries()){ if(k==="interesse"){ (o.interesse=o.interesse||[]).push(v); } else o[k]=String(v).trim(); }
+  o.interesse=o.interesse||[]; o.consentimento=!!fd.get("consentimento"); return o;
+}
+function pvGuardarRascunho(){ const f=$("#pvForm"); if(!f) return; pvLS.gravar("pv_rascunho",{...pvLerForm(f),gps:PV.gps}); }
+function pvLerGps(){
+  const b=$("#pvGps"); if(!navigator.geolocation) return toast("Este telemóvel não dá a localização.");
+  b.disabled=true; b.textContent="A ler o GPS…";
+  navigator.geolocation.getCurrentPosition(async p=>{
+    const g={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy||0)};
+    g.info=`GPS do telemóvel · precisão ± ${g.acc} m · ${new Date().toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"})}${g.acc>50?" · ⚠ fraca: afaste-se de paredes e leia outra vez":""}`;
+    PV.gps=g; b.disabled=false; b.textContent="📍 Ler outra vez"; pvMostrarGps(); pvGuardarRascunho();
+    try{ const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&accept-language=pt&lat=${g.lat}&lon=${g.lng}`,{headers:{Accept:"application/json"}});
+      const a=(await r.json()).address||{}; const put=(id,v)=>{ const i=$(id); if(i&&!i.value.trim()&&v) i.value=v; };
+      put("#pvMorada",[a.road,a.house_number].filter(Boolean).join(", ")); put("#pvCp",/^\d{4}-\d{3}$/.test(a.postcode||"")?a.postcode:"");
+      put("#pvLoc",[a.village||a.hamlet||a.suburb||a.town||a.city,a.municipality||a.county].filter((x,i,arr)=>x&&arr.indexOf(x)===i).join(", "));
+      pvGuardarRascunho();
+    }catch(_){ }
+  },e=>{ b.disabled=false; b.textContent="📍 Ler a minha localização";
+    toast(e.code===1?"Sem autorização para a localização: permita nas definições do Chrome.":"Não consegui ler o GPS. Tente na rua, junto à porta."); },
+  {enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
+function pvMostrarGps(){
+  const g=PV.gps; if(!g) return;
+  $("#pvGpsTxt").textContent=`${g.lat.toFixed(6).replace(".",",")} · ${g.lng.toFixed(6).replace(".",",")}`; $("#pvGpsInfo").textContent=g.info||"";
+  const el=$("#pvMapa"); if(!el||typeof L==="undefined") return; el.hidden=false;
+  if(!el._m){ pvLimparMapas(); const m=L.map(el,{zoomControl:true,attributionControl:true}).setView([g.lat,g.lng],18); camadasMapa(m);
+    const mk=L.marker([g.lat,g.lng],{draggable:true}).addTo(m);
+    mk.on("dragend",()=>{ const p=mk.getLatLng(); PV.gps={...PV.gps,lat:p.lat,lng:p.lng,info:"Pino ajustado à mão no mapa"}; $("#pvGpsTxt").textContent=`${p.lat.toFixed(6).replace(".",",")} · ${p.lng.toFixed(6).replace(".",",")}`; $("#pvGpsInfo").textContent=PV.gps.info; pvGuardarRascunho(); });
+    el._m=m; el._mk=mk; PV.mapas.push(m); setTimeout(()=>m.invalidateSize(),60); }
+  else { el._m.setView([g.lat,g.lng],18); el._mk.setLatLng([g.lat,g.lng]); }
+}
+function pvValidar(o){
+  const tel=String(o.cliente_tel||"").replace(/\D/g,"").replace(/^(00351|351)(?=\d{9}$)/,"");
+  if(o.cliente_nome.length<5||!/\s/.test(o.cliente_nome)) return "Escreva o nome completo do cliente (nome e apelido).";
+  if(!/^[29]\d{8}$/.test(tel)) return "O telefone do cliente tem de ter 9 dígitos.";
+  if(!PV.gps) return 'Faltam as coordenadas: toque em "Ler a minha localização" junto à casa do cliente.';
+  if(o.morada.length<4) return "Falta a morada (rua e número).";
+  if(!/^\d{4}-\d{3}$/.test(o.cp)) return "Código postal no formato 0000-000.";
+  if(o.localidade.length<2) return "Falta a localidade.";
+  if(!o.consentimento) return "Sem a autorização do cliente para o uso dos dados não é possível registar.";
+  return "";
+}
+async function pvSubmeter(ev){
+  ev.preventDefault(); if(PV.ocupado) return;
+  const f=$("#pvForm"), o=pvLerForm(f), er=$("#pvErro"), b=$("#pvEnviar"); er.innerHTML="";
+  const msg=pvValidar(o); if(msg){ er.textContent=msg; return; }
+  PV.ocupado=true; b.disabled=true; b.textContent="A enviar…";
+  try{
+    if(!PV.dupOk){ const d=await pvRpc("pv_duplicados",{p_tel:o.cliente_tel,p_cp:o.cp,p_morada:o.morada})||[];
+      if(d.length){ er.innerHTML=`⚠ Já existe ${d.length>1?"encomenda ativa":"uma encomenda ativa"} com este telefone ou esta morada: ${d.map(x=>`<b>${esc(x.numero)}</b> (${esc(PV_EST[x.estado]?.n||x.estado)}, ${esc(x.data)})`).join(", ")}.
+        <br><button type="button" class="pv-btn" id="pvDupOk">Registar mesmo assim</button>`;
+        $("#pvDupOk").onclick=()=>{ PV.dupOk=true; f.requestSubmit(); }; return; } }
+    const r=await pvRpc("pv_criar",{p:{...o,lat:PV.gps.lat,lng:PV.gps.lng,precisao_m:PV.gps.acc||null}});
+    pvLS.gravar("pv_rascunho",null); PV.gps=null; PV.dupOk=false;
+    toast(`${r.numero} enviada para vistoria · ${r.tecnico}`); pvNotificar(r.id);
+    await pvRecarregar(); pvAbrir(r.id);
+  }catch(e){ er.textContent=e.message; }
+  finally{ PV.ocupado=false; if($("#pvEnviar")){ $("#pvEnviar").disabled=false; $("#pvEnviar").textContent="Enviar para vistoria técnica"; } }
+}
+
+// ---------- ficha
+function pvLinha(k,v,mono){ return v==null||v===""?"":`<dt>${esc(k)}</dt><dd${mono?' class="mono"':""}>${v}</dd>`; }
+function pvFichaHtml(){
+  const e=PV.enc.find(x=>x.id===PV.aberta);
+  if(!e) return `<div class="vazio"><b>Encomenda não encontrada.</b><br>Pode já não estar visível para o seu perfil.</div>`;
+  const vi=e.vistoria||{}, ve=e.venda||{}, eq=Object.entries(vi.equipamentos||{}).filter(([,q])=>+q>0);
+  const coords=e.lat!=null?`${(+e.lat).toFixed(6).replace(".",",")} · ${(+e.lng).toFixed(6).replace(".",",")}`:"";
+  return `<div class="pv-ficha">
+    <div class="pv-fcab"><button class="fechar" id="pvVoltar" aria-label="Voltar à lista">‹</button>
+      <div><span class="mono fmut">${esc(e.numero)} · ${pvDH(e.criado_em)}</span><h3 class="pv-h">${esc(e.cliente_nome)}</h3></div>${pvChip(e)}</div>
+    ${pvBarra(e)}
+    <div class="pv-etapas">${PV_ETAPAS.map((n,i)=>`<span>${i+1}. ${n}</span>`).join("")}</div>
+    ${pvAcoesHtml(e)}
+    <section class="bloco"><h4>Cliente e morada</h4><dl>
+      ${pvLinha("Telefone",`<a href="tel:${esc(e.cliente_tel)}">${esc(pvTelFmt(e.cliente_tel))}</a>`,1)}
+      ${pvLinha("Morada",esc([e.morada,e.porta,`${e.cp} ${e.localidade}`].filter(Boolean).join(", ")))}
+      ${pvLinha("Coordenadas",esc(coords)+(e.precisao_m?` <span class="fmut">± ${Math.round(e.precisao_m)} m</span>`:""),1)}
+    </dl>${e.lat!=null?`<div class="pv-mapa" id="pvMapaF"></div><div class="acoes" style="padding:10px 14px">
+      <a href="https://waze.com/ul?ll=${e.lat},${e.lng}&navigate=yes" target="_blank" rel="noopener">🚗 Waze</a>
+      <a class="sec" href="https://www.google.com/maps/dir/?api=1&destination=${e.lat},${e.lng}" target="_blank" rel="noopener">Google Maps</a>
+      <button class="sec" type="button" data-copiar="${esc(coords)}">Copiar coordenadas</button></div>`:""}</section>
+    <section class="bloco"><h4>Pré-venda</h4><dl>
+      ${pvLinha("Vendedor",esc(e.vendedor_nome||e.vendedor_email))}
+      ${pvLinha("Onde",esc(e.local_venda==="evento"?`Evento / loja${e.evento?" · "+e.evento:""}`:"Porta a porta"))}
+      ${pvLinha("Interesse",esc((e.interesse||[]).join(" + ")))}
+      ${pvLinha("Notas",esc(e.notas_vendedor||""))}
+      ${pvLinha("Técnico",esc(e.tecnico_nome||e.tecnico_email||""))}
+    </dl></section>
+    ${e.vistoria&&e.vistoria.decisao?`<section class="bloco"><h4>Vistoria técnica · ${pvDH(vi.feita_em)}</h4><dl>
+      ${pvLinha("Acesso",esc(PV_ACESSO[vi.acesso]||vi.acesso||""))}${pvLinha("DROP",vi.drop_m?esc(vi.drop_m+" m"):"")}
+      ${pvLinha("TVs",esc(vi.tvs))}${pvLinha("Técnicos",esc(vi.tecnicos))}${pvLinha("Tempo",esc(pvMin(+vi.tempo_min)))}${pvLinha("Dificuldade",esc(vi.dificuldade?vi.dificuldade+" de 5":""))}
+      ${pvLinha("PLC",esc(vi.plc||"")+(vi.porta_plc?" · porta "+esc(vi.porta_plc):"")+(vi.plc_dist_m!=null?` · <span class="${vi.plc_dist_m>DX_LIMITE?"pv-dx":""}">${esc(vi.plc_dist_m)} m</span>`:""),1)}
+      ${pvLinha("Equipamentos",esc(eq.map(([n,q])=>`${q} × ${n}`).join(" · ")+(vi.outro?` · ${vi.outro}`:"")))}
+      ${pvLinha("Condições",esc(vi.condicoes||""))}${pvLinha("Notas",esc(vi.notas||""))}
+    </dl></section>`:""}
+    ${e.venda?`<section class="bloco"><h4>Venda PROEF · ${pvDH(ve.concluida_em)}</h4><dl>
+      ${pvLinha("Contacto da proposta de adesão",esc(pvTelFmt(ve.contacto_adesao)),1)}${pvLinha("Conta de serviço",esc(ve.conta_servico),1)}
+      ${pvLinha("Vendido por",esc(e.proef_nome||""))}${pvLinha("Notas",esc(ve.notas||""))}</dl></section>`:""}
+    ${e.ot?`<section class="bloco"><h4>Instalação (Field Service)</h4><dl>${pvLinha("OT",esc(e.ot.ot||""),1)}${pvLinha("Dia",esc(e.ot.data||""))}${pvLinha("Estado",esc(e.ot.estado||""))}${pvLinha("Horas",esc([e.ot.inicio,e.ot.fim].filter(Boolean).join("–")))}</dl></section>`:""}
+    ${e.motivo?`<section class="bloco"><h4>Motivo</h4><div class="item">${esc(e.motivo)}</div></section>`:""}
+    <section class="bloco"><h4>Histórico</h4><div id="pvHist">${pvHistHtml(e.id)}</div></section>
+  </div>`;
+}
+function pvHistHtml(id){
+  const h=PV.hist[id]; if(!h) return `<div class="item fmut">A carregar…</div>`;
+  if(!h.length) return `<div class="item fmut">Sem registos.</div>`;
+  return h.map(x=>{ const d=x.detalhe||{}, extra=[d.motivo,d.condicoes,d.plc&&`PLC ${d.plc}${d.plc_dist_m!=null?` · ${d.plc_dist_m} m`:""}`,d.conta_servico&&`Conta ${d.conta_servico}`,d.ot&&`OT ${d.ot}`].filter(Boolean).join(" · ");
+    return `<div class="pv-hl"><i class="${["reprovada","nao_vendida","cancelada"].includes(x.para_estado)?"mau":"ok"}"></i><div><b>${esc(x.acao)}</b><span class="fmut">${esc(x.quem_nome||"Sistema")} · ${pvDH(x.quando)}</span>${extra?`<span>${esc(extra)}</span>`:""}</div></div>`; }).join("");
+}
+function pvAcoesHtml(e){
+  const eu=pvEu(), meuTec=pvGestor()||(pvTem("tecnico")&&e.tecnico_email===eu), proef=pvTem("proef");
+  const canc=(pvGestor()&&["aguarda_vistoria","vistoria","aprovada","na_proef"].includes(e.estado))||(e.vendedor_email===eu&&e.estado==="aguarda_vistoria")
+    ?`<details class="pv-canc"><summary>Cancelar encomenda</summary><textarea id="pvCancMot" rows="2" placeholder="Motivo do cancelamento"></textarea><button class="pv-btn pv-mau" data-pvacao="cancelar">Cancelar encomenda</button></details>`:"";
+  let h="";
+  if(e.estado==="aguarda_vistoria"){
+    h=meuTec?`<p>Vá ao local, confirme o acesso e o PLC e preencha a vistoria.</p><button class="pv-btn pv-prim pv-grande" data-pvacao="iniciar">Começar vistoria</button>`
+      :`<p>À espera da vistoria de <b>${esc(e.tecnico_nome||"técnico")}</b>.</p>`;
+  } else if(e.estado==="vistoria"){
+    h=meuTec?pvVistoriaHtml(e):`<p>Vistoria em curso por <b>${esc(e.tecnico_nome||"técnico")}</b>.</p>`;
+  } else if(e.estado==="aprovada"){
+    h=proef?`<p>Aprovada tecnicamente${e.vistoria?.condicoes?` <b>com condições</b>: ${esc(e.vistoria.condicoes)}`:""}. Pegue na venda para contactar o cliente.</p><button class="pv-btn pv-prim pv-grande" data-pvacao="pegar">Pegar nesta venda</button>`
+      :`<p>Aprovada tecnicamente. À espera da PROEF.</p>`;
+  } else if(e.estado==="na_proef"){
+    h=(proef&&(pvGestor()||e.proef_email===eu))?pvConcluirHtml(e):`<p>Venda em curso com <b>${esc(e.proef_nome||"a PROEF")}</b>.</p>`;
+  } else if(e.estado==="vendida"){
+    h=`<p>Vendida. Passa sozinha a <b>Instalada</b> quando a OT com a Conta de serviço <b class="mono">${esc(e.venda?.conta_servico||"")}</b> aparecer na coleta do Field Service.</p>`;
+  } else if(e.estado==="instalada"){ h=`<p>Processo concluído ✓</p>`; }
+  else { h=`<p>Encomenda fechada: ${esc(PV_EST[e.estado]?.n||e.estado)}.</p>`; }
+  return `<section class="bloco pv-acao"><h4>O que falta</h4><div class="pv-in">${h}${canc}<div id="pvErroA" class="pv-erro" role="alert"></div></div></section>`;
+}
+function pvPlcs(lat,lng){
+  const m={};
+  for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos||{}, n=String(c.PLC||"").trim(); if(!n) continue;
+    const la=pvNum(c["Latitude PLC"]), lo=pvNum(c["Longitude PLC"]); if(la==null||lo==null) continue;
+    const k=n.toUpperCase(); if(!m[k]) m[k]={plc:n,lat:la,lng:lo,n:0,ult:d.data}; m[k].n++; if(d.data>m[k].ult) m[k].ult=d.data; }
+  return Object.values(m).map(x=>({...x,dist:Math.round(axDist([lat,lng],[x.lat,x.lng])*1000)})).filter(x=>x.dist<=3000).sort((a,b)=>a.dist-b.dist).slice(0,5);
+}
+function pvVistoriaHtml(e){
+  const r=pvLS.ler("pv_vist_"+e.id)||{}, eq=r.equipamentos||{}, sug=e.lat!=null?pvPlcs(+e.lat,+e.lng):[];
+  const rad=(nome,val,txt,def)=>`<label><input type="radio" name="${nome}" value="${val}" ${String(r[nome]??def)===String(val)?"checked":""}><span>${txt}</span></label>`;
+  return `<form id="pvVist" class="pv-in">
+    <div class="pv-op"><span>PLC mais próximo</span>
+      ${sug.length?`<div class="pv-plcs">${sug.map((s,i)=>`<label class="${s.dist>DX_LIMITE?"dx":""}"><input type="radio" name="plc" value="${esc(s.plc)}" data-d="${s.dist}" ${(r.plc?r.plc===s.plc:i===0)?"checked":""}>
+        <span><b class="mono">${esc(s.plc)}</b> · ${s.dist} m${s.dist>DX_LIMITE?" · ⚠ distância excessiva":""}<small>${s.n} OT${s.n>1?"s":""} na zona · última ${esc(s.ult.slice(8,10)+"/"+s.ult.slice(5,7))}</small></span></label>`).join("")}
+        <label><input type="radio" name="plc" value="_outro" ${r.plc==="_outro"?"checked":""}><span>Outro PLC</span></label></div>`
+      :`<span class="fmut">Sem PLC conhecido a menos de 3 km nas OTs já recolhidas. Escreva-o abaixo.</span>`}
+      <div class="pv-2"><label>Outro PLC<input name="plc_outro" value="${esc(r.plc_outro||"")}" placeholder="PLC-…"></label><label>Porta PLC<input name="porta_plc" value="${esc(r.porta_plc||"")}" placeholder="ex.: 5.1"></label></div></div>
+    <div class="pv-op"><span>Acesso do cabo</span><div class="pv-pills">${Object.entries(PV_ACESSO).map(([k,t])=>rad("acesso",k,t,"")).join("")}</div></div>
+    <div class="pv-2"><label>DROP estimado (m)<input name="drop_m" type="number" inputmode="numeric" min="0" max="2000" value="${esc(r.drop_m||"")}"></label>
+      <label>Quantidade de TVs<input name="tvs" type="number" inputmode="numeric" min="0" max="15" value="${esc(r.tvs??"")}"></label></div>
+    <div class="pv-op"><span>Equipamentos previstos (quantidade)</span><div class="pv-eq">
+      ${PV_EQUIP.map(n=>`<label><span>${esc(n)}</span><input type="number" inputmode="numeric" min="0" max="9" name="eq:${esc(n)}" value="${esc(eq[n]??"")}" placeholder="0"></label>`).join("")}
+      <label><span>Outro</span><input name="outro" value="${esc(r.outro||"")}" placeholder="descreva"></label></div></div>
+    <div class="pv-op"><span>Nível de dificuldade</span><div class="pv-pills pv-num">${[1,2,3,4,5].map(n=>rad("dificuldade",n,n,"")).join("")}</div>
+      <span class="fmut">1 muito fácil · 3 média · 5 muito difícil</span></div>
+    <div class="pv-2"><div class="pv-op"><span>Técnicos</span><div class="pv-pills pv-num">${rad("tecnicos",1,"1","")}${rad("tecnicos",2,"2","")}</div></div>
+      <label>Tempo de serviço<select name="tempo_min">${[30,45,60,90,120,150,180,240,300,360].map(m=>`<option value="${m}" ${String(r.tempo_min||120)===String(m)?"selected":""}>${pvMin(m)}</option>`).join("")}</select></label></div>
+    <label>Condições (se aprovar com condições)<textarea name="condicoes" rows="2" placeholder="ex.: precisa autorização do condomínio">${esc(r.condicoes||"")}</textarea></label>
+    <label>Notas técnicas<textarea name="notas" rows="2">${esc(r.notas||"")}</textarea></label>
+    <label>Motivo (se reprovar)<textarea name="motivo" rows="2" placeholder="ex.: PLC sem portas livres, sem passagem">${esc(r.motivo||"")}</textarea></label>
+    <div class="pv-dec"><button type="button" class="pv-btn pv-ok pv-grande" data-pvdec="aprovada">Aprovar · enviar para a PROEF</button>
+      <div class="pv-2"><button type="button" class="pv-btn pv-warn" data-pvdec="condicoes">Com condições</button><button type="button" class="pv-btn pv-mau" data-pvdec="reprovada">Reprovar</button></div></div>
+  </form>`;
+}
+function pvLerVistoria(f){
+  const fd=new FormData(f), o={equipamentos:{}};
+  for(const [k,v] of fd.entries()){ if(k.startsWith("eq:")){ if(+v>0) o.equipamentos[k.slice(3)]=+v; } else o[k]=String(v).trim(); }
+  return o;
+}
+function pvConcluirHtml(e){
+  const r=pvLS.ler("pv_venda_"+e.id)||{};
+  return `<form id="pvVenda" class="pv-in">
+    <div class="pv-pills"><label><input type="radio" name="resultado" value="vendida" ${r.resultado!=="nao_vendida"?"checked":""}><span>Venda feita</span></label>
+      <label><input type="radio" name="resultado" value="nao_vendida" ${r.resultado==="nao_vendida"?"checked":""}><span>Não vendida</span></label></div>
+    <div class="pv-2"><label>Contacto telefónico da proposta de adesão<input name="contacto" type="tel" inputmode="tel" value="${esc(r.contacto??e.cliente_tel)}"></label>
+      <label>Conta de serviço<input name="conta" class="mono" value="${esc(r.conta||"")}" placeholder="S00000000000" autocapitalize="characters"></label></div>
+    <label>Notas da venda (opcional)<textarea name="notas" rows="2">${esc(r.notas||"")}</textarea></label>
+    <label>Motivo (se não vendida)<textarea name="motivo" rows="2">${esc(r.motivo||"")}</textarea></label>
+    <button type="button" class="pv-btn pv-ok pv-grande" data-pvacao="concluir">Concluir venda</button>
+  </form>`;
+}
+async function pvAcao(acao,dec){
+  const e=PV.enc.find(x=>x.id===PV.aberta); if(!e||PV.ocupado) return; const er=$("#pvErroA"); if(er) er.textContent="";
+  PV.ocupado=true; document.querySelectorAll("#vPv [data-pvacao],#vPv [data-pvdec]").forEach(b=>b.disabled=true);
+  try{
+    if(acao==="iniciar"){ await pvRpc("pv_vistoria_iniciar",{p_id:e.id}); toast("Vistoria iniciada"); }
+    else if(acao==="decidir"){
+      const v=pvLerVistoria($("#pvVist")); let plc=v.plc==="_outro"||!v.plc?v.plc_outro:v.plc, dist=null;
+      const chk=document.querySelector('#pvVist input[name=plc]:checked'); if(chk&&chk.value!=="_outro") dist=+chk.dataset.d;
+      if(dist==null&&plc){ const s=pvPlcs(+e.lat,+e.lng).concat([]).find(x=>x.plc.toUpperCase()===plc.toUpperCase()); if(s) dist=s.dist; }
+      const vis={acesso:v.acesso||"",drop_m:v.drop_m?+v.drop_m:null,tvs:v.tvs===""?null:+v.tvs,equipamentos:v.equipamentos,outro:v.outro||null,
+        dificuldade:v.dificuldade?+v.dificuldade:null,tecnicos:v.tecnicos?+v.tecnicos:null,tempo_min:+v.tempo_min,plc:plc||"",porta_plc:v.porta_plc||null,
+        plc_dist_m:dist,condicoes:v.condicoes||null,notas:v.notas||null};
+      if(dec!=="reprovada"&&dist!=null&&dist>DX_LIMITE&&!confirm(`O PLC ${plc} está a ${dist} m (acima de ${DX_LIMITE} m). Aprovar mesmo assim?`)) return;
+      const r=await pvRpc("pv_vistoria_decidir",{p_id:e.id,p_vistoria:vis,p_decisao:dec,p_motivo:v.motivo||null});
+      pvLS.gravar("pv_vist_"+e.id,null); toast(r.estado==="aprovada"?"Aprovada ✓ · enviada para a PROEF":"Reprovada · vendedor avisado"); pvNotificar(e.id);
+    }
+    else if(acao==="pegar"){ await pvRpc("pv_proef_pegar",{p_id:e.id}); toast("A venda é sua"); pvNotificar(e.id); }
+    else if(acao==="concluir"){
+      const fd=new FormData($("#pvVenda")), g=k=>String(fd.get(k)||"").trim();
+      const r=await pvRpc("pv_proef_concluir",{p_id:e.id,p_resultado:g("resultado"),p_contacto:g("contacto"),p_conta:g("conta"),p_notas:g("notas")||null,p_motivo:g("motivo")||null});
+      pvLS.gravar("pv_venda_"+e.id,null); toast(r.estado==="vendida"?"Venda concluída ✓":"Registado como não vendida"); pvNotificar(e.id);
+    }
+    else if(acao==="cancelar"){ await pvRpc("pv_cancelar",{p_id:e.id,p_motivo:($("#pvCancMot")?.value||"").trim()}); toast("Encomenda cancelada"); pvNotificar(e.id); }
+    await pvRecarregar(); await pvCarregarHist(e.id,true); renderPv();
+  }catch(err){ if(er) er.textContent=err.message; else toast("⚠ "+err.message); }
+  finally{ PV.ocupado=false; document.querySelectorAll("#vPv [data-pvacao],#vPv [data-pvdec]").forEach(b=>b.disabled=false); }
+}
+function pvMapaFicha(){
+  const e=PV.enc.find(x=>x.id===PV.aberta), el=$("#pvMapaF"); if(!e||!el||typeof L==="undefined"||e.lat==null) return;
+  const m=L.map(el,{scrollWheelZoom:false}).setView([+e.lat,+e.lng],17); camadasMapa(m);
+  L.marker([+e.lat,+e.lng]).addTo(m).bindPopup("Cliente");
+  const vi=e.vistoria||{}; const s=vi.plc?pvPlcs(+e.lat,+e.lng).find(x=>x.plc.toUpperCase()===String(vi.plc).toUpperCase()):null;
+  if(s){ L.circleMarker([s.lat,s.lng],{radius:8,color:s.dist>DX_LIMITE?"#b3341f":"#1f7f8c"}).addTo(m).bindPopup(esc(s.plc));
+    L.polyline([[s.lat,s.lng],[+e.lat,+e.lng]],{color:s.dist>DX_LIMITE?"#b3341f":"#1f7f8c",dashArray:"6 6"}).addTo(m);
+    m.fitBounds([[s.lat,s.lng],[+e.lat,+e.lng]],{padding:[30,30],maxZoom:18}); }
+  PV.mapas.push(m); setTimeout(()=>m.invalidateSize(),60);
+}
+
+// ---------- pessoas (gestor)
+async function pvCarregarPessoas(){
+  try{ PV.pessoas=await pvPedido("/rest/v1/pv_pessoas?select=*&order=nome")||[]; }catch(e){ toast("⚠ "+e.message); PV.pessoas=PV.pessoas||[]; }
+  if(VISTA==="pv"&&PV.sub==="pessoas") renderPv();
+}
+function pvPessoasHtml(){
+  if(!PV.pessoas) return `<div class="vazio"><b>A carregar…</b></div>`;
+  const p=PV.editar?PV.pessoas.find(x=>x.email===PV.editar)||{}:{}, ed=!!PV.editar;
+  const contar=em=>PV.enc.filter(e=>e.vendedor_email===em||e.tecnico_email===em||e.proef_email===em).length;
+  const s=PV.senha;
+  return `<div class="pv-pess">
+    ${s?`<div class="pv-aviso ok"><span><b>Acesso de ${esc(s.nome)} pronto.</b> Envie-lhe estes dados: email <b class="mono">${esc(s.email)}</b> · palavra-passe provisória <b class="mono">${esc(s.senha)}</b>.
+      Depois de entrar, muda-a no menu ⋯.</span><div class="acoes"><button class="sec" type="button" data-copiar="${esc(pvMsgAcesso(s))}">Copiar mensagem</button>
+      ${s.tel?`<a href="https://wa.me/351${esc(s.tel)}?text=${encodeURIComponent(pvMsgAcesso(s))}" target="_blank" rel="noopener">WhatsApp</a>`:""}</div></div>`:""}
+    <form id="pvPessoa" class="bloco"><h4>${ed?"Editar pessoa":"Registar pessoa"}</h4><div class="pv-in">
+      <label>Nome completo<input name="nome" value="${esc(p.nome||"")}" required></label>
+      <label>Email (é com ele que entra na app)<input name="email" type="email" value="${esc(p.email||"")}" ${ed?"readonly":""} required></label>
+      <label>Telemóvel<input name="telemovel" type="tel" inputmode="tel" value="${esc(p.telemovel||"")}" placeholder="para lhe enviar o acesso por WhatsApp"></label>
+      <div class="pv-op"><span>Perfil</span><div class="pv-pills">${Object.entries(PV_PERFIL_NOME).map(([k,n])=>`<label><input type="checkbox" name="perfis" value="${k}" ${(p.perfis||(ed?[]:["vendedor"])).includes(k)?"checked":""}><span>${n}</span></label>`).join("")}</div></div>
+      <label>Zonas (concelhos ou códigos postais, separados por vírgulas)<input name="zonas" value="${esc((p.zonas||[]).join(", "))}" placeholder="ex.: Felgueiras, 4610"></label>
+      <span class="fmut">Cada pré-venda vai para o técnico cuja zona bate com o código postal ou a localidade. Sem zona definida, vai para o primeiro técnico registado.</span>
+      ${ed?`<label class="pv-consent"><input type="checkbox" name="ativo" ${p.ativo!==false?"checked":""}><span>Ativo (desmarque para tirar o acesso)</span></label>`:""}
+      <div id="pvErroP" class="pv-erro" role="alert"></div>
+      <div class="pv-2"><button type="submit" class="pv-btn pv-prim">${ed?"Guardar":"Registar e criar acesso"}</button>${ed?'<button type="button" class="pv-btn" id="pvNovaP">Registar outra pessoa</button>':""}</div>
+    </div></form>
+    <section class="bloco"><h4>Equipa · ${PV.pessoas.length}</h4>${PV.pessoas.map(x=>`<div class="pv-pl">
+      <div><b>${esc(x.nome)}</b> ${x.perfis.map(k=>`<span class="pv-chip pv-p-${k}">${esc(PV_PERFIL_NOME[k]||k)}</span>`).join(" ")}${x.ativo?"":' <span class="pv-chip pv-ex">Desativado</span>'}
+        <span class="fmut">${esc(x.email)}${x.zonas?.length?" · "+esc(x.zonas.join(", ")):""} · ${contar(x.email)} encomenda(s)</span></div>
+      <div class="pv-plb"><button class="pv-lnk" data-pved="${esc(x.email)}">Editar</button>${x.email!==pvEu()?`<button class="pv-lnk" data-pvrepor="${esc(x.email)}">Nova palavra-passe</button>`:""}</div></div>`).join("")}</section>
+  </div>`;
+}
+const pvMsgAcesso=s=>`Olá ${s.nome.split(" ")[0]}! Já tens acesso à app CR Telecom (pré-venda): ${location.origin}${location.pathname}\nEmail: ${s.email}\nPalavra-passe provisória: ${s.senha}\nDepois de entrares, muda-a no menu ⋯ → Mudar palavra-passe. Instala a app no ecrã inicial e liga as notificações.`;
+async function pvGuardarPessoa(ev){
+  ev.preventDefault(); const f=$("#pvPessoa"), fd=new FormData(f), er=$("#pvErroP"); er.textContent="";
+  const novo=!PV.editar, o={nome:String(fd.get("nome")||"").trim(),email:String(fd.get("email")||"").trim().toLowerCase(),telemovel:String(fd.get("telemovel")||"").trim(),
+    perfis:fd.getAll("perfis"),zonas:String(fd.get("zonas")||"").split(",").map(z=>z.trim()).filter(Boolean),ativo:novo?true:!!fd.get("ativo")};
+  try{
+    await pvRpc("pv_pessoa_guardar",{p:o}); PV.senha=null;
+    if(novo){ try{ const r=await pvFuncao({acao:"convidar",email:o.email});
+        if(r.senha) PV.senha={nome:o.nome,email:o.email,senha:r.senha,tel:o.telemovel.replace(/\D/g,"").slice(-9)};
+        else toast("Registado · já tinha acesso com este email"); }
+      catch(e){ toast("Registado, mas o acesso não foi criado: "+e.message); } }
+    else toast("Guardado ✓");
+    PV.editar=null; await pvCarregarPessoas();
+  }catch(e){ er.textContent=e.message; }
+}
+async function pvRepor(email){
+  const p=(PV.pessoas||[]).find(x=>x.email===email); if(!p||!confirm(`Criar uma palavra-passe nova para ${p.nome}? A atual deixa de funcionar.`)) return;
+  try{ const r=await pvFuncao({acao:"repor",email}); PV.senha={nome:p.nome,email,senha:r.senha,tel:String(p.telemovel||"").slice(-9)}; renderPv(); window.scrollTo({top:0}); }
+  catch(e){ toast("⚠ "+e.message); }
+}
+
+// ---------- ligar eventos depois de cada render
+function pvLigar(){
+  const c=$("#pvCorpo"); if(!c) return;
+  c.querySelectorAll("[data-pvid]").forEach(b=>b.onclick=()=>pvAbrir(b.dataset.pvid));
+  c.querySelectorAll("[data-pvf]").forEach(b=>b.onclick=()=>{ PV.filtro=b.dataset.pvf; renderPv(); });
+  const q=$("#pvQ"); if(q){ q.oninput=()=>{ PV.q=q.value; clearTimeout(q._t); q._t=setTimeout(()=>{ renderPv(); const n=$("#pvQ"); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } },250); }; }
+  c.querySelectorAll("[data-copiar]").forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.copiar).then(()=>toast("Copiado ✓"),()=>toast("Não consegui copiar")); });
+  const f=$("#pvForm"); if(f){ f.onsubmit=pvSubmeter; f.oninput=()=>{ PV.dupOk=false; pvGuardarRascunho(); }; $("#pvGps").onclick=pvLerGps;
+    $("#pvLimpar").onclick=()=>{ if(confirm("Apagar o que está escrito?")){ pvLS.gravar("pv_rascunho",null); PV.gps=null; renderPv(); } };
+    if(PV.gps) setTimeout(pvMostrarGps,30); }
+  const v=$("#pvVist"); if(v){ v.oninput=()=>pvLS.gravar("pv_vist_"+PV.aberta,pvLerVistoria(v)); v.querySelectorAll("[data-pvdec]").forEach(b=>b.onclick=()=>pvAcao("decidir",b.dataset.pvdec)); }
+  const vd=$("#pvVenda"); if(vd){ vd.oninput=()=>{ const fd=new FormData(vd); pvLS.gravar("pv_venda_"+PV.aberta,Object.fromEntries(fd.entries())); }; }
+  c.querySelectorAll("[data-pvacao]").forEach(b=>b.onclick=()=>pvAcao(b.dataset.pvacao));
+  const vb=$("#pvVoltar"); if(vb) vb.onclick=()=>{ PV.sub="lista"; PV.aberta=null; renderPv(); };
+  const pf=$("#pvPessoa"); if(pf) pf.onsubmit=pvGuardarPessoa;
+  const np=$("#pvNovaP"); if(np) np.onclick=()=>{ PV.editar=null; renderPv(); };
+  c.querySelectorAll("[data-pved]").forEach(b=>b.onclick=()=>{ PV.editar=b.dataset.pved; PV.senha=null; renderPv(); window.scrollTo({top:0}); });
+  c.querySelectorAll("[data-pvrepor]").forEach(b=>b.onclick=()=>pvRepor(b.dataset.pvrepor));
+  if(PV.sub==="ficha") setTimeout(pvMapaFicha,30);
+}
+
+// ---------- Início (gestor): resumo da pré-venda
+function pvTileIni(){
+  if(!PV.instalado||!PV.eu||!PV.eu.perfis.length) return "";
+  const mim=PV.enc.filter(pvParaMim).length, curso=PV.enc.filter(e=>!PV_EST[e.estado]?.fim).length, atr=PV.enc.filter(pvAtraso).length;
+  return `<button class="itile ${mim?"warn":""}" data-ir="pv"><span class="t">🤝 Pré-venda</span><b>${mim}</b><span>${mim===1?"encomenda à sua espera":"encomendas à sua espera"} · ${curso} em curso${atr?` · ${atr} atrasada${atr>1?"s":""}`:""}</span></button>`;
+}
+
+// ---------- mudar palavra-passe (todos)
+function pvMudarSenha(){
+  $("#menu3Pop").hidden=true; $("#pvSenhaVisor")?.remove();
+  const v=document.createElement("div"); v.id="pvSenhaVisor"; v.className="pv-visor";
+  v.innerHTML=`<form class="login" id="pvSenhaF" style="margin-top:10vh"><h2>Mudar palavra-passe</h2>
+    <label>Nova palavra-passe<input type="password" id="pvS1" autocomplete="new-password" minlength="8" required></label>
+    <label>Repetir<input type="password" id="pvS2" autocomplete="new-password" minlength="8" required></label>
+    <div class="erro" id="pvSErro" role="alert"></div>
+    <button class="icon-btn prim" type="submit">Guardar</button><button class="icon-btn" type="button" id="pvSX">Fechar</button></form>`;
+  document.body.appendChild(v); $("#pvSX").onclick=()=>v.remove();
+  $("#pvSenhaF").onsubmit=async ev=>{ ev.preventDefault(); const a=$("#pvS1").value, b=$("#pvS2").value, er=$("#pvSErro");
+    if(a.length<8) return er.textContent="Pelo menos 8 caracteres."; if(a!==b) return er.textContent="As duas não são iguais.";
+    try{ await pvPedido("/auth/v1/user",{method:"PUT",body:JSON.stringify({password:a})}); v.remove(); toast("Palavra-passe mudada ✓"); }
+    catch(e){ er.textContent=/same|different/i.test(e.message)?"Escolha uma palavra-passe diferente da atual.":e.message; } };
+}
+
 $("#login").onsubmit=async e=>{
   e.preventDefault();
   $("#lErro").textContent=""; $("#lBtn").disabled=true; $("#lBtn").textContent="A entrar…";
@@ -2356,9 +2992,11 @@ $("#login").onsubmit=async e=>{
 $("#btnSair").onclick=async()=>{
   $("#menu3Pop").hidden=true;
   const t=SESSAO?.access_token; gravarSessao(null); DIAS=[]; fechar(); sessao(false);
+  PV.eu=null; PV.enc=[]; PV.pessoas=null; PV.hist={}; PV.sub="lista"; PV.aberta=null; PV.pushGuardado=false; document.body.classList.remove("so-pv"); mudarVista("ini");
   if(t) fetch(`${SUPA_URL}/auth/v1/logout`,{method:"POST",headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}}).catch(()=>{});
 };
 $("#btnAtual").onclick=()=>carregar();
+$("#btnSenha").onclick=pvMudarSenha;
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && SESSAO && Date.now()-ULTIMA>60000) carregar(true); });
 if(SUPA_URL.startsWith("__")){ $("#lErro").textContent="Página sem ligação configurada. Gere o index.html no painel do PC (☁ Online)."; $("#lBtn").disabled=true; }
 else { SESSAO=lerSessao(); if(SESSAO){ sessao(true); carregar(); } }
