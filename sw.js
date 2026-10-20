@@ -1,6 +1,6 @@
 // CR Telecom Consulta — service worker (permite instalar como app e receber notificações da pré-venda).
 // Só guarda a própria página para abrir sem rede; os dados (Supabase) vão sempre à rede.
-const CACHE = "cr-consulta-v17";
+const CACHE = "cr-consulta-v18";
 const BASE = ["./", "./index.html", "./manifest.webmanifest?v=2", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {

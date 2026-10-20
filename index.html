@@ -469,6 +469,10 @@ body.so-pv main{padding-bottom:40px}
 .pv-tcontas{display:flex;flex-direction:column;gap:6px;width:100%}
 .pv-tcontas div{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}
 @media (max-width:560px){.pv-cfgt{grid-template-columns:repeat(2,minmax(0,1fr))}.pv-bcard>b{font-size:34px}}
+
+/* morada automática (21/10/2026) */
+.pv-auto{background:var(--ok-bg, #e8f6ee)}
+.pv-morinfo:empty{display:none}
 </style>
 </head>
 <body class="sem-sessao">
@@ -2707,6 +2711,7 @@ function pvNovaHtml(){
       <div class="pv-2"><label>Andar / porta<input id="pvPorta" name="porta" value="${v("porta")}" placeholder="opcional"></label>
         <label>Código postal<input id="pvCp" name="cp" value="${v("cp")}" inputmode="numeric" placeholder="0000-000" required></label></div>
       <label>Localidade<input id="pvLoc" name="localidade" value="${v("localidade")}" required></label>
+      <span class="fmut pv-morinfo" id="pvMorInfo" role="status"></span>
     </div></section>
     <section class="bloco"><h4>Venda</h4><div class="pv-in">
       <div class="pv-op"><span>Onde foi feita</span><div class="pv-pills">
@@ -2737,15 +2742,37 @@ function pvLerGps(){
     const g={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy||0)};
     g.info=`GPS do telemóvel · precisão ± ${g.acc} m · ${new Date().toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"})}${g.acc>50?" · ⚠ fraca: afaste-se de paredes e leia outra vez":""}`;
     PV.gps=g; b.disabled=false; b.textContent="📍 Ler outra vez"; pvMostrarGps(); pvGuardarRascunho();
-    try{ const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&accept-language=pt&lat=${g.lat}&lon=${g.lng}`,{headers:{Accept:"application/json"}});
-      const a=(await r.json()).address||{}; const put=(id,v)=>{ const i=$(id); if(i&&!i.value.trim()&&v) i.value=v; };
-      put("#pvMorada",[a.road,a.house_number].filter(Boolean).join(", ")); put("#pvCp",/^\d{4}-\d{3}$/.test(a.postcode||"")?a.postcode:"");
-      put("#pvLoc",[a.village||a.hamlet||a.suburb||a.town||a.city,a.municipality||a.county].filter((x,i,arr)=>x&&arr.indexOf(x)===i).join(", "));
-      pvGuardarRascunho();
-    }catch(_){ }
+    pvMoradaDasCoords(g.lat,g.lng);
   },e=>{ b.disabled=false; b.textContent="📍 Ler a minha localização";
     toast(e.code===1?"Sem autorização para a localização: permita nas definições do Chrome.":"Não consegui ler o GPS. Tente na rua, junto à porta."); },
   {enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
+// Morada automática a partir das coordenadas: rua e número, código postal e localidade.
+// Preenche os campos vazios ou que tinham sido preenchidos automaticamente (o que o vendedor escreveu à mão não se apaga).
+async function pvMoradaDasCoords(lat,lng){
+  const info=$("#pvMorInfo"), id=(PV.morSeq=(PV.morSeq||0)+1); if(info) info.textContent="A procurar a morada destas coordenadas…";
+  const j=async u=>{ try{ const r=await fetch(u,{headers:{Accept:"application/json"}}); return r.ok?await r.json():null; }catch(_){ return null; } };
+  const cpOk=x=>/^\d{4}-\d{3}$/.test(String(x||"").trim())?String(x).trim():"";
+  const [n,ph]=await Promise.all([
+    j(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=pt&lat=${lat}&lon=${lng}`),
+    j(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=default&limit=3`)]);
+  if(id!==PV.morSeq||!$("#pvForm")) return;
+  const a=n?.address||{}, f=(ph?.features||[]).map(x=>x.properties||{});
+  const rua=a.road||a.pedestrian||a.footway||f.find(x=>x.street)?.street||(f[0]?.type==="street"?f[0].name:"")||"";
+  const num=a.house_number||f.find(x=>x.housenumber&&(!rua||x.street===rua))?.housenumber||"";
+  const cp=cpOk(a.postcode)||f.map(x=>cpOk(x.postcode)).find(Boolean)||"";
+  const loc=[a.village||a.hamlet||a.suburb||a.neighbourhood||a.town||a.city||f.find(x=>x.district||x.locality)?.district||f[0]?.city,
+             a.municipality||a.city||a.town||a.county||f[0]?.city].filter((x,i,arr)=>x&&arr.indexOf(x)===i).join(", ");
+  PV.auto=PV.auto||{}; const feitos=[];
+  const put=(sel,v,nome)=>{ const i=$(sel); if(!i||!v) return; const cur=i.value.trim();
+    if(!cur||cur===PV.auto[sel]){ i.value=v; PV.auto[sel]=v; i.classList.add("pv-auto"); feitos.push(nome); } };
+  put("#pvMorada",[rua,num].filter(Boolean).join(", "),"rua"); put("#pvCp",cp,"código postal"); put("#pvLoc",loc,"localidade");
+  pvGuardarRascunho();
+  if(!info) return;
+  const falta=[!rua&&"rua",!num&&"número da porta",!cp&&"código postal",!loc&&"localidade"].filter(Boolean);
+  info.textContent=!n&&!ph?"Sem rede para procurar a morada: escreva-a à mão.":
+    (feitos.length?`Preenchido pelas coordenadas: ${feitos.join(", ")}. Confirme com o cliente.`:"A morada escrita foi mantida.")+(falta.length?` Falta: ${falta.join(", ")}.`:"");
+  if(!num&&rua){ const i=$("#pvMorada"); if(i&&i.value===PV.auto["#pvMorada"]){ i.value=rua+", "; PV.auto["#pvMorada"]=i.value; } }
 }
 function pvMostrarGps(){
   const g=PV.gps; if(!g) return;
@@ -2753,7 +2780,7 @@ function pvMostrarGps(){
   const el=$("#pvMapa"); if(!el||typeof L==="undefined") return; el.hidden=false;
   if(!el._m){ pvLimparMapas(); const m=L.map(el,{zoomControl:true,attributionControl:true}).setView([g.lat,g.lng],18); camadasMapa(m);
     const mk=L.marker([g.lat,g.lng],{draggable:true}).addTo(m);
-    mk.on("dragend",()=>{ const p=mk.getLatLng(); PV.gps={...PV.gps,lat:p.lat,lng:p.lng,info:"Pino ajustado à mão no mapa"}; $("#pvGpsTxt").textContent=`${p.lat.toFixed(6).replace(".",",")} · ${p.lng.toFixed(6).replace(".",",")}`; $("#pvGpsInfo").textContent=PV.gps.info; pvGuardarRascunho(); });
+    mk.on("dragend",()=>{ const p=mk.getLatLng(); PV.gps={...PV.gps,lat:p.lat,lng:p.lng,info:"Pino ajustado à mão no mapa"}; $("#pvGpsTxt").textContent=`${p.lat.toFixed(6).replace(".",",")} · ${p.lng.toFixed(6).replace(".",",")}`; $("#pvGpsInfo").textContent=PV.gps.info; pvGuardarRascunho(); pvMoradaDasCoords(p.lat,p.lng); });
     el._m=m; el._mk=mk; PV.mapas.push(m); setTimeout(()=>m.invalidateSize(),60); }
   else { el._m.setView([g.lat,g.lng],18); el._mk.setLatLng([g.lat,g.lng]); }
 }
@@ -3018,7 +3045,7 @@ function pvLigar(){
   c.querySelectorAll("[data-pvf]").forEach(b=>b.onclick=()=>{ PV.filtro=b.dataset.pvf; renderPv(); });
   const q=$("#pvQ"); if(q){ q.oninput=()=>{ PV.q=q.value; clearTimeout(q._t); q._t=setTimeout(()=>{ renderPv(); const n=$("#pvQ"); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } },250); }; }
   c.querySelectorAll("[data-copiar]").forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.copiar).then(()=>toast("Copiado ✓"),()=>toast("Não consegui copiar")); });
-  const f=$("#pvForm"); if(f){ f.onsubmit=pvSubmeter; f.oninput=()=>{ PV.dupOk=false; pvGuardarRascunho(); }; $("#pvGps").onclick=pvLerGps;
+  const f=$("#pvForm"); if(f){ f.onsubmit=pvSubmeter; f.oninput=ev=>{ PV.dupOk=false; ev.target?.classList?.remove("pv-auto"); pvGuardarRascunho(); }; $("#pvGps").onclick=pvLerGps;
     $("#pvLimpar").onclick=()=>{ if(confirm("Apagar o que está escrito?")){ pvLS.gravar("pv_rascunho",null); PV.gps=null; renderPv(); } };
     if(PV.gps) setTimeout(pvMostrarGps,30); }
   const v=$("#pvVist"); if(v){ v.oninput=()=>pvLS.gravar("pv_vist_"+PV.aberta,pvLerVistoria(v)); v.querySelectorAll("[data-pvdec]").forEach(b=>b.onclick=()=>pvAcao("decidir",b.dataset.pvdec)); }
