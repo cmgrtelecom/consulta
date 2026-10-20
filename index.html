@@ -415,6 +415,60 @@ body.so-pv .vistas,body.so-pv .bnav,body.so-pv .filtros,body.so-pv .top .busca,b
 body.so-pv main{padding-bottom:40px}
 .pv-ficha dd{display:block}
 @media (max-width:560px){.pv-kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pv-kpis .kpi{padding:10px}.pv-kpis .kpi .v{font-size:24px}.pv-kpis .kpi .l{font-size:10.5px}.pv-kpis .kpi .s{font-size:11px}}
+/* ---------- Comissões, bonificações e teste (21/10/2026) */
+.pv-teste{background:#ffe9c7;color:#8a4b00;letter-spacing:.4px}
+.pv-lock{background:var(--warn-bg);color:var(--warn);font-size:11.5px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pv-teste{background:#4a3410;color:#ffd08a}}
+:root[data-theme="dark"] .pv-teste{background:#4a3410;color:#ffd08a}
+.pv-alarme{align-self:end;min-height:44px;align-items:center!important;flex-direction:row!important;color:var(--fg)!important;font-size:14px!important}
+.pv-escalao{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:13px}
+.pv-escalao b{font:700 17px var(--f-display)}
+.pv-bform{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px}
+.pv-bfc{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pv-esc3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;text-align:center}
+.pv-esc3>div{background:var(--surface-2);border-radius:10px;padding:8px 4px;display:flex;flex-direction:column;gap:2px;border:1px solid transparent}
+.pv-esc3>div.on{border-color:var(--accent);background:var(--accent-soft)}
+.pv-esc3 span{font-size:11.5px;color:var(--muted)} .pv-esc3 b{font:700 18px var(--f-display)}
+.pv-cfgt{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pv-cfg summary{list-style:none;cursor:pointer} .pv-cfg summary::-webkit-details-marker{display:none}
+.pv-cfg summary h4::after{content:" ▾";color:var(--muted)}
+.pv-cfgg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pv-mesnav{display:flex;align-items:center;gap:6px}
+.pv-mesnav .pv-lnk{font-size:22px;min-width:40px}
+.pv-mesnav .pv-lnk[disabled]{opacity:.3}
+.pv-rcab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.pv-racoes{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pv-res,.pv-bon{display:flex;flex-direction:column;gap:12px}
+.pv-res .pv-aviso,.pv-res .pv-kpis{margin-bottom:0}
+.pv-tab{overflow-x:auto}
+.pv-tab table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+.pv-tab th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.pv-tab td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.pv-tab .n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pv-tab tr.tot td{font-weight:700;border-bottom:0}
+.pv-tab tr.anul td{opacity:.55;text-decoration:line-through} .pv-tab tr.anul td:last-child,.pv-tab tr.anul td:first-child{text-decoration:none;opacity:1}
+.pv-tab .pv-lnk{padding:0;min-height:0}
+.pv-tab input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.pv-selbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:2}
+.pv-selbar .pv-btn{min-height:38px;font-size:13px}
+.pv-mais{position:relative} .pv-mais summary{list-style:none} .pv-mais summary::-webkit-details-marker{display:none}
+.pv-mais>div{position:absolute;right:0;top:100%;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:4px;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.pv-mais input{font:14px var(--f-body);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.pv-bcard{background:#15292b;color:#e3eeec;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.pv-bcard>span{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#a9c2bf}
+.pv-bcard>b{font:700 40px/1 var(--f-display);color:#fff}
+.pv-bcard div{display:flex;gap:14px;font-size:13px} .pv-bcard div b{color:#fff}
+.pv-prog{position:relative;height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.pv-prog i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:5px}
+.pv-prog s{position:absolute;top:0;bottom:0;width:2px;background:var(--surface)}
+.pv-meta{font-size:13px;background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:8px 10px}
+.pv-bv{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.pv-nota{line-height:1.45}
+.pv-tbloco{border-color:#e6a23c}
+.pv-tpassos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.pv-tcontas{display:flex;flex-direction:column;gap:6px;width:100%}
+.pv-tcontas div{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}
+@media (max-width:560px){.pv-cfgt{grid-template-columns:repeat(2,minmax(0,1fr))}.pv-bcard>b{font-size:34px}}
 </style>
 </head>
 <body class="sem-sessao">
@@ -2463,7 +2517,8 @@ const PV_PERFIL_NOME={gestor:"Gestor",vendedor:"Vendedor",tecnico:"Técnico",pro
 const PV_EQUIP=["ONT","NOS BOX v4","NOS BOX v3","Super Extender Wi-Fi Plume","Equipamento TV OTT","Cartão cabo","Cartão DTH"];
 const PV_ACESSO={aereo:"Aéreo / poste",fachada:"Fachada",conduta:"Conduta / subterrâneo",predio:"Prédio / ATI"};
 const PV={eu:null, instalado:null, enc:[], sub:"lista", filtro:null, aberta:null, hist:{}, pessoas:null, editar:null, senha:null,
-  q:"", dupOk:false, gps:null, push:null, pushGuardado:false, ocupado:false, mapas:[]};
+  q:"", dupOk:false, gps:null, push:null, pushGuardado:false, ocupado:false, mapas:[],
+  mes:new Date().toISOString().slice(0,7), res:null, bon:null, bp:null, verTeste:false, sel:new Set(), contasTeste:null};
 const pvLS={ ler:k=>{ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(_){ return null; } },
   gravar:(k,v)=>{ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v)); }catch(_){ } } };
 const pvTem=p=>!!PV.eu&&(PV.eu.perfis.includes(p)||PV.eu.perfis.includes("gestor"));
@@ -2581,17 +2636,21 @@ function renderPv(){
   const c=$("#pvCorpo");
   if(PV.sub==="nova"&&pvTem("vendedor")) c.innerHTML=pvNovaHtml();
   else if(PV.sub==="pessoas"&&pvGestor()) c.innerHTML=pvPessoasHtml();
+  else if(PV.sub==="res"&&pvGestor()) c.innerHTML=pvResHtml();
+  else if(PV.sub==="bonus"&&pvTem("vendedor")) c.innerHTML=pvBonusHtml();
   else if(PV.sub==="ficha"&&PV.aberta) c.innerHTML=pvFichaHtml();
   else { PV.sub="lista"; c.innerHTML=pvListaHtml(); }
   pvLigar();
 }
 function pvRenderTopo(){
   const t=$("#pvTopo"); if(!t||!PV.eu) return;
-  const tabs=[["lista","Encomendas"]]; if(pvTem("vendedor")) tabs.push(["nova","＋ Nova pré-venda"]); if(pvGestor()) tabs.push(["pessoas","Pessoas"]);
+  const tabs=[["lista","Encomendas"]]; if(pvTem("vendedor")) tabs.push(["nova","＋ Nova pré-venda"]);
+  if(PV.eu.perfis.includes("vendedor")&&!pvGestor()) tabs.push(["bonus","Bonificações"]);
+  if(pvGestor()){ tabs.push(["res","Resultados"]); tabs.push(["pessoas","Pessoas"]); }
   const n=PV.enc.filter(pvParaMim).length;
   t.innerHTML=`<div class="pv-topo"><div><h2 class="pv-h">Pré-venda</h2><span class="fmut">${esc(PV.eu.nome)} · ${PV.eu.perfis.map(p=>PV_PERFIL_NOME[p]||p).join(" + ")}</span></div>
     <div class="seg" role="tablist">${tabs.map(([k,n2])=>`<button data-pvsub="${k}" aria-pressed="${PV.sub===k||(k==="lista"&&PV.sub==="ficha")}">${n2}${k==="lista"&&n?` <b class="pv-badge">${n}</b>`:""}</button>`).join("")}</div></div>${pvPushHtml()}`;
-  t.querySelectorAll("[data-pvsub]").forEach(b=>b.onclick=()=>{ PV.sub=b.dataset.pvsub; PV.senha=null; if(PV.sub==="pessoas") pvCarregarPessoas(); renderPv(); window.scrollTo({top:0}); });
+  t.querySelectorAll("[data-pvsub]").forEach(b=>b.onclick=()=>{ PV.sub=b.dataset.pvsub; PV.senha=null; if(PV.sub==="pessoas") pvCarregarPessoas(); if(PV.sub==="res") pvCarregarRes(); if(PV.sub==="bonus") pvCarregarBonus(); renderPv(); window.scrollTo({top:0}); });
   const pb=$("#pvPush"); if(pb) pb.onclick=pvAtivarPush;
 }
 
@@ -2626,7 +2685,7 @@ function pvCartaoHtml(e){
     <div class="pv-c1"><span class="mono">${esc(e.numero)}</span><span class="fmut">${pvIdade(e.criado_em)}</span></div>
     <div class="c">${esc(e.cliente_nome)}</div>
     <div class="m">${esc(e.localidade)} · ${esc((e.interesse||[]).join(" + ")||"—")} · ${esc(e.vendedor_nome||"")}</div>
-    <div class="chips">${pvChip(e)}${mim?'<span class="chip acc">à sua espera</span>':""}${a?`<span class="chip ${a.c}">${esc(a.t)}</span>`:""}${e.vistoria?.plc_dist_m>DX_LIMITE?`<span class="chip dx">📏 PLC a ${e.vistoria.plc_dist_m} m</span>`:""}</div>
+    <div class="chips">${e.teste?'<span class="pv-chip pv-teste">TESTE</span>':""}${pvChip(e)}${mim?'<span class="chip acc">à sua espera</span>':""}${a?`<span class="chip ${a.c}">${esc(a.t)}</span>`:""}${e.vistoria?.plc_dist_m>DX_LIMITE?`<span class="chip dx">📏 PLC a ${e.vistoria.plc_dist_m} m</span>`:""}</div>
   </button>`;
 }
 
@@ -2736,7 +2795,7 @@ function pvFichaHtml(){
   const coords=e.lat!=null?`${(+e.lat).toFixed(6).replace(".",",")} · ${(+e.lng).toFixed(6).replace(".",",")}`:"";
   return `<div class="pv-ficha">
     <div class="pv-fcab"><button class="fechar" id="pvVoltar" aria-label="Voltar à lista">‹</button>
-      <div><span class="mono fmut">${esc(e.numero)} · ${pvDH(e.criado_em)}</span><h3 class="pv-h">${esc(e.cliente_nome)}</h3></div>${pvChip(e)}</div>
+      <div><span class="mono fmut">${esc(e.numero)} · ${pvDH(e.criado_em)}</span><h3 class="pv-h">${esc(e.cliente_nome)}</h3></div>${e.teste?'<span class="pv-chip pv-teste">TESTE</span>':""}${pvChip(e)}</div>
     ${pvBarra(e)}
     <div class="pv-etapas">${PV_ETAPAS.map((n,i)=>`<span>${i+1}. ${n}</span>`).join("")}</div>
     ${pvAcoesHtml(e)}
@@ -2764,6 +2823,7 @@ function pvFichaHtml(){
     </dl></section>`:""}
     ${e.venda?`<section class="bloco"><h4>Venda PROEF · ${pvDH(ve.concluida_em)}</h4><dl>
       ${pvLinha("Contacto da proposta de adesão",esc(pvTelFmt(ve.contacto_adesao)),1)}${pvLinha("Conta de serviço",esc(ve.conta_servico),1)}
+      ${pvLinha("PVP líquido mensal",ve.pvp!=null?esc(pvEur(ve.pvp))+" <span class=\"fmut\">sem IVA</span>":"")}${pvLinha("Escalão MMCI",esc(ve.escalao||""))}
       ${pvLinha("Vendido por",esc(e.proef_nome||""))}${pvLinha("Notas",esc(ve.notas||""))}</dl></section>`:""}
     ${e.ot?`<section class="bloco"><h4>Instalação (Field Service)</h4><dl>${pvLinha("OT",esc(e.ot.ot||""),1)}${pvLinha("Dia",esc(e.ot.data||""))}${pvLinha("Estado",esc(e.ot.estado||""))}${pvLinha("Horas",esc([e.ot.inicio,e.ot.fim].filter(Boolean).join("–")))}</dl></section>`:""}
     ${e.motivo?`<section class="bloco"><h4>Motivo</h4><div class="item">${esc(e.motivo)}</div></section>`:""}
@@ -2792,7 +2852,8 @@ function pvAcoesHtml(e){
   } else if(e.estado==="na_proef"){
     h=(proef&&(pvGestor()||e.proef_email===eu))?pvConcluirHtml(e):`<p>Venda em curso com <b>${esc(e.proef_nome||"a PROEF")}</b>.</p>`;
   } else if(e.estado==="vendida"){
-    h=`<p>Vendida. Passa sozinha a <b>Instalada</b> quando a OT com a Conta de serviço <b class="mono">${esc(e.venda?.conta_servico||"")}</b> aparecer na coleta do Field Service.</p>`;
+    h=e.teste?`<p>Venda de <b>TESTE</b>: não há OT real. O gestor simula a instalação para conferir as bonificações.</p>${pvGestor()?'<button class="pv-btn pv-prim pv-grande" data-pvacao="simular">Simular instalação (teste)</button>':""}`
+      :`<p>Vendida. Passa sozinha a <b>Instalada</b> quando a OT com a Conta de serviço <b class="mono">${esc(e.venda?.conta_servico||"")}</b> aparecer na coleta do Field Service.</p>`;
   } else if(e.estado==="instalada"){ h=`<p>Processo concluído ✓</p>`; }
   else { h=`<p>Encomenda fechada: ${esc(PV_EST[e.estado]?.n||e.estado)}.</p>`; }
   return `<section class="bloco pv-acao"><h4>O que falta</h4><div class="pv-in">${h}${canc}<div id="pvErroA" class="pv-erro" role="alert"></div></div></section>`;
@@ -2843,6 +2904,9 @@ function pvConcluirHtml(e){
       <label><input type="radio" name="resultado" value="nao_vendida" ${r.resultado==="nao_vendida"?"checked":""}><span>Não vendida</span></label></div>
     <div class="pv-2"><label>Contacto telefónico da proposta de adesão<input name="contacto" type="tel" inputmode="tel" value="${esc(r.contacto??e.cliente_tel)}"></label>
       <label>Conta de serviço<input name="conta" class="mono" value="${esc(r.conta||"")}" placeholder="S00000000000" autocapitalize="characters"></label></div>
+    <div class="pv-2"><label>PVP líquido mensal do pacote, sem IVA (€)<input name="pvp" inputmode="decimal" value="${esc(r.pvp||"")}" placeholder="ex.: 39,99"></label>
+      <label class="pv-consent pv-alarme"><input type="checkbox" name="alarme" ${r.alarme?"checked":""}><span>Inclui alarme</span></label></div>
+    <div class="pv-escalao"><span>Escalão MMCI</span><b id="pvEsc">${esc(pvEscalaoNome(r.pvp,r.alarme))}</b></div>
     <label>Notas da venda (opcional)<textarea name="notas" rows="2">${esc(r.notas||"")}</textarea></label>
     <label>Motivo (se não vendida)<textarea name="motivo" rows="2">${esc(r.motivo||"")}</textarea></label>
     <button type="button" class="pv-btn pv-ok pv-grande" data-pvacao="concluir">Concluir venda</button>
@@ -2867,9 +2931,10 @@ async function pvAcao(acao,dec){
     else if(acao==="pegar"){ await pvRpc("pv_proef_pegar",{p_id:e.id}); toast("A venda é sua"); pvNotificar(e.id); }
     else if(acao==="concluir"){
       const fd=new FormData($("#pvVenda")), g=k=>String(fd.get(k)||"").trim();
-      const r=await pvRpc("pv_proef_concluir",{p_id:e.id,p_resultado:g("resultado"),p_contacto:g("contacto"),p_conta:g("conta"),p_notas:g("notas")||null,p_motivo:g("motivo")||null});
+      const r=await pvRpc("pv_proef_concluir",{p_id:e.id,p_resultado:g("resultado"),p_contacto:g("contacto"),p_conta:g("conta"),p_pvp:g("pvp")||null,p_alarme:!!fd.get("alarme"),p_notas:g("notas")||null,p_motivo:g("motivo")||null});
       pvLS.gravar("pv_venda_"+e.id,null); toast(r.estado==="vendida"?"Venda concluída ✓":"Registado como não vendida"); pvNotificar(e.id);
     }
+    else if(acao==="simular"){ await pvRpc("pv_simular_instalacao",{p_id:e.id}); toast("Instalação simulada ✓ · bonificação calculada"); pvNotificar(e.id); }
     else if(acao==="cancelar"){ await pvRpc("pv_cancelar",{p_id:e.id,p_motivo:($("#pvCancMot")?.value||"").trim()}); toast("Encomenda cancelada"); pvNotificar(e.id); }
     await pvRecarregar(); await pvCarregarHist(e.id,true); renderPv();
   }catch(err){ if(er) er.textContent=err.message; else toast("⚠ "+err.message); }
@@ -2889,6 +2954,7 @@ function pvMapaFicha(){
 // ---------- pessoas (gestor)
 async function pvCarregarPessoas(){
   try{ PV.pessoas=await pvPedido("/rest/v1/pv_pessoas?select=*&order=nome")||[]; }catch(e){ toast("⚠ "+e.message); PV.pessoas=PV.pessoas||[]; }
+  try{ PV.bp=await pvRpc("pv_bonus_pessoas",{}); }catch(_){ PV.bp=PV.bp||null; }
   if(VISTA==="pv"&&PV.sub==="pessoas") renderPv();
 }
 function pvPessoasHtml(){
@@ -2907,23 +2973,30 @@ function pvPessoasHtml(){
       <div class="pv-op"><span>Perfil</span><div class="pv-pills">${Object.entries(PV_PERFIL_NOME).map(([k,n])=>`<label><input type="checkbox" name="perfis" value="${k}" ${(p.perfis||(ed?[]:["vendedor"])).includes(k)?"checked":""}><span>${n}</span></label>`).join("")}</div></div>
       <label>Zonas (concelhos ou códigos postais, separados por vírgulas)<input name="zonas" value="${esc((p.zonas||[]).join(", "))}" placeholder="ex.: Felgueiras, 4610"></label>
       <span class="fmut">Cada pré-venda vai para o técnico cuja zona bate com o código postal ou a localidade. Sem zona definida, vai para o primeiro técnico registado.</span>
+      ${pvBonusFormHtml(p)}
+      <label class="pv-consent"><input type="checkbox" name="teste" ${p.teste?"checked":""}><span>Pessoa de <b>TESTE</b> (as suas encomendas ficam marcadas TESTE e não contam nos resultados)</span></label>
       ${ed?`<label class="pv-consent"><input type="checkbox" name="ativo" ${p.ativo!==false?"checked":""}><span>Ativo (desmarque para tirar o acesso)</span></label>`:""}
       <div id="pvErroP" class="pv-erro" role="alert"></div>
       <div class="pv-2"><button type="submit" class="pv-btn pv-prim">${ed?"Guardar":"Registar e criar acesso"}</button>${ed?'<button type="button" class="pv-btn" id="pvNovaP">Registar outra pessoa</button>':""}</div>
     </div></form>
     <section class="bloco"><h4>Equipa · ${PV.pessoas.length}</h4>${PV.pessoas.map(x=>`<div class="pv-pl">
-      <div><b>${esc(x.nome)}</b> ${x.perfis.map(k=>`<span class="pv-chip pv-p-${k}">${esc(PV_PERFIL_NOME[k]||k)}</span>`).join(" ")}${x.ativo?"":' <span class="pv-chip pv-ex">Desativado</span>'}
-        <span class="fmut">${esc(x.email)}${x.zonas?.length?" · "+esc(x.zonas.join(", ")):""} · ${contar(x.email)} encomenda(s)</span></div>
+      <div><b>${esc(x.nome)}</b> ${x.teste?'<span class="pv-chip pv-teste">TESTE</span> ':""}${x.perfis.map(k=>`<span class="pv-chip pv-p-${k}">${esc(PV_PERFIL_NOME[k]||k)}</span>`).join(" ")}${x.ativo?"":' <span class="pv-chip pv-ex">Desativado</span>'}
+        <span class="fmut">${esc(x.email)}${x.zonas?.length?" · "+esc(x.zonas.join(", ")):""} · ${contar(x.email)} encomenda(s)${x.perfis.includes("vendedor")?` · bonificação ${esc(pvPctTxt(x.email))}`:""}</span></div>
       <div class="pv-plb"><button class="pv-lnk" data-pved="${esc(x.email)}">Editar</button>${x.email!==pvEu()?`<button class="pv-lnk" data-pvrepor="${esc(x.email)}">Nova palavra-passe</button>`:""}</div></div>`).join("")}</section>
+    ${pvTesteHtml()}
   </div>`;
 }
 const pvMsgAcesso=s=>`Olá ${s.nome.split(" ")[0]}! Já tens acesso à app CR Telecom (pré-venda): ${location.origin}${location.pathname}\nEmail: ${s.email}\nPalavra-passe provisória: ${s.senha}\nDepois de entrares, muda-a no menu ⋯ → Mudar palavra-passe. Instala a app no ecrã inicial e liga as notificações.`;
 async function pvGuardarPessoa(ev){
   ev.preventDefault(); const f=$("#pvPessoa"), fd=new FormData(f), er=$("#pvErroP"); er.textContent="";
   const novo=!PV.editar, o={nome:String(fd.get("nome")||"").trim(),email:String(fd.get("email")||"").trim().toLowerCase(),telemovel:String(fd.get("telemovel")||"").trim(),
-    perfis:fd.getAll("perfis"),zonas:String(fd.get("zonas")||"").split(",").map(z=>z.trim()).filter(Boolean),ativo:novo?true:!!fd.get("ativo")};
+    perfis:fd.getAll("perfis"),zonas:String(fd.get("zonas")||"").split(",").map(z=>z.trim()).filter(Boolean),ativo:novo?true:!!fd.get("ativo"),teste:!!fd.get("teste")};
   try{
     await pvRpc("pv_pessoa_guardar",{p:o}); PV.senha=null;
+    if(o.perfis.includes("vendedor")&&String(fd.get("pct")||"").trim()){
+      const atual=pvPctAtual(o.email), pct=String(fd.get("pct")).trim(), sobe=!!fd.get("sobe"), desde=String(fd.get("desde")||"").trim()||null;
+      if(!atual||+atual.pct_base!==+pct.replace(",",".")||atual.sobe!==sobe||(desde&&desde!==atual.desde))
+        await pvRpc("pv_bonus_pessoa_guardar",{p_email:o.email,p_pct:pct,p_sobe:sobe,p_desde:desde}); }
     if(novo){ try{ const r=await pvFuncao({acao:"convidar",email:o.email});
         if(r.senha) PV.senha={nome:o.nome,email:o.email,senha:r.senha,tel:o.telemovel.replace(/\D/g,"").slice(-9)};
         else toast("Registado · já tinha acesso com este email"); }
@@ -2949,7 +3022,9 @@ function pvLigar(){
     $("#pvLimpar").onclick=()=>{ if(confirm("Apagar o que está escrito?")){ pvLS.gravar("pv_rascunho",null); PV.gps=null; renderPv(); } };
     if(PV.gps) setTimeout(pvMostrarGps,30); }
   const v=$("#pvVist"); if(v){ v.oninput=()=>pvLS.gravar("pv_vist_"+PV.aberta,pvLerVistoria(v)); v.querySelectorAll("[data-pvdec]").forEach(b=>b.onclick=()=>pvAcao("decidir",b.dataset.pvdec)); }
-  const vd=$("#pvVenda"); if(vd){ vd.oninput=()=>{ const fd=new FormData(vd); pvLS.gravar("pv_venda_"+PV.aberta,Object.fromEntries(fd.entries())); }; }
+  const vd=$("#pvVenda"); if(vd){ vd.oninput=()=>{ const fd=new FormData(vd), o=Object.fromEntries(fd.entries()); pvLS.gravar("pv_venda_"+PV.aberta,o);
+    const z=$("#pvEsc"); if(z) z.textContent=pvEscalaoNome(o.pvp,o.alarme); }; }
+  pvLigarExtra(c);
   c.querySelectorAll("[data-pvacao]").forEach(b=>b.onclick=()=>pvAcao(b.dataset.pvacao));
   const vb=$("#pvVoltar"); if(vb) vb.onclick=()=>{ PV.sub="lista"; PV.aberta=null; renderPv(); };
   const pf=$("#pvPessoa"); if(pf) pf.onsubmit=pvGuardarPessoa;
@@ -2980,6 +3055,224 @@ function pvMudarSenha(){
     if(a.length<8) return er.textContent="Pelo menos 8 caracteres."; if(a!==b) return er.textContent="As duas não são iguais.";
     try{ await pvPedido("/auth/v1/user",{method:"PUT",body:JSON.stringify({password:a})}); v.remove(); toast("Palavra-passe mudada ✓"); }
     catch(e){ er.textContent=/same|different/i.test(e.message)?"Escolha uma palavra-passe diferente da atual.":e.message; } };
+}
+
+// ====================================================================== COMISSÕES MMCI E BONIFICAÇÕES (21/10/2026)
+// Os valores vêm só das funções pv_resultados (gestor) e pv_meus_bonus (cada vendedor, só as suas). A PROEF e os técnicos não os recebem.
+const pvEur=n=>Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"});
+const pvPct=n=>`${Number(n||0).toLocaleString("pt-PT",{maximumFractionDigits:2})}%`;
+const PV_MESES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const pvMesNome=m=>{ const [a,b]=String(m).split("-"); return (PV_MESES[+b-1]||"").replace(/^./,c=>c.toUpperCase())+" "+a; };
+const pvMesMais=(m,d)=>{ const [a,b]=m.split("-").map(Number), x=new Date(a,b-1+d,1); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}`; };
+const pvDia=iso=>iso?`${String(iso).slice(8,10)}/${String(iso).slice(5,7)}`:"";
+const PV_ESTPAG={a_receber:["aguarda MMCI","pv-e1"],por_pagar:["MMCI pagou · por pagar","pv-e4"],pago:["pago","pv-e2"],anulada:["anulada","pv-ex"],a_descontar:["a descontar","pv-ex"]};
+function pvEscalaoNome(pvp,al){
+  const v=parseFloat(String(pvp??"").replace("€","").replace(",",".")), t=[];
+  if(isFinite(v)&&v>0) t.push(v<=33?"Até 33 €":v<=47?"De 33 € a 47 €":"Superior a 47 €");
+  if(al===true||al==="on") t.push("Alarme");
+  return t.join(" + ")||"—";
+}
+function pvPctAtual(email){
+  const h=PV.bp?.pessoas?.[email]; if(!h||!h.length) return null; const hoje=new Date().toISOString().slice(0,10);
+  return h.find(x=>x.desde<=hoje)||h[h.length-1];
+}
+function pvPctTxt(email){ const a=pvPctAtual(email), base=PV.bp?.regras?.pct_base??30;
+  return a?`${pvPct(a.pct_base)}${a.sobe?" + escalões":" fixa"}${a.desde>new Date().toISOString().slice(0,10)?` (a partir de ${pvDia(a.desde)})`:""}`:`${pvPct(base)} + escalões (padrão)`; }
+function pvEscaloesTxt(base,sobe){
+  const esc=PV.bp?.regras?.escaloes||[{min:1,mais:0},{min:6,mais:5},{min:11,mais:10}];
+  return esc.map((x,i)=>{ const ate=esc[i+1]?esc[i+1].min-1:null; return `<div><span>${x.min}${ate?`–${ate}`:"+"} vendas</span><b>${pvPct(+base+(sobe?+x.mais:0))}</b></div>`; }).join("");
+}
+function pvBonusFormHtml(p){
+  if(!pvGestor()) return "";
+  const a=p.email?pvPctAtual(p.email):null, base=a?a.pct_base:(PV.bp?.regras?.pct_base??30), sobe=a?a.sobe:true;
+  return `<div class="pv-bform"><div class="pv-bfc"><b>Bonificação do vendedor</b><span class="pv-chip pv-lock">🔒 só o gestor</span></div>
+    <span class="fmut">Só conta se o perfil Vendedor estiver marcado. Percentagem da comissão MMCI de cada venda instalada.</span>
+    <div class="pv-2"><label>% base da comissão MMCI<input name="pct" inputmode="decimal" value="${esc(String(base).replace(".",","))}"></label>
+      <label>Em vigor a partir de<input name="desde" type="date" value="" placeholder="hoje"></label></div>
+    <label class="pv-consent"><input type="checkbox" name="sobe" ${sobe?"checked":""}><span>Sobe com as vendas instaladas do mês (escalões do plano)</span></label>
+    <div class="pv-esc3" id="pvEsc3">${pvEscaloesTxt(base,sobe)}</div>
+    <span class="fmut">Mudar a % não altera vendas já instaladas: cada venda guarda a % do dia em que foi instalada.</span></div>`;
+}
+
+// ---------- venda teste (gestor, em Pessoas)
+const PV_CONTAS_TESTE=[["vendedor","Vendedor Teste","cmgrtelecom+vendedor.teste@gmail.com"],["tecnico","Técnico Teste","cmgrtelecom+tecnico.teste@gmail.com"],["proef","PROEF Teste","cmgrtelecom+proef.teste@gmail.com"]];
+function pvTesteHtml(){
+  const pes=(PV.pessoas||[]).filter(x=>x.teste), ativos=pes.filter(x=>x.ativo), nEnc=PV.enc.filter(e=>e.teste).length, c=PV.contasTeste;
+  return `<section class="bloco pv-tbloco"><h4>Venda teste <span class="pv-chip pv-teste">TESTE</span></h4><div class="pv-in">
+    <p>Três contas de teste fazem uma venda completa, do vendedor à PROEF. As encomendas de teste levam a marca TESTE, nunca vão para pessoas reais nem entram nos resultados, e apagam-se no fim.</p>
+    ${c?`<div class="pv-aviso ok"><span><b>Contas de teste prontas.</b> Entre com cada uma noutra janela (ou no telemóvel) para fazer os passos:</span>
+      <div class="pv-tcontas">${c.map(x=>`<div><b>${esc(x.nome)}</b><span class="mono">${esc(x.email)}</span><span class="mono">${esc(x.senha||"(já tinha acesso)")}</span></div>`).join("")}</div>
+      <button class="sec" type="button" data-copiar="${esc(c.map(x=>`${x.nome}: ${x.email} / ${x.senha||"-"}`).join("\n"))}">Copiar</button></div>`:""}
+    <ol class="pv-tpassos"><li><b>Vendedor Teste</b> faz a pré-venda de um cliente fictício (telefone 900 000 000).</li>
+      <li><b>Técnico Teste</b> recebe o alerta, começa e aprova a vistoria.</li>
+      <li><b>PROEF Teste</b> pega na venda e conclui com Conta de serviço S00000000001 e PVP 39,99 €.</li>
+      <li><b>Gestor</b> abre a encomenda e carrega em "Simular instalação".</li>
+      <li>Conferir: Bonificações do Vendedor Teste (30,00 €) e Resultados com "Ver dados de teste" (comissão 100 €, fica 70 €).</li></ol>
+    <span class="fmut">${ativos.length} conta(s) de teste ativas · ${nEnc} encomenda(s) de teste</span>
+    <div class="pv-2"><button type="button" class="pv-btn pv-prim" id="pvCriarTeste">${ativos.length?"Repor contas de teste":"Criar contas de teste"}</button>
+      <button type="button" class="pv-btn pv-mau" id="pvApagarTeste" ${pes.length||nEnc?"":"disabled"}>Apagar dados de teste</button></div>
+  </div></section>`;
+}
+async function pvCriarContasTeste(){
+  if(PV.ocupado) return; PV.ocupado=true; const out=[];
+  try{
+    for(const [perfil,nome,email] of PV_CONTAS_TESTE){
+      await pvRpc("pv_pessoa_guardar",{p:{email,nome,perfis:[perfil],zonas:[],ativo:true,teste:true}});
+      let r=await pvFuncao({acao:"convidar",email}); if(r.existe) r=await pvFuncao({acao:"repor",email});
+      out.push({nome,email,senha:r.senha||""});
+    }
+    await pvRpc("pv_bonus_pessoa_guardar",{p_email:PV_CONTAS_TESTE[0][2],p_pct:"30",p_sobe:true,p_desde:null});
+    PV.contasTeste=out; toast("Contas de teste prontas ✓");
+  }catch(e){ toast("⚠ "+e.message); }
+  finally{ PV.ocupado=false; await pvCarregarPessoas(); }
+}
+async function pvApagarTeste(){
+  if(PV.ocupado||!confirm("Apagar todas as encomendas TESTE e desativar as contas de teste?")) return; PV.ocupado=true;
+  try{ let a=0; try{ a=(await pvFuncao({acao:"apagar_teste"})).acessos||0; }catch(e){ console.warn(e.message); }
+    const r=await pvRpc("pv_apagar_teste",{}); PV.contasTeste=null;
+    toast(`Apagado: ${r.encomendas} encomenda(s) de teste · ${r.pessoas} conta(s) desativada(s)${a?` · ${a} acesso(s) removido(s)`:""}`);
+    await pvRecarregar(); }
+  catch(e){ toast("⚠ "+e.message); }
+  finally{ PV.ocupado=false; await pvCarregarPessoas(); }
+}
+
+// ---------- navegação de mês (Resultados e Bonificações)
+function pvMesNav(){ const agora=new Date().toISOString().slice(0,7);
+  return `<div class="pv-mesnav"><button class="pv-lnk" data-pvmes="-1" aria-label="Mês anterior">‹</button><h3 class="pv-h">${pvMesNome(PV.mes)}</h3>
+    <button class="pv-lnk" data-pvmes="1" aria-label="Mês seguinte" ${PV.mes>=agora?"disabled":""}>›</button></div>`; }
+
+// ---------- RESULTADOS (só o gestor)
+async function pvCarregarRes(){
+  try{ PV.res=await pvRpc("pv_resultados",{p_mes:PV.mes+"-01",p_teste:PV.verTeste}); PV.sel.clear(); }
+  catch(e){ PV.res={erro:e.message}; }
+  if(VISTA==="pv"&&PV.sub==="res") renderPv();
+}
+function pvResHtml(){
+  const r=PV.res; if(!r) return `<div class="vazio"><b>A carregar os resultados…</b></div>`;
+  if(r.erro) return `<div class="vazio"><b>Não consegui ler os resultados.</b><br>${esc(r.erro)}${/function|PGRST202|não encontr/i.test(r.erro)?"<br>Falta correr o ficheiro prevenda_comissoes.sql no Supabase.":""}</div>`;
+  const t=r.totais, pctR=t.comissao?Math.round(100*t.resultado/t.comissao):0;
+  const est=x=>{ const [n,c]=PV_ESTPAG[x.estado]||[x.estado,""]; return `<span class="pv-chip ${c}">${esc(n)}${x.estado==="pago"&&x.pago_em?" "+pvDia(x.pago_em):""}</span>${+x.acerto>0?` <span class="pv-chip pv-e4">acerto ${pvEur(x.acerto)}</span>`:""}`; };
+  const sel=PV.sel.size;
+  return `<div class="pv-res">
+    <div class="pv-rcab">${pvMesNav()}<div class="pv-racoes">
+      <label class="pv-consent"><input type="checkbox" id="pvVerTeste" ${PV.verTeste?"checked":""}><span>Ver dados de teste</span></label>
+      <button class="pv-btn" id="pvExport" ${r.linhas.length?"":"disabled"}>⬇ Excel (CSV)</button></div></div>
+    <div class="pv-aviso"><span>🔒 <b>Só a CR Telecom vê esta página.</b> Vendedores veem apenas a sua bonificação; PROEF e técnicos não veem valores.${PV.verTeste?" · <b>A mostrar só dados de TESTE.</b>":""}</span></div>
+    <div class="pv-kpis">
+      <div class="kpi"><div class="l">Vendas instaladas</div><div class="v">${t.instaladas}</div><div class="s">${t.acima33} acima de 33 € · ${t.alarmes} com alarme</div></div>
+      <div class="kpi"><div class="l">Comissão MMCI</div><div class="v">${pvEur(t.comissao)}</div><div class="s">recebido ${pvEur(t.mmci_recebido)} · a receber ${pvEur(t.mmci_a_receber)}</div></div>
+      <div class="kpi"><div class="l">Bonificações</div><div class="v">${pvEur(t.bonus)}</div><div class="s">pago ${pvEur(t.pago_vendedores)} · por pagar ${pvEur(t.por_pagar)}</div></div>
+      <div class="kpi ok"><div class="l">Fica à CR Telecom</div><div class="v">${pvEur(t.resultado)}</div><div class="s">${pctR}% da comissão</div></div>
+      <div class="kpi"><div class="l">A caminho</div><div class="v">${t.a_caminho_n}</div><div class="s">vendidas por instalar · ${pvEur(t.a_caminho_comissao)}</div></div></div>
+    <section class="bloco"><h4>Por vendedor</h4>${r.vendedores.length?`<div class="pv-tab"><table><thead><tr><th>Vendedor</th><th>Instaladas</th><th title="até 33 € / 33–47 € / mais de 47 € / alarme">≤33 · 33–47 · &gt;47 · alarme</th><th class="n">Comissão MMCI</th><th class="n">%</th><th class="n">Bonificação</th><th class="n">Fica à CR</th></tr></thead><tbody>
+      ${r.vendedores.map(v=>`<tr><td><b>${esc(v.nome)}</b></td><td>${v.instaladas}</td><td class="mono">${v.escaloes.ate33} · ${v.escaloes.de33a47} · ${v.escaloes.mais47} · ${v.escaloes.alarme}</td><td class="n">${pvEur(v.comissao)}</td><td class="n">${pvPct(v.pct)}</td><td class="n">${pvEur(v.bonus)}</td><td class="n"><b>${pvEur(v.resultado)}</b></td></tr>`).join("")}
+      <tr class="tot"><td>Total</td><td>${t.instaladas}</td><td></td><td class="n">${pvEur(t.comissao)}</td><td class="n">${t.comissao?pvPct(Math.round(1000*t.bonus/t.comissao)/10):"—"}</td><td class="n">${pvEur(t.bonus)}</td><td class="n">${pvEur(t.resultado)}</td></tr></tbody></table></div>`
+      :`<div class="item fmut">Sem vendas instaladas em ${pvMesNome(PV.mes).toLowerCase()}${PV.verTeste?" (teste)":""}.</div>`}</section>
+    ${r.linhas.length?`<section class="bloco"><h4>Venda a venda</h4>
+      <div class="pv-selbar"><label class="pv-consent"><input type="checkbox" id="pvSelTodas" ${sel&&sel===r.linhas.length?"checked":""}><span>${sel?`${sel} selecionada(s)`:"Selecionar"}</span></label>
+        <div class="pv-plb"><button class="pv-btn" data-pvmarcar="mmci_pago" ${sel?"":"disabled"}>MMCI pagou</button><button class="pv-btn pv-ok" data-pvmarcar="pago" ${sel?"":"disabled"}>Pago ao vendedor</button>
+        <details class="pv-mais"><summary class="pv-lnk">Mais…</summary><div><button class="pv-lnk" data-pvmarcar="mmci_desfazer" ${sel?"":"disabled"}>Desfazer MMCI</button><button class="pv-lnk" data-pvmarcar="pago_desfazer" ${sel?"":"disabled"}>Desfazer pagamento</button>
+          <input id="pvMotAnul" placeholder="Motivo da anulação"><button class="pv-lnk pv-mau" data-pvmarcar="anular" ${sel?"":"disabled"}>Anular (MMCI estornou)</button><button class="pv-lnk" data-pvmarcar="reativar" ${sel?"":"disabled"}>Reativar</button></div></details></div></div>
+      <div class="pv-tab"><table><thead><tr><th></th><th>Nº</th><th>Cliente</th><th>Vendedor</th><th>Escalão</th><th class="n">PVP</th><th class="n">Comissão</th><th class="n">%</th><th class="n">Bonificação</th><th class="n">Fica à CR</th><th>MMCI paga (N+16)</th><th>Estado</th></tr></thead><tbody>
+      ${r.linhas.map(x=>`<tr class="${x.anulada?"anul":""}"><td><input type="checkbox" data-pvsel="${x.id}" ${PV.sel.has(x.id)?"checked":""} aria-label="Selecionar ${esc(x.numero)}"></td>
+        <td><button class="pv-lnk mono" data-pvid="${x.id}">${esc(x.numero)}</button></td><td>${esc(x.cliente)}<span class="fmut"> · ${esc(x.localidade||"")}</span></td><td>${esc(x.vendedor)}</td>
+        <td>${esc(x.escalao||"")}${x.alarme&&x.escalao!=="Só alarme"?" + alarme":""}</td><td class="n">${x.pvp!=null?pvEur(x.pvp):"—"}</td>
+        <td class="n">${pvEur(x.comissao)}</td><td class="n">${pvPct(x.pct)}</td><td class="n">${pvEur(x.bonus)}</td><td class="n">${pvEur(x.resultado)}</td>
+        <td>${x.mmci_pago_em?`recebido ${pvDia(x.mmci_pago_em)}`:`previsto ${pvDia(x.previsto)}`}</td><td>${est(x)}</td></tr>`).join("")}</tbody></table></div></section>`:""}
+    ${r.a_caminho.length?`<section class="bloco"><h4>Vendidas, à espera da instalação</h4>${r.a_caminho.map(x=>`<div class="pv-pl"><div><b>${esc(x.numero)} · ${esc(x.cliente)}</b><span class="fmut">${esc(x.vendedor)} · ${esc(x.escalao||"")}</span></div><b>${pvEur(x.comissao)}</b></div>`).join("")}</section>`:""}
+    ${pvCfgHtml(r.config)}
+  </div>`;
+}
+function pvCfgHtml(c){
+  const m=c?.mmci||{}, b=c?.bonus||{}, e=m.escaloes||[], be=b.escaloes||[];
+  const v=(x,d)=>esc(String(x??d).replace(".",","));
+  return `<details class="bloco pv-cfg"><summary><h4>Tabela MMCI e escalões dos vendedores</h4></summary>
+    <form id="pvCfg" class="pv-in">
+      <div class="pv-esc3 pv-cfgt"><div><span>Até ${v(e[0]?.ate,33)} €</span><b>${pvEur(e[0]?.valor)}</b></div><div><span>${v(e[0]?.ate,33)}–${v(e[1]?.ate,47)} €</span><b>${pvEur(e[1]?.valor)}</b></div><div><span>Mais de ${v(e[1]?.ate,47)} €</span><b>${pvEur(e[2]?.valor)}</b></div><div><span>Alarme</span><b>${pvEur(m.alarme)}</b></div></div>
+      <span class="fmut">PVP líquido sem IVA. Alarme com pacote soma as duas comissões. Pagamento da MMCI ${m.dias_pagamento??16} dias depois do registo (N+16).</span>
+      <div class="pv-cfgg">
+        <label>Limite 1 (€)<input name="lim1" inputmode="decimal" value="${v(e[0]?.ate,33)}"></label><label>Limite 2 (€)<input name="lim2" inputmode="decimal" value="${v(e[1]?.ate,47)}"></label>
+        <label>Comissão até limite 1<input name="c1" inputmode="decimal" value="${v(e[0]?.valor,50)}"></label><label>Até limite 2<input name="c2" inputmode="decimal" value="${v(e[1]?.valor,100)}"></label>
+        <label>Acima do limite 2<input name="c3" inputmode="decimal" value="${v(e[2]?.valor,140)}"></label><label>Alarme<input name="ca" inputmode="decimal" value="${v(m.alarme,140)}"></label>
+        <label>Dias até a MMCI pagar<input name="dias" inputmode="numeric" value="${v(m.dias_pagamento,16)}"></label><label>% base padrão<input name="base" inputmode="decimal" value="${v(b.pct_base,30)}"></label>
+        <label>2.º escalão a partir de (vendas)<input name="n2" inputmode="numeric" value="${v(be[1]?.min,6)}"></label><label>… soma (pontos %)<input name="m2" inputmode="decimal" value="${v(be[1]?.mais,5)}"></label>
+        <label>3.º escalão a partir de (vendas)<input name="n3" inputmode="numeric" value="${v(be[2]?.min,11)}"></label><label>… soma (pontos %)<input name="m3" inputmode="decimal" value="${v(be[2]?.mais,10)}"></label></div>
+      <span class="fmut">Mudar a tabela só vale para vendas instaladas daqui em diante. Mudar os escalões recalcula o mês em curso.</span>
+      <div id="pvErroC" class="pv-erro" role="alert"></div><button type="submit" class="pv-btn pv-prim">Guardar tabela</button></form></details>`;
+}
+async function pvGuardarCfg(ev){
+  ev.preventDefault(); const fd=new FormData(ev.target), n=k=>{ const x=parseFloat(String(fd.get(k)||"").replace(",",".")); if(!isFinite(x)) throw new Error("Valor inválido: "+k); return x; }, er=$("#pvErroC");
+  try{ if(!(n("lim1")<n("lim2"))) throw new Error("O limite 1 tem de ser menor que o limite 2.");
+    const mmci={escaloes:[{ate:n("lim1"),nome:`Até ${fd.get("lim1")} €`,valor:n("c1")},{ate:n("lim2"),nome:`De ${fd.get("lim1")} € a ${fd.get("lim2")} €`,valor:n("c2")},{ate:null,nome:`Superior a ${fd.get("lim2")} €`,valor:n("c3")}],alarme:n("ca"),dias_pagamento:Math.round(n("dias"))};
+    const bonus={pct_base:n("base"),escaloes:[{min:1,mais:0},{min:Math.round(n("n2")),mais:n("m2")},{min:Math.round(n("n3")),mais:n("m3")}]};
+    if(!(bonus.escaloes[1].min>1&&bonus.escaloes[2].min>bonus.escaloes[1].min)) throw new Error("Os escalões têm de subir (ex.: 6 e 11).");
+    await pvRpc("pv_config_guardar",{p_chave:"mmci",p_valor:mmci}); await pvRpc("pv_config_guardar",{p_chave:"bonus",p_valor:bonus});
+    toast("Tabela guardada ✓"); await pvCarregarRes(); }
+  catch(e){ if(er) er.textContent=e.message; }
+}
+async function pvMarcar(acao){
+  const ids=[...PV.sel]; if(!ids.length||PV.ocupado) return; const mot=($("#pvMotAnul")?.value||"").trim();
+  const nomes={mmci_pago:"marcar como pagas pela MMCI",pago:"marcar como pagas ao vendedor",anular:"anular",reativar:"reativar",mmci_desfazer:"desfazer o pagamento da MMCI",pago_desfazer:"desfazer o pagamento ao vendedor"};
+  if(acao==="anular"&&mot.length<3) return toast("Escreva o motivo da anulação.");
+  if(!confirm(`${ids.length} venda(s): ${nomes[acao]}?`)) return; PV.ocupado=true;
+  try{ const r=await pvRpc("pv_valores_marcar",{p_ids:ids,p_acao:acao,p_data:null,p_motivo:mot||null});
+    toast(acao==="pago"&&r.n<ids.length?`${r.n} marcada(s) · as outras ainda não foram pagas pela MMCI`:`${r.n} atualizada(s) ✓`); }
+  catch(e){ toast("⚠ "+e.message); }
+  finally{ PV.ocupado=false; await pvCarregarRes(); }
+}
+function pvExportar(){
+  const r=PV.res; if(!r?.linhas?.length) return;
+  const n=x=>x==null||x===""?"":String(Math.round(+x*100)/100).replace(".",","), d=x=>x?String(x).slice(0,10).split("-").reverse().join("/"):"";
+  const q=x=>{ const s=String(x??""); return /[;"\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; };
+  const L=[[`Resultados da pré-venda P2P · ${pvMesNome(r.mes)}${r.teste?" · TESTE":""} · CR Telecom (confidencial)`],[],
+    ["Nº","Cliente","Localidade","Vendedor","Escalão MMCI","Alarme","PVP líquido (sem IVA)","Comissão pacote","Comissão alarme","Comissão MMCI","% vendedor","Bonificação","Fica à CR Telecom","Estado","Registo (N)","Instalada","MMCI paga prevista (N+16)","MMCI paga em","Pago ao vendedor em","Valor pago","Motivo anulação"]];
+  for(const x of r.linhas) L.push([x.numero,x.cliente,x.localidade,x.vendedor,x.escalao,x.alarme?"sim":"não",n(x.pvp),n(x.comissao_pacote),n(x.comissao_alarme),n(x.comissao),n(x.pct),n(x.bonus),n(x.resultado),(PV_ESTPAG[x.estado]||[x.estado])[0],d(x.registo),d(x.instalada),d(x.previsto),d(x.mmci_pago_em),d(x.pago_em),n(x.pago_valor),x.motivo||""]);
+  L.push([],["Por vendedor"],["Vendedor","Instaladas","Até 33 €","33–47 €","Mais de 47 €","Alarme","Comissão MMCI","%","Bonificação","Fica à CR Telecom"]);
+  for(const v of r.vendedores) L.push([v.nome,v.instaladas,v.escaloes.ate33,v.escaloes.de33a47,v.escaloes.mais47,v.escaloes.alarme,n(v.comissao),n(v.pct),n(v.bonus),n(v.resultado)]);
+  const t=r.totais; L.push(["Total",t.instaladas,"","","",t.alarmes,n(t.comissao),"",n(t.bonus),n(t.resultado)]);
+  const blob=new Blob(["﻿"+L.map(l=>l.map(q).join(";")).join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`Resultados_PreVenda_${r.mes}${r.teste?"_TESTE":""}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+}
+
+// ---------- AS MINHAS BONIFICAÇÕES (vendedor)
+async function pvCarregarBonus(){
+  try{ PV.bon=await pvRpc("pv_meus_bonus",{p_mes:PV.mes+"-01"}); }catch(e){ PV.bon={erro:e.message}; }
+  if(VISTA==="pv"&&PV.sub==="bonus") renderPv();
+}
+function pvBonusHtml(){
+  const b=PV.bon; if(!b) return `<div class="vazio"><b>A carregar as suas bonificações…</b></div>`;
+  if(b.erro) return `<div class="vazio"><b>Não consegui ler as bonificações.</b><br>${esc(b.erro)}</div>`;
+  const esc3=b.escaloes||[], max=Math.max(15,(esc3[esc3.length-1]?.min||11)+4), n=b.instaladas;
+  const est=x=>{ if(x.estado==="pago") return [`pago ${pvDia(x.pago_em)}`,"pv-e2"]; if(x.estado==="anulada") return ["anulada","pv-ex"];
+    if(x.estado==="a_descontar") return ["a descontar","pv-ex"]; return [`a receber${x.previsto?" · "+pvDia(x.previsto):""}`,"pv-e1"]; };
+  return `<div class="pv-bon">${pvMesNav()}
+    <div class="pv-bcard"><span>As suas bonificações do mês</span><b>${pvEur(b.total)}</b><div><span>Pago <b>${pvEur(b.pago)}</b></span><span>A receber <b>${pvEur(b.a_receber)}</b></span></div></div>
+    <section class="bloco"><div class="pv-in"><div class="pv-bfc"><b>O seu escalão: ${pvPct(b.pct)}</b><span class="fmut">${n} venda${n===1?"":"s"} instalada${n===1?"":"s"}</span></div>
+      ${b.sobe?`<div class="pv-prog" role="img" aria-label="${n} vendas instaladas"><i style="width:${Math.min(100,100*n/max)}%"></i>${esc3.slice(1).map(x=>`<s style="left:${100*(x.min-0.5)/max}%"></s>`).join("")}</div>
+      <div class="pv-esc3">${esc3.map((x,i)=>`<div class="${b.pct==x.pct?"on":""}"><span>${x.min}${esc3[i+1]?`–${esc3[i+1].min-1}`:"+"} vendas</span><b>${pvPct(x.pct)}</b></div>`).join("")}</div>
+      ${b.proximo?`<span class="pv-meta">Mais ${b.proximo.faltam} venda${b.proximo.faltam>1?"s":""} instalada${b.proximo.faltam>1?"s":""} este mês e passa a ${pvPct(b.proximo.pct)} em todas.</span>`:`<span class="pv-meta">Está no escalão mais alto ✓</span>`}`
+      :`<span class="fmut">Percentagem fixa: não sobe com o número de vendas.</span>`}</div></section>
+    <section class="bloco"><h4>Venda a venda</h4>${b.vendas.length?b.vendas.map(x=>{ const [t,c]=est(x); return `<div class="pv-pl"><div><b>${esc(x.numero)} · ${esc(x.cliente)}</b>${x.teste?' <span class="pv-chip pv-teste">TESTE</span>':""}
+        <span class="fmut">Escalão ${esc(x.escalao||"")}${x.alarme&&x.escalao!=="Só alarme"?" + alarme":""} · instalada ${pvDia(x.instalada)}</span></div>
+        <div class="pv-bv"><b>${x.estado==="a_descontar"?"−"+pvEur(-x.acerto):pvEur(x.bonus)}</b><span class="pv-chip ${c}">${esc(t)}</span>${+x.acerto>0?`<span class="pv-chip pv-e4">+ ${pvEur(x.acerto)} de escalão</span>`:""}</div></div>`; }).join("")
+      :`<div class="item fmut">Ainda sem vendas instaladas neste mês.</div>`}</section>
+    ${b.a_caminho.length?`<section class="bloco"><h4>A caminho (contam depois de instaladas)</h4>${b.a_caminho.map(x=>`<div class="pv-pl"><div><b>${esc(x.numero)} · ${esc(x.cliente)}</b><span class="fmut">${esc(PV_EST[x.estado]?.n||x.estado)}</span></div><span class="fmut">—</span></div>`).join("")}</section>`:""}
+    <span class="fmut pv-nota">Vê só as suas vendas. A bonificação é paga depois de a venda estar instalada e de a MMCI a pagar à CR Telecom (cerca de 16 dias depois do registo). Se a MMCI anular uma venda, o valor é descontado no pagamento seguinte.</span>
+  </div>`;
+}
+
+// ---------- eventos dos ecrãs novos
+function pvLigarExtra(c){
+  c.querySelectorAll("[data-pvmes]").forEach(b=>b.onclick=()=>{ PV.mes=pvMesMais(PV.mes,+b.dataset.pvmes); if(PV.sub==="res"){ PV.res=null; pvCarregarRes(); } else { PV.bon=null; pvCarregarBonus(); } renderPv(); });
+  const vt=$("#pvVerTeste"); if(vt) vt.onchange=()=>{ PV.verTeste=vt.checked; PV.res=null; renderPv(); pvCarregarRes(); };
+  const ex=$("#pvExport"); if(ex) ex.onclick=pvExportar;
+  c.querySelectorAll("[data-pvsel]").forEach(b=>b.onchange=()=>{ b.checked?PV.sel.add(b.dataset.pvsel):PV.sel.delete(b.dataset.pvsel); renderPv(); });
+  const st=$("#pvSelTodas"); if(st) st.onchange=()=>{ PV.sel=new Set(st.checked?PV.res.linhas.map(x=>x.id):[]); renderPv(); };
+  c.querySelectorAll("[data-pvmarcar]").forEach(b=>b.onclick=()=>pvMarcar(b.dataset.pvmarcar));
+  const cf=$("#pvCfg"); if(cf) cf.onsubmit=pvGuardarCfg;
+  const ct=$("#pvCriarTeste"); if(ct) ct.onclick=pvCriarContasTeste;
+  const at=$("#pvApagarTeste"); if(at) at.onclick=pvApagarTeste;
+  const pf=$("#pvPessoa"); if(pf&&$("#pvEsc3")) pf.addEventListener("input",()=>{ const fd=new FormData(pf); $("#pvEsc3").innerHTML=pvEscaloesTxt(parseFloat(String(fd.get("pct")||"0").replace(",","."))||0,!!fd.get("sobe")); });
 }
 
 $("#login").onsubmit=async e=>{
