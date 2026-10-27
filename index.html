@@ -1085,6 +1085,7 @@ function renderIni(){
       <button class="telPrinc" id="macroBtn" onclick="recolherDia()"><span>▶ Recolher o dia</span><small>${whLer()?"MacroDroid abre o Field Service, lê tudo e volta aqui":"toque para ligar ao MacroDroid (uma vez)"}</small></button>
       <div class="telLinks"><button onclick="lerTelemovel()">📋 Ler recolhido</button>${whLer()?'<button onclick="configurarWebhook()">⚙ MacroDroid</button>':""}</div>
       <div class="telMsg" id="capAviso" ${CAP_MSG?"":"hidden"}>${CAP_MSG}</div>
+      ${(()=>{ const f=dia?dia.ots.filter(semCoordCli):[]; return f.length?`<div class="dx-aviso">📍 ${f.length} OT${f.length>1?"s":""} de hoje sem coordenadas do cliente (${f.map(o=>esc(o.campos["Nome de cliente"]||o.campos["Nº OT"])).join(", ")}): sem rota PLC→cliente. Toque em ▶ Recolher o dia para as voltar a ler.</div>`:""; })()}
     </div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%;background:${pct>=100?"var(--ok)":pct>=80?"var(--warn)":"var(--bad)"}"></i></div>
@@ -1137,7 +1138,7 @@ function render(){
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
           <div class="c">${realce(c["Nome de cliente"]||"(sem nome)",q)}</div>
           <div class="m"><span class="mono">${realce(c["Nº OT"]||"",q)}</span> · ${esc(c["Tipo de OT"]||"")}</div>
-          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
+          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
   $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
@@ -1584,7 +1585,7 @@ function abrir(data,id){
   ABERTA={d,o}; TAB="det";
   const c=o.campos;
   $("#fTitulo").textContent=c["Nome de cliente"]||c["Nº OT"];
-  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}`;
+  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}`;
   $("#fundo").hidden=false; $("#ficha").hidden=false; desenharFicha(); $("#fFechar").focus();
 }
 function fechar(){ $("#fundo").hidden=true; $("#ficha").hidden=true; ABERTA=null; }
@@ -1603,6 +1604,8 @@ function plcCliente(c){
 }
 // distância PLC–cliente acima de 250 m (em linha reta): "" se não houver as duas coordenadas ou se estiver dentro do limite
 const DX_LIMITE=250;
+// OT sem coordenadas do cliente (Latitude/Longitude do ecrã "Exibir detalhes") mas com PLC: a rota PLC→cliente fica incompleta
+function semCoordCli(o){ const c=o&&o.campos||{}; if(!c.PLC||o.saiu) return false; if(o.rapida&&!o.completa) return false; return !plcCliente(c).cli; }
 function distExcessiva(c){ const p=plcCliente(c||{}); if(!p.plc||!p.cli) return ""; const m=axDist(p.plc,p.cli)*1000; return m>DX_LIMITE?p.dist:""; }
 // ---------- ações da OT: faixa de cartões com informação; segurar um cartão para mudar a ordem (guardada no telemóvel)
 let AQUI=null, AQUI_PEDIDO=false, AX=null;
@@ -1645,6 +1648,9 @@ function axCartoes(d,o,loc){
         :`<div><span class="ax-big">≈ ${pc.dist}</span> <span class="ax-lin">em linha reta · ≈ ${Math.max(1,Math.round(k*1000/80))} min a pé</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}<div class="ax-lin">Ajuda a estimar o cabo de drop.</div>${dx?`<div class="dx-aviso">📏 Distância excessiva (mais de ${DX_LIMITE} m): confirmar as coordenadas do PLC e do cliente no Field Service.</div>`:""}`}; }
   else if(pc.cli&&!pc.plc&&c.PLC) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. PLC",t:"PLC ⟷ casa do cliente",
     h:()=>`<div class="ax-av">O Field Service não tem a Latitude/Longitude deste PLC, por isso não há rota nem distância.</div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}`};
+  else if(!pc.cli&&pc.plc) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. cliente",x:true,t:"PLC ⟷ casa do cliente (pela morada)",
+    url:mor?`https://www.google.com/maps/dir/?api=1&origin=${pc.plc[0]},${pc.plc[1]}&destination=${encodeURIComponent(mor)}&travelmode=driving`:undefined,b:"Ver rota pela morada",
+    h:()=>`<div class="dx-aviso">📍 Faltam as coordenadas da casa do cliente: o ecrã “Exibir detalhes” desta OT não foi lido. Toque em ▶ Recolher o dia (macro v10) para a voltar a ler.</div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${mor?`<div class="ax-lin">Rota provisória até à morada: ${esc(mor)}</div>`:""}`};
   if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
   const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
   if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
