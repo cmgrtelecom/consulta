@@ -602,6 +602,14 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .tr-fogos{background:#111;color:#fff;border-radius:6px;font:700 10.5px/16px var(--f-body);text-align:center}
 .tr-fonte{font-size:11px}
 @media (max-width:560px){.tr-mapa{height:calc(100vh - 260px);min-height:380px}}
+.tr-coord{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;background:var(--surface-2);border-radius:10px;padding:6px 10px;font-size:13.5px}
+.tr-coord span{flex:1 1 auto}
+.tr-coord a.pv-lnk{text-decoration:none;display:inline-flex;align-items:center}
+.tr-porta{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:8px;align-items:end;animation:pvEntra .2s ease-out}
+.tr-porta[hidden]{display:none}
+.tr-porta label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+.tr-porta input{font:16px var(--f-body);padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);min-width:0}
+@media (max-width:480px){.tr-porta{grid-template-columns:100px minmax(0,1fr)}.tr-porta button{grid-column:1/-1}}
 </style>
 </head>
 <body class="sem-sessao">
@@ -3392,7 +3400,7 @@ const TR_MARCAR=["ausente","prospectado","oportunidade","sem_interesse","cliente
 const TR_ZONAS={F:"Felgueiras",L:"Lixa",A:"Fafe"};
 const TR_IR={Felgueiras:[41.3645,-8.1975,16],Lixa:[41.3343,-8.1570,16],Fafe:[41.4507,-8.1727,16]};
 const TR_AUSENTE_DIAS=7, TR_SEMINT_DIAS=183;
-const TR={idx:null, tiles:new Map(), aCarregar:new Set(), casas:new Map(), zonas:[], carregado:false, mapa:null, cam:null, camZ:null, gps:null, gpsMk:null, seguir:false,
+const TR={idx:null, tiles:new Map(), aCarregar:new Set(), casas:new Map(), portas:new Map(), zonas:[], carregado:false, mapa:null, cam:null, camZ:null, gps:null, gpsMk:null, seguir:false,
   aberta:null, hist:{}, filtros:null, semMorada:true, desenho:null, zonaEd:null, vista:null, painel:"hoje"};
 const trK=c=>c[0];
 try{ TR.filtros=new Set(JSON.parse(localStorage.getItem("cr-terr-f")||"null")||Object.keys(TR_EST)); }catch(_){ TR.filtros=new Set(Object.keys(TR_EST)); }
@@ -3410,7 +3418,15 @@ function trEstado(id){
 }
 function trTile(lon,lat){ const n=2**14; return [Math.floor((lon+180)/360*n), Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n)]; }
 const trLL=c=>[c[2]/1e5,c[1]/1e5];
-const trMorada=c=>c[4]?`${trTitulo(c[4])}${c[5]?", "+c[5]:""}`:"Edifício sem morada INE";
+// morada: número escrito pelos vendedores > INE > provável (rua da morada INE mais próxima)
+function trMorada(c){ const p=TR.portas.get(c[0]), rua=p?.rua||(c[4]?trTitulo(c[4]):"");
+  if(p) return rua?`${rua}, ${p.porta}`:`Porta ${p.porta}`;
+  if(!c[4]) return "Edifício sem morada INE";
+  return c[11]?`${rua} · nº por confirmar`:`${rua}${c[5]?", "+c[5]:" · s/n"}`; }
+function trMoradaPv(c){ const p=TR.portas.get(c[0]), rua=p?.rua||(c[4]?trTitulo(c[4]):"");   // para a pré-venda (sem textos de ajuda)
+  if(p) return rua?`${rua}, ${p.porta}`:""; if(!c[4]) return ""; const n=c[11]?"":(c[5]||"").split(",")[0].replace("…","");
+  return n?`${rua}, ${n}`:`${rua}, `; }
+const trCoord=c=>{ const ll=trLL(c); return `${ll[0].toFixed(6).replace(".",",")} · ${ll[1].toFixed(6).replace(".",",")}`; };
 function trTitulo(s){ return String(s||"").toLowerCase().replace(/(^|[\s(\-])([a-zà-ÿ])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(Da|De|Do|Das|Dos|E)\b/g,m=>m.toLowerCase())
   .replace(/^R /,"Rua ").replace(/^Av /,"Avenida ").replace(/^Lg /,"Largo ").replace(/^Tv /,"Travessa ").replace(/^Pc /,"Praça ").replace(/^Lug /,"Lugar ").replace(/^Bc /,"Beco ").replace(/^Estr /,"Estrada "); }
 
@@ -3418,8 +3434,9 @@ async function trCarregar(forcar){
   if(TR.carregado&&!forcar) return;
   try{
     if(!TR.idx){ const r=await fetch("terr/index.json"); if(!r.ok) throw new Error("Mapa das casas não encontrado (terr/index.json)."); TR.idx=await r.json(); TR.idxT=new Set(TR.idx.tiles.map(t=>t[0]+"_"+t[1])); }
-    const [cs,zs]=await Promise.all([pvPedido("/rest/v1/pv_casas?select=*&limit=100000"),pvPedido("/rest/v1/pv_zonas?select=*&ativa=eq.true&order=criada_em.asc")]);
-    TR.casas=new Map((cs||[]).map(s=>[s.casa,s])); TR.zonas=zs||[]; TR.carregado=true;
+    const [cs,zs,ps]=await Promise.all([pvPedido("/rest/v1/pv_casas?select=*&limit=100000"),pvPedido("/rest/v1/pv_zonas?select=*&ativa=eq.true&order=criada_em.asc"),
+      pvPedido("/rest/v1/pv_portas?select=*&limit=100000").catch(()=>[])]);
+    TR.casas=new Map((cs||[]).map(s=>[s.casa,s])); TR.zonas=zs||[]; TR.portas=new Map((ps||[]).map(x=>[x.casa,x])); TR.carregado=true;
   }catch(e){ toast("⚠ "+e.message); }
   if(VISTA==="pv"&&PV.sub==="terr"){ trAtualizar(); trPainel(); }
 }
@@ -3534,9 +3551,17 @@ function trFicha(){
   w.hidden=false;
   w.innerHTML=`<div class="tr-ficha" role="dialog" aria-label="Casa">
     <div class="tr-fcab"><div><b class="tr-mor">${esc(trMorada(c))}</b>
+      ${TR.portas.get(c[0])?`<span class="fmut">Nº escrito por ${esc(TR.portas.get(c[0]).quem_nome||"")} · ${pvDH(TR.portas.get(c[0]).atualizado_em)}</span>`:c[11]?'<span class="fmut">Rua provável (morada INE mais próxima). Confirme o nº na porta.</span>':""}
       <span class="fmut">${esc([c[6],trTitulo(c[7])].filter(Boolean).join(" "))}${ze&&norm(ze)!==norm(c[7])?" · "+ze:""}${c[9]>=3?` · <b>prédio · ${c[9]} fogos</b>`:c[9]==2?" · 2 fogos":""}${c[10]?` · ${c[10]} m²`:""}</span>
       ${plc?`<span class="fmut">PLC mais próximo (OTs): <b class="${plc.d>DX_LIMITE?"pv-dx":""}">${esc(plc.n)} a ${plc.d} m</b></span>`:""}</div>
       <button class="fechar" id="trFechar" aria-label="Fechar">✕</button></div>
+    <div class="tr-coord"><span>📍 <b class="mono">${trCoord(c)}</b></span>
+      <button class="pv-lnk" id="trCopia">Copiar</button><a class="pv-lnk" href="https://waze.com/ul?ll=${ll[0]},${ll[1]}&navigate=yes" target="_blank" rel="noopener">Waze</a>
+      <button class="pv-lnk" id="trPortaB">✏️ ${TR.portas.get(c[0])||(c[4]&&!c[11]&&c[5])?"Corrigir nº":"Nº da porta"}</button></div>
+    <form id="trPortaF" class="tr-porta" ${TR.portaAberta===c[0]?"":"hidden"}>
+      <label>Nº da porta<input name="porta" value="${esc(TR.portas.get(c[0])?.porta||"")}" placeholder="ex.: 25, 25A, Lt 4, S/N" maxlength="12" autocapitalize="characters"></label>
+      <label>Rua (só se estiver errada)<input name="rua" value="${esc(TR.portas.get(c[0])?.rua||"")}" placeholder="${esc(c[4]?trTitulo(c[4]):"Rua …")}"></label>
+      <button class="pv-btn pv-prim" type="submit">Guardar nº</button></form>
     <div class="tr-agora"><span class="pv-chip" style="background:${TR_EST[e.k].c};color:#fff">${esc(TR_EST[e.k].n)}</span>
       ${s?`<span class="fmut">${esc(s.atualizado_nome||"")} · ${pvDH(s.atualizado_em)}${s.n_visitas>1?` · ${s.n_visitas} visitas`:""}${e.voltar?" · <b>voltar hoje</b>":""}${e.reaberta?" · reaberta (6 meses)":""}${s.voltar_em&&!e.voltar?` · voltar ${esc(s.voltar_em.slice(8,10)+"/"+s.voltar_em.slice(5,7))}`:""}</span>`:'<span class="fmut">Ainda ninguém passou aqui</span>'}
       ${s?.nota?`<span class="tr-nota">“${esc(s.nota)}”</span>`:""}</div>
@@ -3557,7 +3582,15 @@ function trFicha(){
     <div class="tr-hist">${h?(h.length?h.map(v=>`<div><i style="background:${TR_EST[v.estado]?.c||"#999"}"></i><span><b>${esc(TR_EST[v.estado]?.n||v.estado)}</b> · ${esc(v.quem_nome||"")} · ${pvDH(v.quando)}${v.nota?`<br><span class="fmut">${esc(v.nota)}</span>`:""}</span></div>`).join(""):'<span class="fmut">Sem visitas registadas.</span>'):'<span class="fmut">A carregar o histórico…</span>'}</div>
     <div id="trErro" class="pv-erro" role="alert"></div>
   </div>`;
-  $("#trFechar").onclick=()=>{ TR.aberta=null; trFicha(); trDesenhar(); };
+  $("#trFechar").onclick=()=>{ TR.aberta=null; TR.portaAberta=null; trFicha(); trDesenhar(); };
+  $("#trCopia").onclick=()=>{ navigator.clipboard?.writeText(trCoord(c)).then(()=>toast("Coordenadas copiadas ✓"),()=>toast("Não consegui copiar")); };
+  $("#trPortaB").onclick=()=>{ TR.portaAberta=TR.portaAberta===c[0]?null:c[0]; trFicha(); if(TR.portaAberta) $("#trPortaF [name=porta]")?.focus(); };
+  $("#trPortaF").onsubmit=async ev=>{ ev.preventDefault(); const fd=new FormData(ev.target), er=$("#trErro"); er.textContent="";
+    try{ const porta=String(fd.get("porta")||"").trim(), rua=String(fd.get("rua")||"").trim();
+      const r=await pvRpc("pv_porta_guardar",{p_casa:c[0],p_porta:porta,p_rua:rua||null});
+      if(r.apagado) TR.portas.delete(c[0]); else TR.portas.set(c[0],{casa:c[0],porta:r.porta,rua:rua||TR.portas.get(c[0])?.rua||null,quem_nome:PV.eu?.nome,atualizado_em:new Date().toISOString()});
+      TR.portaAberta=null; toast(r.apagado?"Nº apagado":`Nº ${r.porta} guardado ✓`); trFicha(); trDesenhar(); }
+    catch(e){ er.textContent=e.message; } };
   w.querySelectorAll("input[name=trEst]").forEach(i=>i.onchange=()=>{ TR.sel.estado=i.value; TR.sel.nota=$("#trNota")?.value||TR.sel.nota; trFicha(); });
   w.querySelectorAll("input[name=trVolta]").forEach(i=>i.onchange=()=>{ TR.sel.voltar=i.value; });
   const n=$("#trNota"); if(n) n.oninput=()=>TR.sel.nota=n.value;
@@ -3572,7 +3605,7 @@ function trVoltarData(k){ if(!k) return null; const d=new Date();
   return d.toISOString().slice(0,10); }
 async function trMarcar(c,estado,extra={}){
   const ll=trLL(c);
-  const p={casa:c[0],lat:ll[0],lng:ll[1],morada:c[4]?trMorada(c):"",cp:c[6],localidade:trTitulo(c[7]),zona:TR_ZONAS[c[8]]||"",estado,
+  const p={casa:c[0],lat:ll[0],lng:ll[1],morada:trMoradaPv(c).replace(/,\s*$/,""),cp:c[6],localidade:trTitulo(c[7]),zona:TR_ZONAS[c[8]]||"",estado,
     lat_vend:TR.gps?.lat??null,lng_vend:TR.gps?.lng??null,...extra};
   const r=await pvRpc("pv_casa_marcar",{p});
   const s=TR.casas.get(c[0])||{casa:c[0],lat:ll[0],lng:ll[1],n_visitas:0};
@@ -3597,7 +3630,7 @@ async function trDesfazer(c){
 function trCriarPv(c){
   const ll=trLL(c), r=pvLS.ler("pv_rascunho")||{};
   const cp=/^\d{4}-\d{3}$/.test(c[6]||"")?c[6]:"";
-  pvLS.gravar("pv_rascunho",{...r,morada:c[4]?trMorada(c):(r.morada||""),cp:cp||r.cp||"",localidade:trTitulo(c[7])||r.localidade||""});
+  pvLS.gravar("pv_rascunho",{...r,morada:trMoradaPv(c)||(r.morada||""),cp:cp||r.cp||"",localidade:trTitulo(c[7])||r.localidade||""});
   PV.gps={lat:ll[0],lng:ll[1],acc:null,info:"Coordenadas da casa no mapa do Território"};
   TR.sel={estado:null,nota:"",voltar:""}; PV.casaPend={casa:c,morada:trMorada(c)}; PV.sub="nova"; renderPv(); window.scrollTo({top:0});
   toast("Morada e coordenadas preenchidas pela casa do mapa");
