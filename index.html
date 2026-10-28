@@ -617,7 +617,7 @@ const CAMPOS=["Nº OT","Estado","Hora início","Hora fim","Tipo de tarefa","Tipo
 const PROTEGIDOS=new Set(["Password ONT"]);   // completos só no PC; aqui só asteriscos
 const COPIAVEIS=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Contactos alternativos","Password ONT","Conta de serviço","N.º UA / PA","PLC","Morada","Morada Completa","Coordenadas cliente","Latitude PLC"]);
 const MONO=new Set(["Nº OT","Contacto acompanhamento","Contacto de cliente","Password ONT","Conta de serviço","N.º UA / PA","PLC","Latitude PLC","Longitude PLC","N.º porta PLC","Coordenadas cliente"]);
-const realizada=o=>o.rel?.realizada ?? (/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||""));
+const realizada=o=>o.rel?.realizada ?? (/realizada|validada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||""));
 const confirmada=o=>(o.rapida&&!o.completa)||(o.rel?.agendamento||"").startsWith("Confirmado");
 
 // ---------- filtros
@@ -670,7 +670,7 @@ function fundirTelemovel(pc, ag){
   if(completa) for(const o of pc.ots) if(!o.nova&&!vistos.has(k(o))){ o.saiu=true; saiu++; }   // só se a leitura da Agenda apanhou todas as OTs
   pc.ots.sort((a,b)=>(a.campos["Hora início"]||"99").localeCompare(b.campos["Hora início"]||"99"));
   relRapido(pc);
-  const contam=pc.ots.filter(o=>!o.saiu), ok=contam.filter(o=>/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"")).length;
+  const contam=pc.ots.filter(o=>!o.saiu), ok=contam.filter(o=>/realizada|validada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"")).length;
   pc.resumo.produtividade=contam.length?Math.round(100*ok/contam.length):null;
   pc.tel={hora,mud,novas,saiu};
 }
@@ -712,7 +712,7 @@ function agendamentoFeed(o){
   else { ag="Sem registo de agendamento prévio"; ev="Nenhuma confirmação/contacto no Feed"; }
   const antecipacao=/antecipa/.test(n);
   if(antecipacao&&ag.startsWith("Sem registo")) ev=textos.find(t=>/antecipa/i.test(t))||ev;
-  const real=/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"");
+  const real=/realizada|validada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"");
   const motivo=real?"":motivoFeed(o);
   const m=txt.match(/agendad[oa]\s+(\d{2}-\d{2}-\d{4})(?:.{0,40}?(\d{1,2}h\d{2})\s*[àa]s\s*(\d{1,2}h\d{2}))?/i);
   return {agendamento:ag, evidencia:ev, antecipacao, motivo, reagendada:m?m[1]+(m[2]?` ${m[2]}–${m[3]}`:""):"", realizada:real};
@@ -729,7 +729,7 @@ function relRapido(dia){
       intervalo:(ant&&ant.rel.fim!=null&&ini!=null)?ini-ant.rel.fim:null};
     if(o.completa) Object.assign(o.rel, agendamentoFeed(o));   // mesmas regras do PC (relatorios.py)
     ant=o; }
-  const n=dia.ots.length, ok=dia.ots.filter(o=>/realizada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"")).length;
+  const n=dia.ots.length, ok=dia.ots.filter(o=>/realizada|validada/i.test(o.campos.Estado||"")&&!/n[aã]o/i.test(o.campos.Estado||"")).length;
   const paragens=ots.map(o=>o.rel.lat?`${o.rel.lat},${o.rel.lng}`:(o.campos.Morada?encodeURIComponent(o.campos.Morada):"")).filter(Boolean);
   dia.resumo={...(dia.resumo||{}), produtividade:n?Math.round(100*ok/n):null, km_estrada:dia.resumo?.km_estrada??0, km_estimado:true,
     google_maps:paragens.length>1?"https://www.google.com/maps/dir/"+paragens.join("/"):""};
@@ -1043,7 +1043,7 @@ function verLeituraRapida(data){
   v.style.cssText="position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column";
   const linha=o=>{ const c=o.campos||{}, ok=noPC.has(chave(o));
     return `<div style="padding:10px 14px;border-top:1px solid var(--line)">
-      <div style="display:flex;justify-content:space-between;gap:8px"><b class="mono">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}</b><span class="chip ${/realizada/i.test(c.Estado||"")&&!/n[aã]o/i.test(c.Estado||"")?"ok":""}">${esc(c.Estado||"—")}</span></div>
+      <div style="display:flex;justify-content:space-between;gap:8px"><b class="mono">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}</b><span class="chip ${/realizada|validada/i.test(c.Estado||"")&&!/n[aã]o/i.test(c.Estado||"")?"ok":""}">${esc(c.Estado||"—")}</span></div>
       <div class="mono" style="font-size:13px">${esc(c["Nº OT"]||"—")}</div>
       <div style="font-size:14px">${esc([c["Tipo de OT"],c.Tecnologia].filter(Boolean).join(" · "))}</div>
       <div style="font-size:14px"><b>${esc(c["Nome de cliente"]||"—")}</b> · ${esc(c["Contacto de cliente"]||"—")}</div>
@@ -1067,7 +1067,7 @@ function renderIni(){
   const el=$("#vIni"); if(!el) return;
   const hoje=hojeISO(), mesK=hoje.slice(0,4)+hoje.slice(5,7);
   const dia=(DIAS||[]).find(d=>d.data===hoje), ultimo=(DIAS||[])[0];
-  const real=o=>/realizada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
+  const real=o=>/realizada|validada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
   const M=FINC&&FINC.por_mes?finComTelemovel(FINC.por_mes[mesK]):null, P=M&&M.prod;
   const VO=(FINC&&FINC.por_mes&&Object.values(FINC.por_mes).find(x=>x.prod&&x.prod.referencia&&x.prod.referencia.valor_ot)?.prod.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
   const tCurto=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":t;
@@ -1772,7 +1772,7 @@ function finComTelemovel(M0){
   const mes=String(M0.mes), M=JSON.parse(JSON.stringify(M0)), P=M.prod;
   const VO=(P.referencia&&P.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
   const tC=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":t;
-  const real=o=>/realizada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
+  const real=o=>/realizada|validada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
   const jaPC=new Set((M.ots||[]).map(o=>String(o.ot||"").toUpperCase()));
   let n=0, soma=0;
   for(const d of (DIAS||[]).filter(d=>d.rapida&&d.data.replace(/-/g,"").slice(0,6)===mes)){
@@ -2145,7 +2145,7 @@ const foNorm=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCas
 const foLinha=(nome,mapa)=>{ const n=foNorm(nome); for(const [rx,l] of mapa) if(rx.test(n)) return l; return null; };
 const foNum=(v,d=1)=>{ const m=String(v??"").match(/\d+(?:[.,]\d+)?/); return m?parseFloat(m[0].replace(",",".")):d; };
 const foFmtN=n=>String(n).replace(".",",");
-function foEstado(c){ const e=foNorm(c.Estado); if(/nao realizada|cancel|anulad/.test(e)) return "nao"; if(/realizada|conclu|fechad/.test(e)) return "ok"; return "previsto"; }
+function foEstado(c){ const e=foNorm(c.Estado); if(/nao realizada|cancel|anulad/.test(e)) return "nao"; if(/realizada|validada|conclu|fechad/.test(e)) return "ok"; return "previsto"; }
 // ---------- Equipamentos: novos nomes das boxes (atualização SFS, 10/2026) e sem repetidos
 // UMA v1 → NOS BOX v1 · UMA v2 → NOS BOX v2 · Android TV 4K → NOS BOX v3 · NOS BOX v4 sem alteração
 function eqNome(n){ return String(n??"")
