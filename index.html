@@ -611,6 +611,22 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .tr-porta label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
 .tr-porta input{font:16px var(--f-body);padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);min-width:0}
 @media (max-width:480px){.tr-porta{grid-template-columns:100px minmax(0,1fr)}.tr-porta button{grid-column:1/-1}}
+.tr-plcb{font:800 12px var(--f-body)!important;letter-spacing:.3px}
+.tr-plcmenu{position:absolute;z-index:650;right:64px;bottom:24px;width:250px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 30px -10px rgba(0,0,0,.45);animation:pvEntra .18s ease-out}
+.tr-plcmenu[hidden]{display:none}
+.tr-sw{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px}
+.tr-sw input{position:absolute;opacity:0}
+.tr-sw i{flex:none;width:40px;height:24px;border-radius:99px;background:var(--line);position:relative;transition:background .15s}
+.tr-sw i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .18s}
+.tr-sw input:checked+i{background:#0f6e56} .tr-sw input:checked+i::after{transform:translateX(16px)}
+.tr-sw input:disabled+i,.tr-sw input:disabled~span{opacity:.4}
+.tr-sw span{display:flex;flex-direction:column} .tr-sw small{color:var(--muted);font-size:11.5px}
+.tr-plc-i{display:inline-flex;align-items:center;gap:5px;transform:translate(-9px,-50%);white-space:nowrap}
+.tr-plc-i i{width:16px;height:16px;background:#0f6e56;border:2.5px solid #fff;transform:rotate(45deg);border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.45);flex:none}
+.tr-plc-i b{background:#0f6e56;color:#fff;font:700 11px/16px var(--f-body);padding:1px 6px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.tr-plcpop{display:flex;flex-direction:column;gap:3px;font-size:13px}
+.tr-plcpop b{font-size:14px}
+.tr-mt{font:700 11px var(--f-body);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
 </style>
 </head>
 <body class="sem-sessao">
@@ -3436,8 +3452,9 @@ async function trCarregar(forcar){
   if(TR.carregado&&!forcar) return;
   try{
     if(!TR.idx){ const r=await fetch("terr/index.json"); if(!r.ok) throw new Error("Mapa das casas não encontrado (terr/index.json)."); TR.idx=await r.json(); TR.idxT=new Set(TR.idx.tiles.map(t=>t[0]+"_"+t[1])); }
-    const [cs,zs,ps]=await Promise.all([pvPedido("/rest/v1/pv_casas?select=*&limit=100000"),pvPedido("/rest/v1/pv_zonas?select=*&ativa=eq.true&order=criada_em.asc"),
-      pvPedido("/rest/v1/pv_portas?select=*&limit=100000").catch(()=>[])]);
+    const [cs,zs,ps,pl]=await Promise.all([pvPedido("/rest/v1/pv_casas?select=*&limit=100000"),pvPedido("/rest/v1/pv_zonas?select=*&ativa=eq.true&order=criada_em.asc"),
+      pvPedido("/rest/v1/pv_portas?select=*&limit=100000").catch(()=>[]),pvPedido("/rest/v1/pv_plcs?select=*&limit=20000").catch(()=>[])]);
+    TR.plcs=(pl||[]).map(x=>({plc:x.plc,lat:+x.lat,lng:+x.lng,n:x.n_ots||0,ult:x.ultima||"",fonte:x.fonte}));
     TR.casas=new Map((cs||[]).map(s=>[s.casa,s])); TR.zonas=zs||[]; TR.portas=new Map((ps||[]).map(x=>[x.casa,x])); TR.carregado=true;
   }catch(e){ toast("⚠ "+e.message); }
   if(VISTA==="pv"&&PV.sub==="terr"){ trAtualizar(); trPainel(); }
@@ -3463,9 +3480,11 @@ function trHtml(){
     <div class="tr-mapa-w"><div id="trMapa" class="tr-mapa"></div>
       <div class="tr-fl tr-fl-d">
         <button id="trEu" class="tr-fb" aria-label="A minha posição" title="A minha posição">◎</button>
+        <button id="trPlcB" class="tr-fb tr-plcb" aria-label="O que mostrar no mapa" title="O que mostrar no mapa">Ver</button>
         <button id="trFil" class="tr-fb" aria-label="Filtros" title="Filtros">☰</button>
         ${g?`<button id="trZn" class="tr-fb" aria-label="Zonas" title="Desenhar zona">✏️</button>`:""}
       </div>
+      <div id="trPlcMenu" class="tr-plcmenu" hidden></div>
       <div id="trZoom" class="tr-dica" hidden>Aproxime o mapa para ver as casas</div>
       <div id="trDes" class="tr-des" hidden></div>
     </div>
@@ -3502,7 +3521,7 @@ function trDesenhar(){
   if(z<14){ // longe: só as casas já trabalhadas (pontos)
     for(const [id,s] of TR.casas){ const e=trEstado(id); if(!TR.filtros.has(e.k)) continue; if(!b.contains([s.lat,s.lng])) continue;
       cont[e.k]=(cont[e.k]||0)+1; L.circleMarker([s.lat,s.lng],{renderer:TR.ren,radius:4,weight:1,color:"#fff",fillColor:TR_EST[e.k].c,fillOpacity:.95}).on("click",()=>trAbrirId(id)).addTo(TR.cam); }
-    trLegenda(cont); return; }
+    trLegenda(cont); trPlcDesenhar(); return; }
   const poli=z>=17;
   for(const c of trTodas()){
     const ll=trLL(c); if(!b.contains(ll)) continue;
@@ -3515,10 +3534,10 @@ function trDesenhar(){
     else lay=L.circleMarker(ll,{renderer:TR.ren,radius:sel?7:(c[9]>=3?5:3.6),weight:sel?3:1,color:sel?"#111":"#fff",fillColor:cor,fillOpacity:fraco?.4:.95});
     lay.on("click",ev=>{ L.DomEvent.stop(ev); if(TR.desenho){ TR.desenho.pts.push([ev.latlng.lat,ev.latlng.lng]); trDesenhoRedesenhar(); return; } trAbrir(c); });
     lay.addTo(TR.cam);
-    if(poli&&z>=18){ const n=trPorta(c), pr=c[9]>=3;   // etiqueta = nº da porta (vendedor > INE); prédios com 🏢
+    if(poli&&z>=18&&TR.plcCfg.porta!==false){ const n=trPorta(c), pr=c[9]>=3;   // etiqueta = nº da porta (vendedor > INE); prédios com 🏢
       if(n||pr) L.marker(ll,{icon:L.divIcon({className:"tr-num",html:`<span class="${TR.portas.has(c[0])?"v":""}">${pr?"🏢 ":""}${esc(n||String(c[9])+" fogos")}</span>`,iconSize:null}),interactive:false}).addTo(TR.cam); }
   }
-  trLegenda(cont);
+  trLegenda(cont); trPlcDesenhar();
 }
 function trLegenda(cont){
   const l=$("#trLeg"); if(!l) return; cont=cont||{};
@@ -3659,6 +3678,7 @@ function trLigarUI(){
   q.onkeydown=e=>{ if(e.key==="Escape"){ sug.hidden=true; } };
   document.querySelectorAll("[data-trir]").forEach(b=>b.onclick=()=>{ const v=TR_IR[b.dataset.trir]; TR.mapa.setView([v[0],v[1]],v[2]); });
   $("#trEu").onclick=trGps;
+  $("#trPlcB").onclick=()=>{ const m=$("#trPlcMenu"); m.hidden=!m.hidden; if(!m.hidden) trPlcMenu(); };
   $("#trFil").onclick=()=>{ const f=$("#trFiltros"); f.hidden=!f.hidden; if(!f.hidden) trFiltrosHtml(); };
   const zb=$("#trZn"); if(zb) zb.onclick=()=>trDesenhoIniciar();
 }
@@ -3783,6 +3803,46 @@ function trExcel(){
     "Pré-venda":PV.enc.find(e=>e.id===s.encomenda)?.numero||"","Latitude":s.lat,"Longitude":s.lng}));
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(linhas),"Casas");
   XLSX.writeFile(wb,`Territorio_${trHoje()}.xlsx`);
+}
+
+// ---------------------------------------------------------------- PLCs no mapa (das OTs recolhidas; mais tarde também do KMZ)
+try{ TR.plcCfg={porta:true,ver:true,num:true,raio:false,...(JSON.parse(localStorage.getItem("cr-terr-plc")||"{}"))}; }catch(_){ TR.plcCfg={porta:true,ver:true,num:true,raio:false}; }
+function trPlcs(){
+  if(TR.plcs&&TR.plcs.length) return TR.plcs;
+  const m={};   // gestor: a partir das OTs (DIAS); vendedores: tabela pv_plcs (preenchida pelo PC)
+  for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos||{}, n=String(c.PLC||"").trim(); if(!n) continue;
+    const la=pvNum(c["Latitude PLC"]), lo=pvNum(c["Longitude PLC"]); if(la==null||lo==null) continue;
+    const k=n.toUpperCase(); const p=m[k]||(m[k]={plc:n,lat:la,lng:lo,n:0,ult:""}); p.n++; if(d.data>p.ult) p.ult=d.data; }
+  return Object.values(m);
+}
+function trPlcMenu(){
+  const m=$("#trPlcMenu"), c=TR.plcCfg, n=trPlcs().length;
+  const sw=(k,t,sub)=>`<label class="tr-sw"><input type="checkbox" data-plc="${k}" ${c[k]!==false?"checked":""} ${(k==="num"||k==="raio")&&!c.ver?"disabled":""}><i></i><span>${t}${sub?`<small>${sub}</small>`:""}</span></label>`;
+  m.innerHTML=`<b>Mostrar no mapa</b>
+    <span class="tr-mt">Casas</span>${sw("porta","Número da porta","aparece com o mapa bem aproximado")}
+    <span class="tr-mt">PLCs · ${n} conhecido${n===1?"":"s"}</span>
+    ${sw("ver","Mostrar PLCs")}${sw("num","Mostrar número do PLC")}${sw("raio","Raio de 250 m","casas dentro = instalação provável")}`;
+  m.querySelectorAll("[data-plc]").forEach(i=>i.onchange=()=>{ TR.plcCfg[i.dataset.plc]=i.checked; try{ localStorage.setItem("cr-terr-plc",JSON.stringify(TR.plcCfg)); }catch(_){ } trPlcMenu(); if(i.dataset.plc==="porta") trDesenhar(); else trPlcDesenhar(); });
+}
+function trPlcDesenhar(){
+  const m=TR.mapa; if(!m) return; if(!TR.camP) TR.camP=L.layerGroup().addTo(m); TR.camP.clearLayers();
+  const c=TR.plcCfg; if(!c.ver) return;
+  const z=m.getZoom(), b=m.getBounds().pad(.3);
+  for(const p of trPlcs()){ if(!b.contains([p.lat,p.lng])) continue;
+    if(c.raio&&z>=14) L.circle([p.lat,p.lng],{radius:DX_LIMITE||250,color:"#0f6e56",weight:1.5,dashArray:"5 5",fillColor:"#1d9e75",fillOpacity:.07,interactive:false}).addTo(TR.camP);
+    const mostraNum=c.num&&z>=15;
+    L.marker([p.lat,p.lng],{zIndexOffset:900,icon:L.divIcon({className:"tr-plc",iconSize:null,html:`<span class="tr-plc-i"><i></i>${mostraNum?`<b>${esc(p.plc)}</b>`:""}</span>`})})
+      .on("click",ev=>{ L.DomEvent.stop(ev); trPlcPopup(p); }).addTo(TR.camP);
+  }
+}
+function trPlcPopup(p){
+  let casas=0; for(const c of trTodas()){ const ll=trLL(c); if(axDist(ll,[p.lat,p.lng])*1000<=(DX_LIMITE||250)) casas++; }
+  const co=`${p.lat.toFixed(6).replace(".",",")} · ${p.lng.toFixed(6).replace(".",",")}`;
+  L.popup({maxWidth:260}).setLatLng([p.lat,p.lng]).setContent(`<div class="tr-plcpop"><b>${esc(p.plc)}</b>
+    <span>${p.n} OT${p.n===1?"":"s"} feitas aqui${p.ult?` · última ${esc(p.ult.slice(8,10)+"/"+p.ult.slice(5,7))}`:""}</span>
+    <span>${casas} casa${casas===1?"":"s"} a ≤ ${DX_LIMITE||250} m</span>
+    <span class="mono">📍 ${co}</span>
+    <a href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>`).openOn(TR.mapa);
 }
 
 // ---------- Início (gestor): resumo da pré-venda
