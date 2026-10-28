@@ -540,6 +540,68 @@ body.so-pv main{padding-bottom:40px}
 @media (prefers-reduced-motion:reduce){.pv-pills input:checked+span,.pv-dest input:checked+span,.pv-ops button,.pv-fidbox,.pv-fidmsg{animation:none!important;transition:none!important}}
 
 .pv-morinfo:empty{display:none}
+/* ---------- Território: mapa casa a casa (28/10/2026) */
+.tr{display:flex;flex-direction:column;gap:10px}
+.tr-barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tr-busca{flex:1 1 220px}
+body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-busca{display:flex}
+.tr-sug{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;margin-top:-4px}
+.tr-sug button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:0;border-top:1px solid var(--line);background:transparent;color:var(--fg);text-align:left;cursor:pointer;font:14px var(--f-body)}
+.tr-sug button:first-child{border-top:0} .tr-sug button:hover{background:var(--accent-soft)}
+.tr-mapa-w{position:relative}
+.tr-mapa{height:calc(100vh - 300px);min-height:420px;max-height:760px;border-radius:14px;border:1px solid var(--line);z-index:0}
+.tr-fl{position:absolute;z-index:500;display:flex;flex-direction:column;gap:8px}
+.tr-fl-d{right:10px;bottom:24px}
+.tr-fb{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:20px;cursor:pointer;box-shadow:0 4px 14px -6px rgba(0,0,0,.4);transition:transform .1s,background .15s}
+.tr-fb:active{transform:scale(.92)} .tr-fb.on{background:#1a73e8;color:#fff;border-color:#1a73e8}
+#trZn.on{background:#6b2fa3;border-color:#6b2fa3}
+.tr-dica{position:absolute;z-index:500;left:50%;top:12px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:999px;font-size:13px;pointer-events:none}
+.tr-des{position:absolute;z-index:600;left:56px;right:60px;top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--surface);border:2px solid #6b2fa3;border-radius:14px;padding:8px 10px;font-size:13.5px}
+.tr-des span{flex:1 1 160px}
+.tr-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin:6px 0}
+.tr-leg i,.tr-fil i,.tr-hist i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tr-leg b{color:var(--fg)}
+.tr-filtros{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.tr-fil{display:flex;flex-wrap:wrap;gap:6px}
+.tr-fil label{position:relative;cursor:pointer}
+.tr-fil input{position:absolute;opacity:0}
+.tr-fil span{display:inline-flex;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;transition:all .15s;opacity:.55}
+.tr-fil input:checked+span{opacity:1;border-color:var(--fg);font-weight:600}
+.tr-fil2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.tr-ficha-w[hidden]{display:none}
+.tr-ficha{border:2px solid var(--accent);border-radius:16px;background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:10px;animation:pvEntra .2s ease-out}
+.tr-fcab{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.tr-fcab>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tr-mor{font:700 18px/1.2 var(--f-display)}
+.tr-agora{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.tr-nota{font-style:italic;font-size:13.5px}
+.tr-pills span{gap:7px}
+.tr-pills span i{width:12px;height:12px;border-radius:4px;background:var(--tc);display:inline-block;flex:none}
+.tr-pills input:checked+span{background:var(--tc)!important;border-color:var(--tc)!important;color:#fff!important;box-shadow:0 4px 14px -4px var(--tc)!important}
+.tr-pills input:checked+span i{background:#fff}
+.tr-pills.pv-pills:not(.pv-num) input:checked+span::before{content:none}
+.tr-mais{display:flex;flex-direction:column;gap:10px;animation:pvEntra .2s ease-out}
+.tr-mais[hidden],.tr-mais [hidden]{display:none}
+.tr-nl{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+.tr-nl input{font:16px var(--f-body);padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+.tr-acs{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tr-acs a.pv-btn{display:inline-flex;align-items:center;text-decoration:none}
+.tr-hist{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:8px;font-size:13px}
+.tr-hist>div{display:flex;gap:4px;align-items:flex-start}
+.tr-hist>div i{margin-top:4px;flex:none}
+.tr-tabs{margin-bottom:10px}
+.tr-lista{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tr-lista button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:0;border-top:1px solid var(--line);background:var(--surface);color:var(--fg);text-align:left;cursor:pointer;font:14px var(--f-body)}
+.tr-lista button:first-child{border-top:0}
+.tr-zl{display:flex;flex-direction:column;gap:8px}
+.tr-z{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border:1px solid var(--line);border-left:4px solid #6b2fa3;border-radius:12px;padding:10px 12px;background:var(--surface);cursor:pointer}
+.tr-z>div{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.tr-bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.tr-bar i{display:block;height:100%;background:#1d9e75;border-radius:99px;transition:width .4s}
+.tr-znome span{display:inline-block;white-space:nowrap;background:var(--surface);border:1.5px solid;border-radius:999px;padding:2px 8px;font:600 11.5px var(--f-body);transform:translate(-50%,-50%)}
+.tr-fogos{background:#111;color:#fff;border-radius:6px;font:700 10.5px/16px var(--f-body);text-align:center}
+.tr-fonte{font-size:11px}
+@media (max-width:560px){.tr-mapa{height:calc(100vh - 260px);min-height:380px}}
 </style>
 </head>
 <body class="sem-sessao">
@@ -2718,7 +2780,9 @@ function pvBarra(e){
 // ---------------------------------------------------------------- render
 function pvLimparMapas(){ for(const m of PV.mapas) try{ m.remove(); }catch(_){ } PV.mapas=[]; }
 function renderPv(){
-  const el=$("#vPv"); if(!el) return; pvLimparMapas();
+  const el=$("#vPv"); if(!el) return;
+  if(PV.sub==="terr"&&typeof TR!=="undefined"&&TR.mapa&&$("#trMapa")&&TR.mapa._container===$("#trMapa")){ pvRenderTopo(); trAtualizar(); if(!TR.zonaEd) trPainel(); return; }   // não refaz o mapa (desenho/ficha abertos)
+  pvLimparMapas();
   if(PV.instalado===false){ el.innerHTML=`<div class="vazio"><b>O módulo de pré-venda ainda não está instalado no Supabase.</b><br>Corra o ficheiro <span class="mono">prevenda.sql</span> no SQL Editor do Supabase e volte a abrir esta página.</div>`; return; }
   if(!PV.eu){ el.innerHTML=`<div class="vazio"><b>A carregar a pré-venda…</b></div>`; return; }
   if(!PV.eu.perfis.length){ el.innerHTML=`<div class="vazio"><b>O seu email (${esc(PV.eu.email)}) ainda não tem acesso à pré-venda.</b><br>Peça à CR Telecom para o registar.</div>`; return; }
@@ -2730,13 +2794,15 @@ function renderPv(){
   else if(PV.sub==="res"&&pvGestor()) c.innerHTML=pvResHtml();
   else if(PV.sub==="bonus"&&pvTem("vendedor")) c.innerHTML=pvBonusHtml();
   else if(PV.sub==="banco"&&pvTem("vendedor")) c.innerHTML=pvBancoHtml();
+  else if(PV.sub==="terr"&&pvTem("vendedor")) c.innerHTML=trHtml();
   else if(PV.sub==="ficha"&&PV.aberta) c.innerHTML=pvFichaHtml();
   else { PV.sub="lista"; c.innerHTML=pvListaHtml(); }
   pvLigar();
+  if(PV.sub==="terr"&&$("#trMapa")){ trMontar(); trPainel(); if(TR.aberta) trFicha(); }
 }
 function pvRenderTopo(){
   const t=$("#pvTopo"); if(!t||!PV.eu) return;
-  const tabs=[["lista","Encomendas"]]; if(pvTem("vendedor")){ tabs.push(["nova","＋ Nova pré-venda"]); tabs.push(["banco","🗄️ Banco"]); }
+  const tabs=[["lista","Encomendas"]]; if(pvTem("vendedor")){ tabs.push(["nova","＋ Nova pré-venda"]); tabs.push(["terr","🗺️ Território"]); tabs.push(["banco","🗄️ Banco"]); }
   if(PV.eu.perfis.includes("vendedor")&&!pvGestor()) tabs.push(["bonus","Bonificações"]);
   if(pvGestor()){ tabs.push(["res","Resultados"]); tabs.push(["pessoas","Pessoas"]); }
   const n=PV.enc.filter(pvParaMim).length, nb=PV.enc.filter(pvBancoUrgente).length;
@@ -2824,6 +2890,7 @@ function pvNovaHtml(){
   const r=pvLS.ler("pv_rascunho")||{}; const g=PV.gps||r.gps||null; PV.gps=g;
   const v=k=>esc(r[k]||""); const ch=(k,x)=>(r[k]||[]).includes(x)?"checked":"";
   return `<form class="pv-form" id="pvForm" autocomplete="off">
+    ${PV.casaPend?`<div class="pv-aviso ok"><span>🗺️ Pré-venda da casa <b>${esc(PV.casaPend.morada)}</b> (mapa do Território). Fica ligada à casa.</span><button type="button" class="pv-lnk" id="pvCasaX">Desligar</button></div>`:""}
     <section class="bloco"><h4>Cliente</h4><div class="pv-in">
       <label>Nome completo<input id="pvNome" name="cliente_nome" value="${v("cliente_nome")}" autocomplete="off" required></label>
       <label>Telemóvel de contacto<input id="pvTel" name="cliente_tel" type="tel" inputmode="tel" value="${v("cliente_tel")}" placeholder="9 dígitos" required></label>
@@ -3014,7 +3081,7 @@ async function pvSubmeter(ev){
     const {fid_ano,fid_mes,fid_operadora_outra,destino_manual,...base}=o;
     const fid=o.fid_estado==="sim"?{...pvFidLer(f),destino:o.destino||null}:{fid_operadora:null,fid_fim:null,fid_mensal:null,fid_consent:false,destino:null};
     const r=await pvRpc("pv_criar",{p:{...base,...fid,lat:PV.gps.lat,lng:PV.gps.lng,precisao_m:PV.gps.acc||null}});
-    pvLS.gravar("pv_rascunho",null); PV.gps=null; PV.dupOk=false;
+    pvLS.gravar("pv_rascunho",null); PV.gps=null; PV.dupOk=false; await trLigarPreVenda(r);
     toast(r.estado==="potencial"?`🗄️ ${r.numero} guardada no banco · aviso 60 dias antes do fim`:`${r.numero} enviada para vistoria · ${r.tecnico}`); pvNotificar(r.id);
     await pvRecarregar(); pvAbrir(r.id);
   }catch(e){ er.textContent=e.message; }
@@ -3287,6 +3354,7 @@ function pvLigar(){
       if(["fid_ano","fid_mes","fid_estado"].includes(ev.target.name)) f.querySelector("[name=destino_manual]").value="";
       pvFidAtualizar(); pvGuardarRascunho(); });
     pvFidLigar(f,pvFidAtualizar);
+    const cx=$("#pvCasaX"); if(cx) cx.onclick=()=>{ PV.casaPend=null; renderPv(); };
     $("#pvLimpar").onclick=()=>{ if(confirm("Apagar o que está escrito?")){ pvLS.gravar("pv_rascunho",null); PV.gps=null; renderPv(); } };
     if(PV.gps) setTimeout(pvMostrarGps,30); }
   const v=$("#pvVist"); if(v){ v.oninput=()=>pvLS.gravar("pv_vist_"+PV.aberta,pvLerVistoria(v)); v.querySelectorAll("[data-pvdec]").forEach(b=>b.onclick=()=>pvAcao("decidir",b.dataset.pvdec)); }
@@ -3311,6 +3379,374 @@ function pvLigar(){
   c.querySelectorAll("[data-pved]").forEach(b=>b.onclick=()=>{ PV.editar=b.dataset.pved; PV.senha=null; renderPv(); window.scrollTo({top:0}); });
   c.querySelectorAll("[data-pvrepor]").forEach(b=>b.onclick=()=>pvRepor(b.dataset.pvrepor));
   if(PV.sub==="ficha") setTimeout(pvMapaFicha,30);
+}
+
+// ---------------------------------------------------------------- TERRITÓRIO: mapa casa a casa (Felgueiras, Lixa, Fafe) — 28/10/2026
+// Casas: ficheiros estáticos terr/index.json + terr/t/<x>_<y>.json (edifícios Overture + moradas INE). Estados: pv_casas / pv_visitas / pv_zonas.
+const TR_EST={
+  por:{n:"Por visitar",c:"#b4b2a9"}, ausente:{n:"Ausente · voltar",c:"#ef9f27"}, prospectado:{n:"Prospectado",c:"#378add"},
+  oportunidade:{n:"Oportunidade",c:"#1d9e75"}, pre_venda:{n:"Pré-venda",c:"#3b6d11"}, banco:{n:"Banco (fidelizado)",c:"#6b2fa3"},
+  sem_interesse:{n:"Sem interesse agora",c:"#f0997b"}, cliente:{n:"Já é cliente",c:"#444441"}, sem_viab:{n:"Sem viabilidade",c:"#8d6e63"},
+  nao_bater:{n:"Não bater",c:"#e24b4a"}};
+const TR_MARCAR=["ausente","prospectado","oportunidade","sem_interesse","cliente","nao_bater"];   // pré-venda/banco/sem viabilidade vêm da encomenda
+const TR_ZONAS={F:"Felgueiras",L:"Lixa",A:"Fafe"};
+const TR_IR={Felgueiras:[41.3645,-8.1975,16],Lixa:[41.3343,-8.1570,16],Fafe:[41.4507,-8.1727,16]};
+const TR_AUSENTE_DIAS=7, TR_SEMINT_DIAS=183;
+const TR={idx:null, tiles:new Map(), aCarregar:new Set(), casas:new Map(), zonas:[], carregado:false, mapa:null, cam:null, camZ:null, gps:null, gpsMk:null, seguir:false,
+  aberta:null, hist:{}, filtros:null, semMorada:true, desenho:null, zonaEd:null, vista:null, painel:"hoje"};
+const trK=c=>c[0];
+try{ TR.filtros=new Set(JSON.parse(localStorage.getItem("cr-terr-f")||"null")||Object.keys(TR_EST)); }catch(_){ TR.filtros=new Set(Object.keys(TR_EST)); }
+try{ TR.vista=JSON.parse(localStorage.getItem("cr-terr-v")||"null"); }catch(_){ }
+try{ TR.semMorada=localStorage.getItem("cr-terr-sm")!=="0"; }catch(_){ }
+
+const trHoje=()=>new Date().toISOString().slice(0,10);
+const trDias=iso=>(Date.now()-Date.parse(iso||0))/86400000;
+// estado que se vê no mapa (ausente volta a "voltar" ao fim do prazo; sem interesse reabre ao fim de 6 meses)
+function trEstado(id){
+  const s=TR.casas.get(id); if(!s) return {k:"por",s:null};
+  if(s.estado==="ausente"&&((s.voltar_em&&s.voltar_em<=trHoje())||(!s.voltar_em&&trDias(s.atualizado_em)>=TR_AUSENTE_DIAS))) return {k:"ausente",s,voltar:true};
+  if(s.estado==="sem_interesse"&&trDias(s.atualizado_em)>=TR_SEMINT_DIAS) return {k:"por",s,reaberta:true};
+  return {k:s.estado,s};
+}
+function trTile(lon,lat){ const n=2**14; return [Math.floor((lon+180)/360*n), Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n)]; }
+const trLL=c=>[c[2]/1e5,c[1]/1e5];
+const trMorada=c=>c[4]?`${trTitulo(c[4])}${c[5]?", "+c[5]:""}`:"Edifício sem morada INE";
+function trTitulo(s){ return String(s||"").toLowerCase().replace(/(^|[\s(\-])([a-zà-ÿ])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(Da|De|Do|Das|Dos|E)\b/g,m=>m.toLowerCase())
+  .replace(/^R /,"Rua ").replace(/^Av /,"Avenida ").replace(/^Lg /,"Largo ").replace(/^Tv /,"Travessa ").replace(/^Pc /,"Praça ").replace(/^Lug /,"Lugar ").replace(/^Bc /,"Beco ").replace(/^Estr /,"Estrada "); }
+
+async function trCarregar(forcar){
+  if(TR.carregado&&!forcar) return;
+  try{
+    if(!TR.idx){ const r=await fetch("terr/index.json"); if(!r.ok) throw new Error("Mapa das casas não encontrado (terr/index.json)."); TR.idx=await r.json(); TR.idxT=new Set(TR.idx.tiles.map(t=>t[0]+"_"+t[1])); }
+    const [cs,zs]=await Promise.all([pvPedido("/rest/v1/pv_casas?select=*&limit=100000"),pvPedido("/rest/v1/pv_zonas?select=*&ativa=eq.true&order=criada_em.asc")]);
+    TR.casas=new Map((cs||[]).map(s=>[s.casa,s])); TR.zonas=zs||[]; TR.carregado=true;
+  }catch(e){ toast("⚠ "+e.message); }
+  if(VISTA==="pv"&&PV.sub==="terr"){ trAtualizar(); trPainel(); }
+}
+async function trCarregarTiles(lista){
+  const falta=lista.filter(k=>TR.idxT?.has(k)&&!TR.tiles.has(k)&&!TR.aCarregar.has(k)); if(!falta.length) return;
+  falta.forEach(k=>TR.aCarregar.add(k));
+  await Promise.all(falta.map(async k=>{ try{ const r=await fetch(`terr/t/${k}.json`); TR.tiles.set(k,r.ok?await r.json():[]); }catch(_){ } finally{ TR.aCarregar.delete(k); } }));
+}
+function trTilesNa(b){ const [x0,y0]=trTile(b.getWest(),b.getNorth()), [x1,y1]=trTile(b.getEast(),b.getSouth()); const r=[];
+  for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++) r.push(x+"_"+y); return r; }
+function* trTodas(){ for(const v of TR.tiles.values()) yield* v; }
+
+// ---------------------------------------------------------------- ecrã
+function trHtml(){
+  const g=pvGestor();
+  return `<div class="tr">
+    <div class="tr-barra">
+      <label class="busca tr-busca"><span aria-hidden="true">⌕</span><input id="trQ" type="search" placeholder="Rua ou localidade…" autocomplete="off"></label>
+      <div class="seg tr-ir">${Object.keys(TR_IR).map(z=>`<button data-trir="${z}">${z}</button>`).join("")}</div>
+    </div>
+    <div id="trSug" class="tr-sug" hidden></div>
+    <div class="tr-mapa-w"><div id="trMapa" class="tr-mapa"></div>
+      <div class="tr-fl tr-fl-d">
+        <button id="trEu" class="tr-fb" aria-label="A minha posição" title="A minha posição">◎</button>
+        <button id="trFil" class="tr-fb" aria-label="Filtros" title="Filtros">☰</button>
+        ${g?`<button id="trZn" class="tr-fb" aria-label="Zonas" title="Desenhar zona">✏️</button>`:""}
+      </div>
+      <div id="trZoom" class="tr-dica" hidden>Aproxime o mapa para ver as casas</div>
+      <div id="trDes" class="tr-des" hidden></div>
+    </div>
+    <div id="trFiltros" class="tr-filtros" hidden></div>
+    <div class="tr-leg" id="trLeg"></div>
+    <div id="trPainel"></div>
+    <div id="trFicha" class="tr-ficha-w" hidden></div>
+    <p class="fmut tr-fonte">${esc(TR.idx?.fonte||"Edifícios: Overture Maps (Microsoft ML Buildings, OpenStreetMap). Moradas: INE via OpenAddresses.")}</p>
+  </div>`;
+}
+function trMontar(){
+  const el=$("#trMapa"); if(!el||typeof L==="undefined") return;
+  const v=TR.vista||{c:TR_IR.Felgueiras.slice(0,2),z:15};
+  const m=L.map(el,{preferCanvas:true,zoomControl:true,attributionControl:true,maxZoom:20}).setView(v.c,v.z); camadasMapa(m);
+  TR.mapa=m; PV.mapas.push(m); TR.ren=L.canvas({padding:.3,tolerance:6});
+  TR.camZ=L.layerGroup().addTo(m); TR.cam=L.layerGroup().addTo(m); TR.camSel=L.layerGroup().addTo(m);
+  m.on("moveend",()=>{ TR.vista={c:[m.getCenter().lat,m.getCenter().lng],z:m.getZoom()}; try{ localStorage.setItem("cr-terr-v",JSON.stringify(TR.vista)); }catch(_){ } trAtualizar(); });
+  m.on("click",e=>{ if(TR.desenho){ TR.desenho.pts.push([e.latlng.lat,e.latlng.lng]); trDesenhoRedesenhar(); } });
+  m.on("dragstart",()=>{ TR.seguir=false; });
+  setTimeout(()=>m.invalidateSize(),60);
+  trLigarUI(); trLegenda(); trCarregar(); trAtualizar();
+  if(TR.gps) trGpsDesenhar();
+}
+async function trAtualizar(){
+  const m=TR.mapa; if(!m||!TR.idx) return;
+  const z=m.getZoom(); $("#trZoom").hidden=z>=14;
+  if(z>=14){ await trCarregarTiles(trTilesNa(m.getBounds().pad(.2))); }
+  trDesenhar();
+}
+function trDesenhar(){
+  const m=TR.mapa; if(!m||!TR.cam) return;
+  TR.cam.clearLayers(); trZonasDesenhar();
+  const z=m.getZoom(), b=m.getBounds().pad(.15); const cont={};
+  if(z<14){ // longe: só as casas já trabalhadas (pontos)
+    for(const [id,s] of TR.casas){ const e=trEstado(id); if(!TR.filtros.has(e.k)) continue; if(!b.contains([s.lat,s.lng])) continue;
+      cont[e.k]=(cont[e.k]||0)+1; L.circleMarker([s.lat,s.lng],{renderer:TR.ren,radius:4,weight:1,color:"#fff",fillColor:TR_EST[e.k].c,fillOpacity:.95}).on("click",()=>trAbrirId(id)).addTo(TR.cam); }
+    trLegenda(cont); return; }
+  const poli=z>=17;
+  for(const c of trTodas()){
+    const ll=trLL(c); if(!b.contains(ll)) continue;
+    const e=trEstado(c[0]); if(!TR.filtros.has(e.k)) continue; if(!c[4]&&!TR.semMorada&&e.k==="por") continue;
+    cont[e.k]=(cont[e.k]||0)+1;
+    const cor=TR_EST[e.k].c, sel=TR.aberta&&TR.aberta[0]===c[0], fraco=!c[4]&&e.k==="por";
+    let lay;
+    if(poli){ const pts=[]; for(let i=0;i<c[3].length;i+=2) pts.push([(c[2]+c[3][i+1])/1e5,(c[1]+c[3][i])/1e5]);
+      lay=L.polygon(pts,{renderer:TR.ren,weight:sel?3:(e.voltar?2.5:1),color:sel?"#111":(e.voltar?"#b25e00":"#ffffff"),fillColor:cor,fillOpacity:fraco?.35:.88}); }
+    else lay=L.circleMarker(ll,{renderer:TR.ren,radius:sel?7:(c[9]>=3?5:3.6),weight:sel?3:1,color:sel?"#111":"#fff",fillColor:cor,fillOpacity:fraco?.4:.95});
+    lay.on("click",ev=>{ L.DomEvent.stop(ev); if(TR.desenho){ TR.desenho.pts.push([ev.latlng.lat,ev.latlng.lng]); trDesenhoRedesenhar(); return; } trAbrir(c); });
+    lay.addTo(TR.cam);
+    if(poli&&c[9]>=3&&z>=18) L.marker(ll,{icon:L.divIcon({className:"tr-fogos",html:`${c[9]}`,iconSize:[22,16]}),interactive:false}).addTo(TR.cam);
+  }
+  trLegenda(cont);
+}
+function trLegenda(cont){
+  const l=$("#trLeg"); if(!l) return; cont=cont||{};
+  l.innerHTML=Object.entries(TR_EST).filter(([k])=>TR.filtros.has(k)).map(([k,s])=>`<span><i style="background:${s.c}"></i>${s.n}${cont[k]?` <b>${cont[k]}</b>`:""}</span>`).join("");
+}
+function trZonasDesenhar(){
+  if(!TR.camZ) return; TR.camZ.clearLayers(); const eu=pvEu();
+  for(const z of TR.zonas){ const minha=z.vendedor_email===eu, cor=z.cor||(minha?"#6b2fa3":"#378add");
+    L.polygon(z.poligono,{color:cor,weight:minha?3:2,dashArray:minha?null:"6 6",fillColor:cor,fillOpacity:minha?.06:.03,interactive:false}).addTo(TR.camZ);
+    const c=L.polygon(z.poligono).getBounds().getCenter();
+    L.marker(c,{icon:L.divIcon({className:"tr-znome",html:`<span style="border-color:${cor};color:${cor}">${esc(z.nome)}${z.vendedor_nome?" · "+esc(z.vendedor_nome.split(" ")[0]):""}</span>`,iconSize:null}),interactive:false}).addTo(TR.camZ); }
+}
+
+// ---------------------------------------------------------------- ficha da casa
+function trAbrirId(id){ for(const c of trTodas()) if(c[0]===id) return trAbrir(c);
+  const s=TR.casas.get(id); if(!s) return; trAbrir([id,Math.round(s.lng*1e5),Math.round(s.lat*1e5),[],s.morada||"","",s.cp||"",s.localidade||"",({Felgueiras:"F",Lixa:"L",Fafe:"A"})[s.zona]||"F",1,0],true); }
+async function trAbrir(c,semMapa){
+  TR.aberta=c; TR.sel={estado:null,nota:"",voltar:""}; trDesenhar(); trFicha();
+  if(!semMapa&&TR.mapa&&TR.mapa.getZoom()<17) TR.mapa.setView(trLL(c),17,{animate:true});
+  try{ TR.hist[c[0]]=await pvPedido(`/rest/v1/pv_visitas?casa=eq.${c[0]}&select=*&order=id.desc&limit=20`)||[]; }catch(_){ TR.hist[c[0]]=[]; }
+  if(TR.aberta===c) trFicha();
+}
+function trPlc(c){ const ll=trLL(c); let best=null;
+  for(const d of DIAS||[]) for(const o of d.ots||[]){ const cc=o.campos||{}; const la=pvNum(cc["Latitude PLC"]), lo=pvNum(cc["Longitude PLC"]); if(la==null||lo==null) continue;
+    const dist=Math.round(axDist(ll,[la,lo])*1000); if(!best||dist<best.d) best={d:dist,n:cc.PLC||"PLC"}; }
+  return best; }
+function trFicha(){
+  const w=$("#trFicha"); if(!w) return; const c=TR.aberta; if(!c){ w.hidden=true; w.innerHTML=""; return; }
+  const e=trEstado(c[0]), s=e.s, ll=trLL(c), h=TR.hist[c[0]], enc=s?.encomenda&&PV.enc.find(x=>x.id===s.encomenda);
+  const sel=TR.sel.estado, plc=trPlc(c), ze=TR_ZONAS[c[8]]||"";
+  const travado=s?.estado==="nao_bater"&&!pvGestor();
+  const quando=[["amanha","Amanhã"],["sab","Sábado"],["7","+7 dias"],["30","+1 mês"]];
+  w.hidden=false;
+  w.innerHTML=`<div class="tr-ficha" role="dialog" aria-label="Casa">
+    <div class="tr-fcab"><div><b class="tr-mor">${esc(trMorada(c))}</b>
+      <span class="fmut">${esc([c[6],trTitulo(c[7])].filter(Boolean).join(" "))}${ze&&norm(ze)!==norm(c[7])?" · "+ze:""}${c[9]>=3?` · <b>prédio · ${c[9]} fogos</b>`:c[9]==2?" · 2 fogos":""}${c[10]?` · ${c[10]} m²`:""}</span>
+      ${plc?`<span class="fmut">PLC mais próximo (OTs): <b class="${plc.d>DX_LIMITE?"pv-dx":""}">${esc(plc.n)} a ${plc.d} m</b></span>`:""}</div>
+      <button class="fechar" id="trFechar" aria-label="Fechar">✕</button></div>
+    <div class="tr-agora"><span class="pv-chip" style="background:${TR_EST[e.k].c};color:#fff">${esc(TR_EST[e.k].n)}</span>
+      ${s?`<span class="fmut">${esc(s.atualizado_nome||"")} · ${pvDH(s.atualizado_em)}${s.n_visitas>1?` · ${s.n_visitas} visitas`:""}${e.voltar?" · <b>voltar hoje</b>":""}${e.reaberta?" · reaberta (6 meses)":""}${s.voltar_em&&!e.voltar?` · voltar ${esc(s.voltar_em.slice(8,10)+"/"+s.voltar_em.slice(5,7))}`:""}</span>`:'<span class="fmut">Ainda ninguém passou aqui</span>'}
+      ${s?.nota?`<span class="tr-nota">“${esc(s.nota)}”</span>`:""}</div>
+    ${enc?`<button class="pv-btn" data-pvid="${enc.id}">📄 ${esc(enc.numero)} · ${esc(PV_EST[enc.estado]?.n||enc.estado)} — abrir</button>`:s?.encomenda?'<span class="fmut">Ligada a uma pré-venda de outro vendedor.</span>':""}
+    ${travado?`<p class="pv-erro">Casa marcada <b>Não bater</b>. Só o gestor a pode reabrir.</p>`:`
+    <div class="pv-op"><span>Como correu a visita?</span><div class="pv-pills tr-pills">
+      ${TR_MARCAR.map(k=>`<label><input type="radio" name="trEst" value="${k}" ${sel===k?"checked":""}><span style="--tc:${TR_EST[k].c}"><i></i>${TR_EST[k].n}</span></label>`).join("")}</div></div>
+    <div class="tr-mais" ${sel?"":"hidden"}>
+      <div class="pv-op" ${sel==="ausente"||sel==="prospectado"||sel==="oportunidade"?"":"hidden"}><span>Voltar quando?</span><div class="pv-pills">
+        ${quando.map(([k,n])=>`<label><input type="radio" name="trVolta" value="${k}" ${TR.sel.voltar===k?"checked":""}><span>${n}</span></label>`).join("")}</div></div>
+      <label class="tr-nl">Nota curta (sem nomes nem telefones)<input id="trNota" maxlength="280" value="${esc(TR.sel.nota)}" placeholder="ex.: tem MEO, acaba em março; tocar à tarde"></label>
+      <button class="pv-btn pv-prim pv-grande" id="trGuardar">Guardar visita</button></div>`}
+    <div class="tr-acs">
+      ${!enc&&!s?.encomenda&&!travado?`<button class="pv-btn pv-ok" id="trPv">＋ Criar pré-venda nesta casa</button>`:""}
+      <a class="pv-btn" href="https://www.google.com/maps/dir/?api=1&destination=${ll[0]},${ll[1]}" target="_blank" rel="noopener">🧭 Ir</a>
+      ${h&&h.length&&(pvGestor()||(h[0].quem===pvEu()&&trDias(h[0].quando)*1440<10))?`<button class="pv-lnk" id="trDesf">↶ Desfazer última</button>`:""}
+    </div>
+    <div class="tr-hist">${h?(h.length?h.map(v=>`<div><i style="background:${TR_EST[v.estado]?.c||"#999"}"></i><span><b>${esc(TR_EST[v.estado]?.n||v.estado)}</b> · ${esc(v.quem_nome||"")} · ${pvDH(v.quando)}${v.nota?`<br><span class="fmut">${esc(v.nota)}</span>`:""}</span></div>`).join(""):'<span class="fmut">Sem visitas registadas.</span>'):'<span class="fmut">A carregar o histórico…</span>'}</div>
+    <div id="trErro" class="pv-erro" role="alert"></div>
+  </div>`;
+  $("#trFechar").onclick=()=>{ TR.aberta=null; trFicha(); trDesenhar(); };
+  w.querySelectorAll("input[name=trEst]").forEach(i=>i.onchange=()=>{ TR.sel.estado=i.value; TR.sel.nota=$("#trNota")?.value||TR.sel.nota; trFicha(); });
+  w.querySelectorAll("input[name=trVolta]").forEach(i=>i.onchange=()=>{ TR.sel.voltar=i.value; });
+  const n=$("#trNota"); if(n) n.oninput=()=>TR.sel.nota=n.value;
+  const g=$("#trGuardar"); if(g) g.onclick=()=>trGuardar();
+  const pb=$("#trPv"); if(pb) pb.onclick=()=>trCriarPv(c);
+  const d=$("#trDesf"); if(d) d.onclick=()=>trDesfazer(c);
+  w.querySelectorAll("[data-pvid]").forEach(b=>b.onclick=()=>pvAbrir(b.dataset.pvid));
+  if(window.innerWidth<900) w.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function trVoltarData(k){ if(!k) return null; const d=new Date();
+  if(k==="amanha") d.setDate(d.getDate()+1); else if(k==="sab"){ d.setDate(d.getDate()+((6-d.getDay()+7)%7||7)); } else d.setDate(d.getDate()+(+k));
+  return d.toISOString().slice(0,10); }
+async function trMarcar(c,estado,extra={}){
+  const ll=trLL(c);
+  const p={casa:c[0],lat:ll[0],lng:ll[1],morada:c[4]?trMorada(c):"",cp:c[6],localidade:trTitulo(c[7]),zona:TR_ZONAS[c[8]]||"",estado,
+    lat_vend:TR.gps?.lat??null,lng_vend:TR.gps?.lng??null,...extra};
+  const r=await pvRpc("pv_casa_marcar",{p});
+  const s=TR.casas.get(c[0])||{casa:c[0],lat:ll[0],lng:ll[1],n_visitas:0};
+  TR.casas.set(c[0],{...s,estado:r.estado,nota:extra.nota||s.nota,voltar_em:extra.voltar_em||null,encomenda:extra.encomenda||s.encomenda,
+    n_visitas:(s.n_visitas||0)+1,atualizado_em:new Date().toISOString(),atualizado_por:pvEu(),atualizado_nome:PV.eu?.nome});
+  return r;
+}
+async function trGuardar(){
+  const c=TR.aberta, er=$("#trErro"); if(!c||PV.ocupado) return; if(!TR.sel.estado){ er.textContent="Escolha como correu a visita."; return; }
+  const nota=($("#trNota")?.value||"").trim(); if(/(^|\D)[29]\d{8}(\D|$)/.test(nota.replace(/[\s.\-]/g,""))) { er.textContent="A nota não pode ter telefones (RGPD). Use a pré-venda para os dados do cliente."; return; }
+  PV.ocupado=true; const b=$("#trGuardar"); b.disabled=true; b.textContent="A guardar…";
+  try{ await trMarcar(c,TR.sel.estado,{nota,voltar_em:["ausente","prospectado","oportunidade"].includes(TR.sel.estado)?trVoltarData(TR.sel.voltar):null});
+    toast(`✓ ${TR_EST[TR.sel.estado].n} · ${trMorada(c)}`); if(navigator.vibrate) try{ navigator.vibrate(30); }catch(_){ }
+    TR.sel={estado:null,nota:"",voltar:""}; TR.hist[c[0]]=null; trAbrir(c,true); trPainel();
+  }catch(e){ er.textContent=e.message; b.disabled=false; b.textContent="Guardar visita"; }
+  finally{ PV.ocupado=false; }
+}
+async function trDesfazer(c){
+  if(!confirm("Desfazer a última marcação desta casa?")) return;
+  try{ await pvRpc("pv_casa_desfazer",{p_casa:c[0]}); await trCarregar(true); TR.hist[c[0]]=null; trAbrir(c,true); toast("Desfeito"); }catch(e){ toast("⚠ "+e.message); }
+}
+function trCriarPv(c){
+  const ll=trLL(c), r=pvLS.ler("pv_rascunho")||{};
+  const cp=/^\d{4}-\d{3}$/.test(c[6]||"")?c[6]:"";
+  pvLS.gravar("pv_rascunho",{...r,morada:c[4]?trMorada(c):(r.morada||""),cp:cp||r.cp||"",localidade:trTitulo(c[7])||r.localidade||""});
+  PV.gps={lat:ll[0],lng:ll[1],acc:null,info:"Coordenadas da casa no mapa do Território"};
+  TR.sel={estado:null,nota:"",voltar:""}; PV.casaPend={casa:c,morada:trMorada(c)}; PV.sub="nova"; renderPv(); window.scrollTo({top:0});
+  toast("Morada e coordenadas preenchidas pela casa do mapa");
+}
+async function trLigarPreVenda(r){   // chamada depois de criar a pré-venda
+  const p=PV.casaPend; PV.casaPend=null; if(!p||!r?.id) return;
+  try{ await trMarcar(p.casa,r.estado==="potencial"?"banco":"oportunidade",{encomenda:r.id}); }catch(e){ console.warn("Território:",e.message); }
+}
+
+// ---------------------------------------------------------------- pesquisa, filtros, GPS
+function trLigarUI(){
+  const q=$("#trQ"), sug=$("#trSug");
+  q.oninput=()=>{ const t=norm(q.value.trim()); if(t.length<3||!TR.idx){ sug.hidden=true; return; }
+    const ws=t.split(/\s+/); const r=[];
+    if(!TR.idxN) TR.idxN=TR.idx.ruas.map(x=>norm(trTitulo(x[0])+" "+x[1]));
+    for(let i=0;i<TR.idx.ruas.length;i++){ if(ws.every(w=>TR.idxN[i].includes(w))){ r.push(TR.idx.ruas[i]); if(r.length>=8) break; } }
+    for(const l of TR.idx.localidades) if(r.length<10&&norm(l[1]).includes(t)) r.push(["",l[1],null,null,l[2],l[0],1]);
+    sug.hidden=!r.length;
+    sug.innerHTML=r.map((x,i)=>`<button data-i="${i}"><b>${esc(x[0]?trTitulo(x[0]):trTitulo(x[1]))}</b><span class="fmut">${x[0]?esc(trTitulo(x[1]))+" · ":""}${x[4]} casa${x[4]>1?"s":""}</span></button>`).join("");
+    sug.querySelectorAll("button").forEach(b=>b.onclick=()=>{ const x=r[+b.dataset.i]; sug.hidden=true; q.value=x[0]?trTitulo(x[0]):trTitulo(x[1]);
+      if(x[2]!=null) TR.mapa.setView([x[3]/1e5,x[2]/1e5],18); else { const pts=[]; for(const c of trTodas()) if(c[7]===x[1]) pts.push(trLL(c));
+        if(pts.length) TR.mapa.fitBounds(pts); else TR.mapa.setView(TR_IR[TR_ZONAS[x[5]]]?.slice(0,2)||TR.mapa.getCenter(),15); } }); };
+  q.onkeydown=e=>{ if(e.key==="Escape"){ sug.hidden=true; } };
+  document.querySelectorAll("[data-trir]").forEach(b=>b.onclick=()=>{ const v=TR_IR[b.dataset.trir]; TR.mapa.setView([v[0],v[1]],v[2]); });
+  $("#trEu").onclick=trGps;
+  $("#trFil").onclick=()=>{ const f=$("#trFiltros"); f.hidden=!f.hidden; if(!f.hidden) trFiltrosHtml(); };
+  const zb=$("#trZn"); if(zb) zb.onclick=()=>trDesenhoIniciar();
+}
+function trFiltrosHtml(){
+  const f=$("#trFiltros");
+  f.innerHTML=`<div class="tr-fil">${Object.entries(TR_EST).map(([k,s])=>`<label><input type="checkbox" data-trf="${k}" ${TR.filtros.has(k)?"checked":""}><span><i style="background:${s.c}"></i>${s.n}</span></label>`).join("")}</div>
+    <div class="tr-fil2"><label class="pv-consent"><input type="checkbox" id="trSM" ${TR.semMorada?"checked":""}><span>Mostrar edifícios sem morada INE (anexos, armazéns, casas por confirmar)</span></label>
+    <button class="pv-lnk" id="trFT">Todos</button><button class="pv-lnk" id="trFN">Só por visitar e voltar</button></div>`;
+  const grava=()=>{ try{ localStorage.setItem("cr-terr-f",JSON.stringify([...TR.filtros])); localStorage.setItem("cr-terr-sm",TR.semMorada?"1":"0"); }catch(_){ } trDesenhar(); };
+  f.querySelectorAll("[data-trf]").forEach(i=>i.onchange=()=>{ i.checked?TR.filtros.add(i.dataset.trf):TR.filtros.delete(i.dataset.trf); grava(); });
+  $("#trSM").onchange=e=>{ TR.semMorada=e.target.checked; grava(); };
+  $("#trFT").onclick=()=>{ TR.filtros=new Set(Object.keys(TR_EST)); grava(); trFiltrosHtml(); };
+  $("#trFN").onclick=()=>{ TR.filtros=new Set(["por","ausente"]); grava(); trFiltrosHtml(); };
+}
+function trGps(){
+  if(TR.wid!=null){ TR.seguir=!TR.seguir; if(TR.seguir&&TR.gps) TR.mapa.setView([TR.gps.lat,TR.gps.lng],Math.max(TR.mapa.getZoom(),17)); $("#trEu").classList.toggle("on",TR.seguir); return; }
+  if(!navigator.geolocation) return toast("Este telemóvel não dá a localização.");
+  TR.seguir=true; $("#trEu").classList.add("on"); toast("A procurar o GPS…");
+  TR.wid=navigator.geolocation.watchPosition(p=>{ const prim=!TR.gps; TR.gps={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};
+      trGpsDesenhar(); if(TR.seguir&&TR.mapa) TR.mapa.setView([TR.gps.lat,TR.gps.lng],prim?18:TR.mapa.getZoom()); },
+    e=>{ toast(e.code===1?"Sem autorização para a localização.":"Sem sinal de GPS."); navigator.geolocation.clearWatch(TR.wid); TR.wid=null; $("#trEu")?.classList.remove("on"); },
+    {enableHighAccuracy:true,maximumAge:5000,timeout:30000});
+}
+function trGpsDesenhar(){ const m=TR.mapa; if(!m||!TR.gps) return; const ll=[TR.gps.lat,TR.gps.lng];
+  if(!TR.gpsMk||TR.gpsMk._map!==m){ TR.gpsMk=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#1a73e8",fillOpacity:1}).addTo(m); TR.gpsAcc=L.circle(ll,{radius:TR.gps.acc||20,color:"#1a73e8",weight:1,fillOpacity:.08,interactive:false}).addTo(m); }
+  else { TR.gpsMk.setLatLng(ll); TR.gpsAcc.setLatLng(ll).setRadius(TR.gps.acc||20); } }
+
+// ---------------------------------------------------------------- zonas (gestor): desenhar tocando no mapa
+function trDesenhoIniciar(){
+  if(TR.desenho){ trDesenhoCancelar(); return; }
+  TR.desenho={pts:[],lay:L.layerGroup().addTo(TR.mapa)}; $("#trZn").classList.add("on"); trDesenhoRedesenhar();
+}
+function trDesenhoCancelar(){ if(TR.desenho){ TR.desenho.lay.remove(); TR.desenho=null; } $("#trZn")?.classList.remove("on"); const d=$("#trDes"); if(d){ d.hidden=true; d.innerHTML=""; } }
+function trDesenhoRedesenhar(){
+  const d=TR.desenho, box=$("#trDes"); if(!d) return; d.lay.clearLayers();
+  if(d.pts.length) L.polygon(d.pts,{color:"#6b2fa3",weight:3,dashArray:"4 6",fillOpacity:.08}).addTo(d.lay);
+  d.pts.forEach(p=>L.circleMarker(p,{radius:5,color:"#6b2fa3",fillColor:"#fff",fillOpacity:1,weight:2}).addTo(d.lay));
+  box.hidden=false;
+  box.innerHTML=`<span>${d.pts.length<3?`Toque no mapa para marcar os cantos da zona (${d.pts.length}/3+)`:`${d.pts.length} pontos`}</span>
+    <button class="pv-lnk" id="trDU" ${d.pts.length?"":"disabled"}>↶</button><button class="pv-lnk" id="trDC">Cancelar</button>
+    <button class="pv-btn pv-prim" id="trDF" ${d.pts.length<3?"disabled":""}>Concluir</button>`;
+  $("#trDU").onclick=()=>{ d.pts.pop(); trDesenhoRedesenhar(); }; $("#trDC").onclick=trDesenhoCancelar;
+  $("#trDF").onclick=async()=>{ const pts=d.pts.slice(); trDesenhoCancelar(); await trZonaForm({poligono:pts}); };
+}
+const trDentro=(ll,poly)=>{ let ins=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const [yi,xi]=poly[i],[yj,xj]=poly[j];
+  if((yi>ll[0])!==(yj>ll[0])&&ll[1]<(xj-xi)*(ll[0]-yi)/(yj-yi+1e-12)+xi) ins=!ins; } return ins; };
+async function trZonaCasas(poly){ const b=L.polygon(poly).getBounds(); await trCarregarTiles(trTilesNa(b)); const r=[];
+  for(const c of trTodas()){ const ll=trLL(c); if(b.contains(ll)&&trDentro(ll,poly)) r.push(c); } return r; }
+async function trZonaForm(z){
+  if(!PV.pessoas) await pvCarregarPessoas();
+  const casas=await trZonaCasas(z.poligono), comMor=casas.filter(c=>c[4]).length;
+  const vend=(PV.pessoas||[]).filter(p=>p.ativo!==false&&(p.perfis||[]).includes("vendedor"));
+  TR.zonaEd={...z,n_casas:casas.length};
+  const box=$("#trPainel");
+  box.innerHTML=`<section class="bloco"><h4>${z.id?"Editar zona":"Nova zona"} · ${casas.length} edifícios (${comMor} com morada${casas.filter(c=>c[9]>=3).length?`, ${casas.filter(c=>c[9]>=3).length} prédios`:""})</h4>
+    <form id="trZF" class="pv-in"><label>Nome<input name="nome" value="${esc(z.nome||"")}" placeholder="ex.: Lixa · centro" required></label>
+    <div class="pv-op"><span>Vendedor</span><div class="pv-pills">
+      <label><input type="radio" name="vendedor_email" value="" ${!z.vendedor_email?"checked":""}><span>Sem vendedor</span></label>
+      ${vend.map(p=>`<label><input type="radio" name="vendedor_email" value="${esc(p.email)}" ${z.vendedor_email===p.email?"checked":""}><span>${esc(p.nome)}${p.teste?" (teste)":""}</span></label>`).join("")}</div></div>
+    <div class="pv-2"><label>De<input type="date" name="data_inicio" value="${esc(z.data_inicio||trHoje())}"></label><label>Até<input type="date" name="data_fim" value="${esc(z.data_fim||"")}"></label></div>
+    <label>Notas para o vendedor<input name="notas" value="${esc(z.notas||"")}" placeholder="ex.: começar pela Rua da Igreja; evitar a hora de almoço"></label>
+    <div class="pv-dec"><button class="pv-btn pv-prim pv-grande" type="submit">Guardar zona</button>
+      ${z.id?`<button class="pv-btn pv-mau" type="button" id="trZA">Apagar zona</button>`:""}<button class="pv-lnk" type="button" id="trZX">Cancelar</button></div>
+    <div id="trZE" class="pv-erro" role="alert"></div></form></section>`;
+  box.scrollIntoView({behavior:"smooth"});
+  $("#trZX").onclick=()=>{ TR.zonaEd=null; trPainel(); };
+  const za=$("#trZA"); if(za) za.onclick=async()=>{ if(!confirm("Apagar esta zona? As visitas ficam.")) return; await pvRpc("pv_zona_apagar",{p_id:z.id}); await trCarregar(true); TR.zonaEd=null; trPainel(); };
+  $("#trZF").onsubmit=async ev=>{ ev.preventDefault(); const fd=new FormData(ev.target), o=Object.fromEntries(fd.entries());
+    try{ await pvRpc("pv_zona_guardar",{p:{...o,id:z.id||null,poligono:z.poligono,n_casas:casas.length}}); toast("Zona guardada ✓"); TR.zonaEd=null; await trCarregar(true); trPainel(); }
+    catch(e){ $("#trZE").textContent=e.message; } };
+}
+
+// ---------------------------------------------------------------- painel por baixo do mapa: hoje / zonas / equipa
+function trPainel(){
+  const box=$("#trPainel"); if(!box||TR.zonaEd) return;
+  const g=pvGestor(), eu=pvEu(), hoje=trHoje();
+  const S=[...TR.casas.values()], minhas=S.filter(s=>s.atualizado_por===eu);
+  const hojeS=minhas.filter(s=>String(s.atualizado_em).slice(0,10)===hoje);
+  const voltar=S.filter(s=>{ const e=trEstado(s.casa); return e.voltar&&(g||s.atualizado_por===eu); }).sort((a,b)=>String(a.voltar_em||a.atualizado_em).localeCompare(String(b.voltar_em||b.atualizado_em)));
+  const tabs=[["hoje","Hoje"],["voltar",`Voltar · ${voltar.length}`],["zonas",`Zonas · ${TR.zonas.length}`]]; if(g) tabs.push(["equipa","Equipa"]);
+  let h=`<div class="seg tr-tabs">${tabs.map(([k,n])=>`<button data-trp="${k}" aria-pressed="${TR.painel===k}">${n}</button>`).join("")}</div>`;
+  if(TR.painel==="hoje"){
+    const n=k=>hojeS.filter(s=>s.estado===k).length;
+    h+=`<div class="pv-kpis pv-k4"><div class="kpi"><div class="l">Portas hoje</div><div class="v">${hojeS.length}</div><div class="s">${minhas.length} no total</div></div>
+      <div class="kpi"><div class="l">Falou com o cliente</div><div class="v">${n("prospectado")+n("oportunidade")+n("pre_venda")+n("banco")+n("sem_interesse")}</div><div class="s">${n("ausente")} ausentes</div></div>
+      <div class="kpi ok"><div class="l">Oportunidades</div><div class="v">${n("oportunidade")+n("banco")}</div><div class="s">hoje</div></div>
+      <div class="kpi ok"><div class="l">Pré-vendas</div><div class="v">${n("pre_venda")}</div><div class="s">hoje</div></div></div>
+      ${(()=>{ const z=TR.zonas.filter(z=>z.vendedor_email===eu); return z.length?`<div class="tr-zl">${z.map(trZonaLinha).join("")}</div>`:(g?"":'<p class="fmut">Ainda não tem zona atribuída. Pode trabalhar em qualquer rua.</p>'); })()}`;
+  } else if(TR.painel==="voltar"){
+    h+=voltar.length?`<div class="tr-lista">${voltar.slice(0,80).map(s=>`<button data-trcasa="${s.casa}"><b>${esc(s.morada||"Casa sem morada")}</b><span class="fmut">${esc(s.localidade||"")} · ${esc(TR_EST[s.estado]?.n||"")} ${pvDH(s.atualizado_em)}${s.nota?" · "+esc(s.nota):""}</span></button>`).join("")}</div>`
+      :`<div class="vazio">Nada para voltar hoje ✓</div>`;
+  } else if(TR.painel==="zonas"){
+    h+=TR.zonas.length?`<div class="tr-zl">${TR.zonas.map(trZonaLinha).join("")}</div>`:`<div class="vazio">${g?"Sem zonas. Toque em ✏️ no mapa e marque os cantos da zona.":"O gestor ainda não definiu zonas."}</div>`;
+  } else if(TR.painel==="equipa"&&g){
+    const d7=Date.now()-7*86400000, por={};
+    for(const s of S){ const k=s.atualizado_nome||s.atualizado_por||"?"; const p=por[k]||(por[k]={hoje:0,sem:0,op:0,pv:0,au:0});
+      const t=Date.parse(s.atualizado_em); if(String(s.atualizado_em).slice(0,10)===hoje) p.hoje++; if(t>=d7){ p.sem++; if(s.estado==="oportunidade"||s.estado==="banco") p.op++; if(s.estado==="pre_venda") p.pv++; if(s.estado==="ausente") p.au++; } }
+    const tot={}; for(const s of S) tot[s.estado]=(tot[s.estado]||0)+1;
+    h+=`<div class="pv-tab"><table><thead><tr><th>Vendedor</th><th class="n">Hoje</th><th class="n">7 dias</th><th class="n">Ausentes</th><th class="n">Oportun.</th><th class="n">Pré-vendas</th></tr></thead><tbody>
+      ${Object.entries(por).sort((a,b)=>b[1].sem-a[1].sem).map(([n,p])=>`<tr><td>${esc(n)}</td><td class="n">${p.hoje}</td><td class="n">${p.sem}</td><td class="n">${p.au}</td><td class="n">${p.op}</td><td class="n">${p.pv}</td></tr>`).join("")||'<tr><td colspan="6" class="fmut">Sem visitas.</td></tr>'}</tbody></table></div>
+      <div class="tr-leg">${Object.entries(TR_EST).filter(([k])=>k!=="por").map(([k,s])=>`<span><i style="background:${s.c}"></i>${s.n} <b>${tot[k]||0}</b></span>`).join("")}</div>
+      <button class="pv-btn" id="trXls">⬇ Excel das casas trabalhadas</button>`;
+  }
+  box.innerHTML=h;
+  box.querySelectorAll("[data-trp]").forEach(b=>b.onclick=()=>{ TR.painel=b.dataset.trp; trPainel(); });
+  box.querySelectorAll("[data-trcasa]").forEach(b=>b.onclick=()=>{ const s=TR.casas.get(b.dataset.trcasa); if(s) TR.mapa.setView([s.lat,s.lng],18); trAbrirId(b.dataset.trcasa); });
+  box.querySelectorAll("[data-trzona]").forEach(b=>b.onclick=()=>{ const z=TR.zonas.find(x=>x.id===b.dataset.trzona); if(z) TR.mapa.fitBounds(z.poligono,{padding:[20,20]}); });
+  box.querySelectorAll("[data-trzed]").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const z=TR.zonas.find(x=>x.id===b.dataset.trzed); if(z) trZonaForm(z); });
+  const x=$("#trXls"); if(x) x.onclick=trExcel;
+}
+function trZonaLinha(z){
+  const S=[...TR.casas.values()].filter(s=>trDentro([s.lat,s.lng],z.poligono)), n=z.n_casas||0, feitas=S.filter(s=>s.estado!=="nao_bater").length;
+  const pct=n?Math.min(100,Math.round(100*feitas/n)):0, op=S.filter(s=>["oportunidade","banco"].includes(s.estado)).length, pv=S.filter(s=>s.estado==="pre_venda").length;
+  return `<div class="tr-z" data-trzona="${z.id}" role="button" tabindex="0"><div><b>${esc(z.nome)}</b><span class="fmut">${esc(z.vendedor_nome||"sem vendedor")}${z.data_fim?` · até ${esc(z.data_fim.slice(8,10)+"/"+z.data_fim.slice(5,7))}`:""}${z.notas?" · "+esc(z.notas):""}</span>
+    <div class="tr-bar"><i style="width:${pct}%"></i></div><span class="fmut">${feitas} de ${n} casas (${pct}%) · ${op} oportunidades · ${pv} pré-vendas</span></div>
+    ${pvGestor()?`<button class="pv-lnk" data-trzed="${z.id}">Editar</button>`:""}</div>`;
+}
+function trExcel(){
+  if(typeof XLSX==="undefined") return toast("Excel indisponível.");
+  const linhas=[...TR.casas.values()].map(s=>({"Morada":s.morada,"CP":s.cp,"Localidade":s.localidade,"Zona":s.zona,"Estado":TR_EST[s.estado]?.n||s.estado,
+    "Nota":s.nota,"Voltar em":s.voltar_em,"Visitas":s.n_visitas,"Última visita":s.atualizado_em&&new Date(s.atualizado_em).toLocaleString("pt-PT"),"Por":s.atualizado_nome,
+    "Pré-venda":PV.enc.find(e=>e.id===s.encomenda)?.numero||"","Latitude":s.lat,"Longitude":s.lng}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(linhas),"Casas");
+  XLSX.writeFile(wb,`Territorio_${trHoje()}.xlsx`);
 }
 
 // ---------- Início (gestor): resumo da pré-venda
