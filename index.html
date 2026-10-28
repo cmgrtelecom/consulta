@@ -599,7 +599,8 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .tr-bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
 .tr-bar i{display:block;height:100%;background:#1d9e75;border-radius:99px;transition:width .4s}
 .tr-znome span{display:inline-block;white-space:nowrap;background:var(--surface);border:1.5px solid;border-radius:999px;padding:2px 8px;font:600 11.5px var(--f-body);transform:translate(-50%,-50%)}
-.tr-fogos{background:#111;color:#fff;border-radius:6px;font:700 10.5px/16px var(--f-body);text-align:center}
+.tr-num span{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;background:#111;color:#fff;border-radius:6px;padding:1px 6px;font:700 11.5px/17px var(--f-body);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.tr-num span.v{background:#1a73e8}
 .tr-fonte{font-size:11px}
 @media (max-width:560px){.tr-mapa{height:calc(100vh - 260px);min-height:380px}}
 .tr-coord{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;background:var(--surface-2);border-radius:10px;padding:6px 10px;font-size:13.5px}
@@ -3426,6 +3427,7 @@ function trMorada(c){ const p=TR.portas.get(c[0]), rua=p?.rua||(c[4]?trTitulo(c[
 function trMoradaPv(c){ const p=TR.portas.get(c[0]), rua=p?.rua||(c[4]?trTitulo(c[4]):"");   // para a pré-venda (sem textos de ajuda)
   if(p) return rua?`${rua}, ${p.porta}`:""; if(!c[4]) return ""; const n=c[11]?"":(c[5]||"").split(",")[0].replace("…","");
   return n?`${rua}, ${n}`:`${rua}, `; }
+const trPorta=c=>TR.portas.get(c[0])?.porta||(c[4]&&!c[11]?String(c[5]||"").split(",")[0].replace("…",""):"");
 const trCoord=c=>{ const ll=trLL(c); return `${ll[0].toFixed(6).replace(".",",")} · ${ll[1].toFixed(6).replace(".",",")}`; };
 function trTitulo(s){ return String(s||"").toLowerCase().replace(/(^|[\s(\-])([a-zà-ÿ])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(Da|De|Do|Das|Dos|E)\b/g,m=>m.toLowerCase())
   .replace(/^R /,"Rua ").replace(/^Av /,"Avenida ").replace(/^Lg /,"Largo ").replace(/^Tv /,"Travessa ").replace(/^Pc /,"Praça ").replace(/^Lug /,"Lugar ").replace(/^Bc /,"Beco ").replace(/^Estr /,"Estrada "); }
@@ -3513,7 +3515,8 @@ function trDesenhar(){
     else lay=L.circleMarker(ll,{renderer:TR.ren,radius:sel?7:(c[9]>=3?5:3.6),weight:sel?3:1,color:sel?"#111":"#fff",fillColor:cor,fillOpacity:fraco?.4:.95});
     lay.on("click",ev=>{ L.DomEvent.stop(ev); if(TR.desenho){ TR.desenho.pts.push([ev.latlng.lat,ev.latlng.lng]); trDesenhoRedesenhar(); return; } trAbrir(c); });
     lay.addTo(TR.cam);
-    if(poli&&c[9]>=3&&z>=18) L.marker(ll,{icon:L.divIcon({className:"tr-fogos",html:`${c[9]}`,iconSize:[22,16]}),interactive:false}).addTo(TR.cam);
+    if(poli&&z>=18){ const n=trPorta(c), pr=c[9]>=3;   // etiqueta = nº da porta (vendedor > INE); prédios com 🏢
+      if(n||pr) L.marker(ll,{icon:L.divIcon({className:"tr-num",html:`<span class="${TR.portas.has(c[0])?"v":""}">${pr?"🏢 ":""}${esc(n||String(c[9])+" fogos")}</span>`,iconSize:null}),interactive:false}).addTo(TR.cam); }
   }
   trLegenda(cont);
 }
