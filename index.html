@@ -404,7 +404,7 @@ button.itile{cursor:pointer}
 .pv-canc[open]{display:flex;flex-direction:column;gap:8px}
 .pv-hl{display:grid;grid-template-columns:12px 1fr;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
 .pv-hl:first-child{border-top:0}
-.pv-hl i{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--ok)} .pv-hl i.mau{background:var(--bad)}
+.pv-hl i{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--ok)} .pv-hl i.mau{background:var(--bad)} .pv-hl i.bco{background:#6b2fa3}
 .pv-hl div{display:flex;flex-direction:column;gap:2px;font-size:13.5px}
 .pv-pl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
 .pv-pl>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -472,6 +472,73 @@ body.so-pv main{padding-bottom:40px}
 
 /* morada automática (21/10/2026) */
 .pv-auto{background:var(--ok-bg, #e8f6ee)}
+/* ---------- Fidelização e banco de clientes em potencial (28/10/2026) */
+@keyframes pvPop{0%{transform:scale(.9)}55%{transform:scale(1.07)}100%{transform:scale(1)}}
+@keyframes pvEntra{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.pv-pills span{transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .1s;user-select:none;-webkit-tap-highlight-color:transparent}
+.pv-pills label:active span{transform:scale(.95)}
+.pv-pills input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 4px 14px -4px var(--accent);animation:pvPop .24s ease-out}
+.pv-pills:not(.pv-num):not(.pv-meses) input:checked+span::before{content:"✓";margin-right:6px;font-weight:800}
+.pv-pills input:disabled+span{opacity:.35;cursor:not-allowed}
+@media (hover:hover){.pv-pills input:not(:checked):not(:disabled)+span:hover{border-color:var(--accent);background:var(--accent-soft)}}
+.pv-e6{background:#efe6fb;color:#6b2fa3}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pv-e6{background:#33204a;color:#d9b8ff}}
+:root[data-theme="dark"] .pv-e6{background:#33204a;color:#d9b8ff}
+.pv-fid .pv-fidq span{min-height:48px;font-size:15px;padding:0 18px}
+.pv-fid .pv-fidq input[value=sim]:checked+span{background:#6b2fa3;border-color:#6b2fa3;color:#fff;box-shadow:0 4px 14px -4px #6b2fa3}
+.pv-fid .pv-fidq input[value=nao]:checked+span{background:var(--ok);border-color:var(--ok);color:#fff;box-shadow:0 4px 14px -4px var(--ok)}
+.pv-fid .pv-fidq input[value=ns]:checked+span{background:var(--muted);border-color:var(--muted);color:var(--bg);box-shadow:none}
+.pv-fidbox{display:flex;flex-direction:column;gap:12px;border-left:3px solid #6b2fa3;padding:2px 0 2px 12px;animation:pvEntra .2s ease-out}
+.pv-fidbox[hidden]{display:none}
+.pv-anos span{min-width:74px}
+.pv-meses{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.pv-meses span{min-width:0!important;width:100%;padding:0!important;font-size:13.5px;text-transform:capitalize}
+@media (max-width:380px){.pv-meses{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pv-fidmsg{border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.45;display:flex;gap:10px;align-items:flex-start;animation:pvEntra .2s ease-out}
+.pv-fidmsg:empty{display:none}
+.pv-fidmsg b.g{font:700 22px/1 var(--f-display)}
+.pv-fidmsg.banco{background:#efe6fb;color:#3d1a63} .pv-fidmsg.avanca{background:var(--accent-soft);color:var(--fg)} .pv-fidmsg.ok{background:var(--ok-bg);color:var(--fg)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pv-fidmsg.banco{background:#33204a;color:#ecdcff}}
+:root[data-theme="dark"] .pv-fidmsg.banco{background:#33204a;color:#ecdcff}
+.pv-dest{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pv-dest[hidden]{display:none}
+.pv-dest label{position:relative;flex-direction:row!important;color:var(--fg)!important;cursor:pointer}
+.pv-dest input{position:absolute;opacity:0;width:1px;height:1px}
+.pv-dest span{display:flex;flex-direction:column;gap:3px;width:100%;padding:12px;border:2px solid var(--line);border-radius:14px;background:var(--surface);font-size:12.5px;color:var(--muted);transition:border-color .15s,background .15s,box-shadow .15s,transform .1s}
+.pv-dest span b{font:700 15px var(--f-body);color:var(--fg)}
+.pv-dest label:active span{transform:scale(.97)}
+.pv-dest input:checked+span{border-color:#6b2fa3;background:#efe6fb;box-shadow:0 6px 18px -8px #6b2fa3;animation:pvPop .24s ease-out}
+.pv-dest input[value=avancar]:checked+span{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 6px 18px -8px var(--accent)}
+.pv-dest input:checked+span::after{content:"✓";position:absolute;top:8px;right:10px;width:22px;height:22px;border-radius:50%;background:#6b2fa3;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800}
+.pv-dest input[value=avancar]:checked+span::after{background:var(--accent);color:var(--accent-ink)}
+.pv-dest input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pv-dest input[value=banco]:checked+span{background:#33204a}}
+:root[data-theme="dark"] .pv-dest input[value=banco]:checked+span{background:#33204a}
+.pv-in .pv-consent{flex-direction:row;color:var(--fg);font-size:13.5px}
+.pv-banco-btn{background:#6b2fa3!important;border-color:#6b2fa3!important;color:#fff!important}
+.pv-bmes{display:flex;align-items:center;gap:10px;margin:16px 2px 8px;font:700 15px var(--f-display);text-transform:capitalize}
+.pv-bmes i{font-style:normal;font:600 12px var(--f-body);padding:3px 10px;border-radius:999px;text-transform:none}
+.pv-bmes i.u{background:var(--bad);color:#fff} .pv-bmes i.p{background:var(--warn-bg);color:var(--warn)} .pv-bmes i.l{background:var(--surface-2);color:var(--muted)}
+.pv-bc{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s,transform .1s}
+.pv-bc:hover{box-shadow:0 6px 18px -10px rgba(0,0,0,.35)} .pv-bc:active{transform:scale(.99)}
+.pv-bc.u{border-left-color:var(--bad)} .pv-bc.p{border-left-color:var(--warn)} .pv-bc.l{border-left-color:#6b2fa3}
+.pv-bc .c{font-weight:700} .pv-bc .m{font-size:12.5px;color:var(--muted)}
+.pv-bc .acs{display:flex;gap:6px;grid-column:1/-1;flex-wrap:wrap}
+.pv-bc .acs .pv-btn{min-height:38px;font-size:13px}
+.pv-bc .dias{text-align:right;font:700 20px/1 var(--f-display)} .pv-bc .dias small{display:block;font:500 11px var(--f-body);color:var(--muted)}
+.pv-bc.u .dias{color:var(--bad)} .pv-bc.p .dias{color:var(--warn)}
+.pv-ops{display:flex;gap:6px;flex-wrap:wrap}
+.pv-ops button{font:600 13px var(--f-body);min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;transition:all .15s}
+.pv-ops button[aria-pressed=true]{background:#6b2fa3;border-color:#6b2fa3;color:#fff;animation:pvPop .24s ease-out}
+.pv-kpis.pv-k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:560px){.pv-kpis.pv-k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pv-kpis .kpi.u .v{color:var(--bad)}
+.pv-cnt{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#efe6fb;color:#3d1a63;border-radius:12px;padding:12px 14px}
+.pv-cnt b{font:700 30px/1 var(--f-display)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pv-cnt{background:#33204a;color:#ecdcff}}
+:root[data-theme="dark"] .pv-cnt{background:#33204a;color:#ecdcff}
+@media (prefers-reduced-motion:reduce){.pv-pills input:checked+span,.pv-dest input:checked+span,.pv-ops button,.pv-fidbox,.pv-fidmsg{animation:none!important;transition:none!important}}
+
 .pv-morinfo:empty{display:none}
 </style>
 </head>
@@ -2518,6 +2585,7 @@ async function carregar(silencioso){
 // A ordem das etapas e quem pode fazer o quê são impostos no Supabase (funções pv_*); aqui é só o ecrã.
 const PV_VAPID="BAT3dMn-8lCoKg9l4Xng78TSz-a40iEEjXu0dQM8Mch7BPnVR2qMGjXz6KDGGQ9o9YryBU6N4yfD0Wv4WFakE58";
 const PV_EST={
+  potencial:{n:"No banco",c:"pv-e6",etapa:0},
   aguarda_vistoria:{n:"Aguarda vistoria",c:"pv-e0",etapa:1}, vistoria:{n:"Vistoria em curso",c:"pv-e1",etapa:2},
   aprovada:{n:"Aprovada",c:"pv-e2",etapa:3}, reprovada:{n:"Reprovada",c:"pv-ex",etapa:3,fim:1},
   na_proef:{n:"Na PROEF",c:"pv-e3",etapa:4}, vendida:{n:"Vendida",c:"pv-e4",etapa:5}, nao_vendida:{n:"Não vendida",c:"pv-ex",etapa:5,fim:1},
@@ -2525,10 +2593,16 @@ const PV_EST={
 const PV_ETAPAS=["Pré-venda","Vistoria","Decisão técnica","Venda PROEF","Venda concluída","Instalada"];
 const PV_PERFIL_NOME={gestor:"Gestor",vendedor:"Vendedor",tecnico:"Técnico",proef:"PROEF"};
 const PV_EQUIP=["ONT","NOS BOX v4","NOS BOX v3","Super Extender Wi-Fi Plume","Equipamento TV OTT","Cartão cabo","Cartão DTH"];
+const PV_OPERADORAS=["MEO","Vodafone","DIGI","Nowo","Outra"];
+const PV_MES3=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const PV_BANCO_MESES=2, PV_BANCO_AVISO=60;   // > 2 meses → banco; alerta 60 dias antes do fim
+const pvFimTxt=d=>d?`${String(d).slice(5,7)}/${String(d).slice(0,4)}`:"";
+const pvDiasAte=d=>Math.round((Date.parse(String(d).slice(0,10)+"T00:00:00")-Date.parse(new Date().toISOString().slice(0,10)+"T00:00:00"))/86400000);
+const pvAvisoEm=d=>{ const x=new Date(String(d).slice(0,10)+"T12:00:00"); x.setDate(x.getDate()-PV_BANCO_AVISO); return x; };
 const PV_ACESSO={aereo:"Aéreo / poste",fachada:"Fachada",conduta:"Conduta / subterrâneo",predio:"Prédio / ATI"};
 const PV={eu:null, instalado:null, enc:[], sub:"lista", filtro:null, aberta:null, hist:{}, pessoas:null, editar:null, senha:null,
   q:"", dupOk:false, gps:null, push:null, pushGuardado:false, ocupado:false, mapas:[],
-  mes:new Date().toISOString().slice(0,7), res:null, bon:null, bp:null, verTeste:false, sel:new Set(), contasTeste:null};
+  mes:new Date().toISOString().slice(0,7), bfil:"todos", bop:"", bvend:"", res:null, bon:null, bp:null, verTeste:false, sel:new Set(), contasTeste:null};
 const pvLS={ ler:k=>{ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(_){ return null; } },
   gravar:(k,v)=>{ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v)); }catch(_){ } } };
 const pvTem=p=>!!PV.eu&&(PV.eu.perfis.includes(p)||PV.eu.perfis.includes("gestor"));
@@ -2569,9 +2643,16 @@ async function pvCarregar(){
   if(!PV.eu.perfis.length){ PV.enc=[]; return; }
   PV.enc=await pvPedido("/rest/v1/pv_encomendas?select=*&order=criado_em.desc&limit=1000")||[];
   if(PV.aberta&&PV.hist[PV.aberta]) pvCarregarHist(PV.aberta,true);
+  pvBancoRotina();
   pvPushEstado().then(s=>{ PV.push=s; if(s==="ativo"&&!PV.pushGuardado) pvGuardarSub(true); if(VISTA==="pv") pvRenderTopo(); });
   const m=/^#pv=([0-9a-f-]{36})$/i.exec(location.hash||"");
   if(m){ try{ history.replaceState(null,"",location.pathname); }catch(_){ } pvAbrir(m[1]); }
+}
+function pvBancoRotina(){
+  if(!pvTem("vendedor")) return; const hoje=new Date().toISOString().slice(0,10);
+  if(pvLS.ler("pv_banco_rot")===hoje) return; pvLS.gravar("pv_banco_rot",hoje);
+  pvFuncao({acao:"banco"}).then(r=>{ if(r&&(r.alertas||r.apagadas)) pvRecarregar().then(()=>{ if(VISTA==="pv") renderPv(); }); })
+    .catch(e=>{ pvLS.gravar("pv_banco_rot",null); console.warn("Pré-venda: rotina do banco —",e.message); });
 }
 async function pvRecarregar(){ try{ PV.enc=await pvPedido("/rest/v1/pv_encomendas?select=*&order=criado_em.desc&limit=1000")||[]; }catch(e){ toast("⚠ "+e.message); } }
 async function pvCarregarHist(id,silencioso){
@@ -2648,25 +2729,26 @@ function renderPv(){
   else if(PV.sub==="pessoas"&&pvGestor()) c.innerHTML=pvPessoasHtml();
   else if(PV.sub==="res"&&pvGestor()) c.innerHTML=pvResHtml();
   else if(PV.sub==="bonus"&&pvTem("vendedor")) c.innerHTML=pvBonusHtml();
+  else if(PV.sub==="banco"&&pvTem("vendedor")) c.innerHTML=pvBancoHtml();
   else if(PV.sub==="ficha"&&PV.aberta) c.innerHTML=pvFichaHtml();
   else { PV.sub="lista"; c.innerHTML=pvListaHtml(); }
   pvLigar();
 }
 function pvRenderTopo(){
   const t=$("#pvTopo"); if(!t||!PV.eu) return;
-  const tabs=[["lista","Encomendas"]]; if(pvTem("vendedor")) tabs.push(["nova","＋ Nova pré-venda"]);
+  const tabs=[["lista","Encomendas"]]; if(pvTem("vendedor")){ tabs.push(["nova","＋ Nova pré-venda"]); tabs.push(["banco","🗄️ Banco"]); }
   if(PV.eu.perfis.includes("vendedor")&&!pvGestor()) tabs.push(["bonus","Bonificações"]);
   if(pvGestor()){ tabs.push(["res","Resultados"]); tabs.push(["pessoas","Pessoas"]); }
-  const n=PV.enc.filter(pvParaMim).length;
+  const n=PV.enc.filter(pvParaMim).length, nb=PV.enc.filter(pvBancoUrgente).length;
   t.innerHTML=`<div class="pv-topo"><div><h2 class="pv-h">Pré-venda</h2><span class="fmut">${esc(PV.eu.nome)} · ${PV.eu.perfis.map(p=>PV_PERFIL_NOME[p]||p).join(" + ")}</span></div>
-    <div class="seg" role="tablist">${tabs.map(([k,n2])=>`<button data-pvsub="${k}" aria-pressed="${PV.sub===k||(k==="lista"&&PV.sub==="ficha")}">${n2}${k==="lista"&&n?` <b class="pv-badge">${n}</b>`:""}</button>`).join("")}</div></div>${pvPushHtml()}`;
+    <div class="seg" role="tablist">${tabs.map(([k,n2])=>`<button data-pvsub="${k}" aria-pressed="${PV.sub===k||(k==="lista"&&PV.sub==="ficha")}">${n2}${k==="lista"&&n?` <b class="pv-badge">${n}</b>`:""}${k==="banco"&&nb?` <b class="pv-badge">${nb}</b>`:""}</button>`).join("")}</div></div>${pvPushHtml()}`;
   t.querySelectorAll("[data-pvsub]").forEach(b=>b.onclick=()=>{ PV.sub=b.dataset.pvsub; PV.senha=null; if(PV.sub==="pessoas") pvCarregarPessoas(); if(PV.sub==="res") pvCarregarRes(); if(PV.sub==="bonus") pvCarregarBonus(); renderPv(); window.scrollTo({top:0}); });
   const pb=$("#pvPush"); if(pb) pb.onclick=pvAtivarPush;
 }
 
 // ---------- lista
 function pvListaHtml(){
-  const eu=pvEu(), todos=PV.enc;
+  const eu=pvEu(), todos=PV.enc.filter(e=>e.estado!=="potencial");
   const grupos={mim:todos.filter(pvParaMim), curso:todos.filter(e=>!PV_EST[e.estado]?.fim),
     fech:todos.filter(e=>PV_EST[e.estado]?.fim), todas:todos};
   if(!PV.filtro) PV.filtro=grupos.mim.length?"mim":"curso";
@@ -2689,13 +2771,51 @@ function pvListaHtml(){
     ${lista.length?`<div class="lista">${lista.map(pvCartaoHtml).join("")}</div>`
       :`<div class="vazio"><b>${PV.filtro==="mim"?"Nada à sua espera ✓":"Sem encomendas aqui."}</b>${pvTem("vendedor")&&!todos.length?'<br>Comece por "＋ Nova pré-venda".':""}</div>`}`;
 }
+// ---------- banco de clientes em potencial
+const pvBancoUrgente=e=>e.estado==="potencial"&&e.fid_fim&&pvDiasAte(e.fid_fim)<=PV_BANCO_AVISO;
+const pvBancoNivel=e=>{ const d=pvDiasAte(e.fid_fim); return d<=PV_BANCO_AVISO?"u":d<=120?"p":"l"; };
+function pvBancoHtml(){
+  const pot=PV.enc.filter(e=>e.estado==="potencial"&&e.fid_fim).sort((a,b)=>String(a.fid_fim).localeCompare(String(b.fid_fim)));
+  const ativ=PV.enc.filter(e=>e.fid_ativada_em), conv=ativ.filter(e=>["vendida","instalada"].includes(e.estado)).length;
+  const urg=pot.filter(pvBancoUrgente), seis=pot.filter(e=>pvDiasAte(e.fid_fim)<=183);
+  const vends=[...new Map(pot.map(e=>[e.vendedor_email,e.vendedor_nome||e.vendedor_email])).entries()];
+  const grupos={todos:pot, urg, seis, tarde:pot.filter(e=>pvDiasAte(e.fid_fim)>183)};
+  const q=norm(PV.q.trim());
+  let l=(grupos[PV.bfil]||pot).filter(e=>(!PV.bop||(PV.bop==="Outra"?!PV_OPERADORAS.slice(0,4).includes(e.fid_operadora):e.fid_operadora===PV.bop))
+    &&(!PV.bvend||e.vendedor_email===PV.bvend)
+    &&(!q||norm([e.numero,e.cliente_nome,e.cliente_tel,e.morada,e.cp,e.localidade,e.vendedor_nome].join(" ")).includes(q)));
+  const ops=PV_OPERADORAS.filter(o=>pot.some(e=>o==="Outra"?!PV_OPERADORAS.slice(0,4).includes(e.fid_operadora):e.fid_operadora===o));
+  let html=`<div class="pv-kpis pv-k4">
+      <div class="kpi"><div class="l">No banco</div><div class="v">${pot.length}</div><div class="s">${pvGestor()?`${new Set(pot.map(e=>e.vendedor_email)).size} vendedor(es)`:"os seus clientes"}</div></div>
+      <div class="kpi ${urg.length?"u":""}"><div class="l">≤ ${PV_BANCO_AVISO} dias</div><div class="v">${urg.length}</div><div class="s">contactar já</div></div>
+      <div class="kpi"><div class="l">Próximos 6 meses</div><div class="v">${seis.length}</div><div class="s">a acabar fidelização</div></div>
+      <div class="kpi ok"><div class="l">Viraram venda</div><div class="v">${conv}</div><div class="s">de ${ativ.length} ativada${ativ.length===1?"":"s"}</div></div></div>
+    <div class="pv-filtros"><div class="seg">${[["todos","Todos"],["urg","≤ 60 dias"],["seis","6 meses"],["tarde","Mais tarde"]].map(([k,n])=>`<button data-pvbf="${k}" aria-pressed="${PV.bfil===k}">${n} · ${grupos[k].length}</button>`).join("")}</div>
+      <label class="busca pv-busca"><span aria-hidden="true">⌕</span><input id="pvQ" type="search" placeholder="Cliente, telefone, localidade, CP…" value="${esc(PV.q)}"></label></div>
+    ${ops.length>1||pvGestor()&&vends.length>1?`<div class="pv-filtros">${ops.length>1?`<div class="pv-ops">${["",...ops].map(o=>`<button data-pvbo="${o}" aria-pressed="${PV.bop===o}">${o||"Todas as operadoras"}</button>`).join("")}</div>`:""}
+      ${pvGestor()&&vends.length>1?`<select id="pvBV" class="pv-btn" style="padding:0 12px"><option value="">Todos os vendedores</option>${vends.map(([em,n])=>`<option value="${esc(em)}" ${PV.bvend===em?"selected":""}>${esc(n)}</option>`).join("")}</select>`:""}</div>`:""}`;
+  if(!l.length) return html+`<div class="vazio"><b>${pot.length?"Nada com estes filtros.":"O banco está vazio."}</b><br>${pot.length?"":'Na "＋ Nova pré-venda", marque <b>Fidelizado: Sim</b> e o mês do fim: se faltar mais de 2 meses, o cliente fica guardado aqui.'}</div>`;
+  let mesAt="";
+  for(const e of l){
+    const m=String(e.fid_fim).slice(0,7), d=pvDiasAte(e.fid_fim), nv=pvBancoNivel(e);
+    if(m!==mesAt){ mesAt=m; const n=l.filter(x=>String(x.fid_fim).slice(0,7)===m).length;
+      html+=`<div class="pv-bmes">${PV_MESES[+m.slice(5,7)-1]} ${m.slice(0,4)} <i class="${nv}">${nv==="u"?"contactar já":nv==="p"?"em breve":"mais tarde"} · ${n}</i></div>`; }
+    html+=`<div class="pv-bc ${nv}" data-pvid="${e.id}" role="button" tabindex="0">
+      <div><div class="c">${esc(e.cliente_nome)} ${e.teste?'<span class="pv-chip pv-teste">TESTE</span>':""}</div>
+        <div class="m"><span class="pv-chip pv-e6">${esc(e.fid_operadora||"")}</span> ${esc(e.localidade)}${e.fid_mensal!=null?` · paga ${esc(pvEur(e.fid_mensal))}/mês`:""}${pvGestor()?` · ${esc(e.vendedor_nome||e.vendedor_email)}`:""}</div></div>
+      <div class="dias">${d<=0?"já":d}<small>${d<=0?"terminou":"dias"}</small></div>
+      <div class="acs"><a class="pv-btn" style="display:inline-flex;align-items:center;text-decoration:none" href="tel:${esc(e.cliente_tel)}" data-stop>📞 ${esc(pvTelFmt(e.cliente_tel))}</a>
+        <button class="pv-btn ${nv==="u"?"pv-prim":""}" data-pvativar="${e.id}">🚀 Ativar pré-venda</button></div></div>`;
+  }
+  return html;
+}
 function pvCartaoHtml(e){
   const a=pvAtraso(e), mim=pvParaMim(e);
   return `<button class="ot pv-cartao${mim?" pv-mim":""}" data-pvid="${e.id}">
     <div class="pv-c1"><span class="mono">${esc(e.numero)}</span><span class="fmut">${pvIdade(e.criado_em)}</span></div>
     <div class="c">${esc(e.cliente_nome)}</div>
     <div class="m">${esc(e.localidade)} · ${esc((e.interesse||[]).join(" + ")||"—")} · ${esc(e.vendedor_nome||"")}</div>
-    <div class="chips">${e.teste?'<span class="pv-chip pv-teste">TESTE</span>':""}${pvChip(e)}${mim?'<span class="chip acc">à sua espera</span>':""}${a?`<span class="chip ${a.c}">${esc(a.t)}</span>`:""}${e.vistoria?.plc_dist_m>DX_LIMITE?`<span class="chip dx">📏 PLC a ${e.vistoria.plc_dist_m} m</span>`:""}</div>
+    <div class="chips">${e.teste?'<span class="pv-chip pv-teste">TESTE</span>':""}${pvChip(e)}${mim?'<span class="chip acc">à sua espera</span>':""}${a?`<span class="chip ${a.c}">${esc(a.t)}</span>`:""}${e.vistoria?.plc_dist_m>DX_LIMITE?`<span class="chip dx">📏 PLC a ${e.vistoria.plc_dist_m} m</span>`:""}${e.fid_ativada_em?'<span class="pv-chip pv-e6">🗄️ veio do banco</span>':""}</div>
   </button>`;
 }
 
@@ -2728,12 +2848,90 @@ function pvNovaHtml(){
         ${["Fibra","TV","Telemóvel","Fixo"].map(x=>`<label><input type="checkbox" name="interesse" value="${x}" ${ch("interesse",x)}><span>${x}</span></label>`).join("")}</div></div>
       <label>Notas para o técnico<textarea name="notas_vendedor" rows="2" placeholder="Horário, acesso, animais…">${v("notas_vendedor")}</textarea></label>
     </div></section>
+    <section class="bloco pv-fid"><h4>Fidelização atual</h4><div class="pv-in">
+      <div class="pv-op"><span>O cliente está fidelizado noutra operadora?</span><div class="pv-pills pv-fidq">
+        <label><input type="radio" name="fid_estado" value="nao" ${r.fid_estado==="nao"?"checked":""}><span>Não</span></label>
+        <label><input type="radio" name="fid_estado" value="sim" ${r.fid_estado==="sim"?"checked":""}><span>Sim</span></label>
+        <label><input type="radio" name="fid_estado" value="ns" ${r.fid_estado==="ns"?"checked":""}><span>Não sabe</span></label></div></div>
+      <div class="pv-fidbox" id="pvFidBox" ${r.fid_estado==="sim"?"":"hidden"}>
+        ${pvFidCampos(r)}
+        <label class="pv-consent"><input type="checkbox" name="fid_consent" ${r.fid_consent?"checked":""}>
+          <span>O cliente autoriza ser contactado perto do fim da fidelização (obrigatório para guardar no banco; os dados apagam-se 3 meses depois do fim).</span></label>
+      </div>
+      <div class="pv-fidmsg" id="pvFidMsg" role="status"></div>
+      <div class="pv-dest" id="pvDest" hidden>
+        <label><input type="radio" name="destino" value="banco" ${r.destino==="banco"?"checked":""}><span><b>🗄️ Guardar no banco</b>Sem técnico por agora. Aviso 60 dias antes do fim.</span></label>
+        <label><input type="radio" name="destino" value="avancar" ${r.destino==="avancar"?"checked":""}><span><b>🚀 Avançar já</b>Segue para a vistoria técnica como hoje.</span></label>
+      </div>
+      <input type="hidden" name="destino_manual" value="${r.destino_manual?"1":""}">
+    </div></section>
     <label class="pv-consent"><input type="checkbox" name="consentimento" ${r.consentimento?"checked":""}>
       <span>O cliente autoriza que a CR Telecom e a PROEF usem estes dados para a vistoria técnica e o contacto da venda.</span></label>
     <div id="pvErro" class="pv-erro" role="alert"></div>
     <button type="submit" class="pv-btn pv-prim pv-grande" id="pvEnviar">Enviar para vistoria técnica</button>
     <button type="button" class="pv-lnk" id="pvLimpar">Limpar o formulário</button>
   </form>`;
+}
+// campos de operadora, mês/ano do fim e mensalidade (formulário, guardar no banco e correção)
+function pvFidCampos(r){
+  r=r||{}; const agora=new Date(), a0=agora.getFullYear(), m0=agora.getMonth()+1;
+  const op=PV_OPERADORAS.includes(r.fid_operadora)||!r.fid_operadora?r.fid_operadora:"Outra", ano=+r.fid_ano||0, mes=+r.fid_mes||0;
+  return `<div class="pv-op"><span>Operadora atual</span><div class="pv-pills">
+      ${PV_OPERADORAS.map(o=>`<label><input type="radio" name="fid_operadora" value="${o}" ${op===o?"checked":""}><span>${o}</span></label>`).join("")}</div>
+      <input name="fid_operadora_outra" placeholder="Qual operadora?" value="${esc(op==="Outra"?(r.fid_operadora_outra||(r.fid_operadora!=="Outra"?r.fid_operadora:"")||""):"")}" ${op==="Outra"?"":"hidden"}></div>
+    <div class="pv-op"><span>Fim da fidelização · ano</span><div class="pv-pills pv-anos">
+      ${[0,1,2,3].map(i=>a0+i).map(y=>`<label><input type="radio" name="fid_ano" value="${y}" ${ano===y?"checked":""}><span>${y}</span></label>`).join("")}</div></div>
+    <div class="pv-op"><span>Fim da fidelização · mês</span><div class="pv-pills pv-meses">
+      ${PV_MES3.map((n,i)=>`<label><input type="radio" name="fid_mes" value="${i+1}" ${mes===i+1?"checked":""} ${(ano||a0)===a0&&i+1<m0?"disabled":""}><span>${n}</span></label>`).join("")}</div></div>
+    <label>Mensalidade atual do cliente (€, opcional)<input name="fid_mensal" inputmode="decimal" value="${esc(r.fid_mensal||"")}" placeholder="ex.: 45,90"></label>`;
+}
+// lê os campos da fidelização de um formulário → {fid_operadora, fid_fim "AAAA-MM", fid_mensal, fid_consent}
+function pvFidLer(f){
+  const fd=new FormData(f), g=k=>String(fd.get(k)||"").trim();
+  const op=g("fid_operadora")==="Outra"?(g("fid_operadora_outra")||""):g("fid_operadora");
+  const fim=g("fid_ano")&&g("fid_mes")?`${g("fid_ano")}-${g("fid_mes").padStart(2,"0")}`:"";
+  return {fid_operadora:op, fid_fim:fim, fid_mensal:g("fid_mensal"), fid_consent:!!fd.get("fid_consent")};
+}
+function pvFidErro(x,banco){
+  if(!x.fid_operadora) return "Escolha a operadora a que o cliente está fidelizado.";
+  if(!x.fid_fim) return "Escolha o ano e o mês do fim da fidelização.";
+  if(x.fid_mensal&&!/^\d{1,3}([.,]\d{1,2})?$/.test(x.fid_mensal.replace("€","").trim())) return "Mensalidade atual: escreva só o valor, por exemplo 45,90.";
+  if(banco&&!x.fid_consent) return "Para guardar no banco, o cliente tem de autorizar ser contactado perto do fim da fidelização.";
+  return "";
+}
+const pvMesesAte=fim=>{ const [a,m]=fim.split("-").map(Number), d=new Date(); return (a*12+m)-(d.getFullYear()*12+d.getMonth()+1); };
+// liga os botões da fidelização dentro de um formulário: "Outra", meses passados desativados
+function pvFidLigar(f,depois){
+  const sync=()=>{ const fd=new FormData(f), outra=f.querySelector('[name=fid_operadora_outra]');
+    if(outra){ const on=fd.get("fid_operadora")==="Outra"; if(outra.hidden===on){ outra.hidden=!on; if(on) outra.focus(); } }
+    const a0=new Date().getFullYear(), m0=new Date().getMonth()+1, ano=+(fd.get("fid_ano")||a0);
+    f.querySelectorAll('[name=fid_mes]').forEach(i=>{ i.disabled=ano===a0&&+i.value<m0; if(i.disabled&&i.checked) i.checked=false; });
+    depois&&depois(); };
+  f.addEventListener("change",sync); sync();
+}
+// formulário da nova pré-venda: mostra/esconde, mensagem dinâmica e escolha do destino
+function pvFidAtualizar(){
+  const f=$("#pvForm"); if(!f) return; const fd=new FormData(f), est=fd.get("fid_estado"), box=$("#pvFidBox"), msg=$("#pvFidMsg"), dest=$("#pvDest"), b=$("#pvEnviar");
+  box.hidden=est!=="sim";
+  let banco=false, html="", cls="";
+  if(est==="nao"){ cls="ok"; html="✓ Sem fidelização: segue para a vistoria técnica."; }
+  else if(est==="ns"){ cls="avanca"; html="Segue para a vistoria. Se o cliente souber depois, a PROEF pode guardá-lo no banco caso não feche."; }
+  else if(est==="sim"){
+    const x=pvFidLer(f);
+    if(x.fid_fim){
+      const n=pvMesesAte(x.fid_fim), av=pvAvisoEm(x.fid_fim+"-01"), auto=n>PV_BANCO_MESES?"banco":"avancar";
+      const man=f.querySelector("[name=destino_manual]");
+      if(man.value!=="1"){ const r=f.querySelector(`[name=destino][value=${auto}]`); if(r) r.checked=true; }
+      banco=new FormData(f).get("destino")==="banco";
+      cls=n>PV_BANCO_MESES?"banco":"avanca";
+      html=`<b class="g">${n<=0?"já":n}</b><span>${n<=0?"A fidelização acaba <b>este mês</b>":`${n===1?"Falta <b>1 mês</b>":`Faltam <b>${n} meses</b>`} para o fim (${x.fid_fim.slice(5)}/${x.fid_fim.slice(0,4)})`}.
+        ${n>PV_BANCO_MESES?`Recomendado: <b>guardar no banco</b> — alerta a ${av.toLocaleDateString("pt-PT",{day:"2-digit",month:"2-digit",year:"numeric"})}.`:"Pode <b>avançar já</b> para a pré-venda."}</span>`;
+      dest.hidden=false;
+    } else { cls="banco"; html="Escolha a operadora e o mês/ano do fim."; dest.hidden=true; }
+  }
+  if(est!=="sim") dest.hidden=true;
+  msg.className="pv-fidmsg "+cls; msg.innerHTML=html;
+  if(b&&!PV.ocupado){ b.textContent=banco?"🗄️ Guardar no banco de clientes":"Enviar para vistoria técnica"; b.classList.toggle("pv-banco-btn",banco); }
 }
 function pvLerForm(f){
   const fd=new FormData(f), o={};
@@ -2798,6 +2996,8 @@ function pvValidar(o){
   if(o.morada.length<4) return "Falta a morada (rua e número).";
   if(!/^\d{4}-\d{3}$/.test(o.cp)) return "Código postal no formato 0000-000.";
   if(o.localidade.length<2) return "Falta a localidade.";
+  if(!o.fid_estado) return "Fidelização atual: indique se o cliente está fidelizado noutra operadora (Sim, Não ou Não sabe).";
+  if(o.fid_estado==="sim"){ const m=pvFidErro(pvFidLer($("#pvForm")),o.destino==="banco"); if(m) return m; }
   if(!o.consentimento) return "Sem a autorização do cliente para o uso dos dados não é possível registar.";
   return "";
 }
@@ -2811,12 +3011,14 @@ async function pvSubmeter(ev){
       if(d.length){ er.innerHTML=`⚠ Já existe ${d.length>1?"encomenda ativa":"uma encomenda ativa"} com este telefone ou esta morada: ${d.map(x=>`<b>${esc(x.numero)}</b> (${esc(PV_EST[x.estado]?.n||x.estado)}, ${esc(x.data)})`).join(", ")}.
         <br><button type="button" class="pv-btn" id="pvDupOk">Registar mesmo assim</button>`;
         $("#pvDupOk").onclick=()=>{ PV.dupOk=true; f.requestSubmit(); }; return; } }
-    const r=await pvRpc("pv_criar",{p:{...o,lat:PV.gps.lat,lng:PV.gps.lng,precisao_m:PV.gps.acc||null}});
+    const {fid_ano,fid_mes,fid_operadora_outra,destino_manual,...base}=o;
+    const fid=o.fid_estado==="sim"?{...pvFidLer(f),destino:o.destino||null}:{fid_operadora:null,fid_fim:null,fid_mensal:null,fid_consent:false,destino:null};
+    const r=await pvRpc("pv_criar",{p:{...base,...fid,lat:PV.gps.lat,lng:PV.gps.lng,precisao_m:PV.gps.acc||null}});
     pvLS.gravar("pv_rascunho",null); PV.gps=null; PV.dupOk=false;
-    toast(`${r.numero} enviada para vistoria · ${r.tecnico}`); pvNotificar(r.id);
+    toast(r.estado==="potencial"?`🗄️ ${r.numero} guardada no banco · aviso 60 dias antes do fim`:`${r.numero} enviada para vistoria · ${r.tecnico}`); pvNotificar(r.id);
     await pvRecarregar(); pvAbrir(r.id);
   }catch(e){ er.textContent=e.message; }
-  finally{ PV.ocupado=false; if($("#pvEnviar")){ $("#pvEnviar").disabled=false; $("#pvEnviar").textContent="Enviar para vistoria técnica"; } }
+  finally{ PV.ocupado=false; if($("#pvEnviar")){ $("#pvEnviar").disabled=false; pvFidAtualizar(); } }
 }
 
 // ---------- ficha
@@ -2845,6 +3047,7 @@ function pvFichaHtml(){
       ${pvLinha("Onde",esc(e.local_venda==="evento"?`Evento / loja${e.evento?" · "+e.evento:""}`:"Porta a porta"))}
       ${pvLinha("Interesse",esc((e.interesse||[]).join(" + ")))}
       ${pvLinha("Notas",esc(e.notas_vendedor||""))}
+      ${pvLinha("Fidelização",pvFidTxt(e))}
       ${pvLinha("Técnico",esc(e.tecnico_nome||e.tecnico_email||""))}
     </dl></section>
     ${e.vistoria&&e.vistoria.decisao?`<section class="bloco"><h4>Vistoria técnica · ${pvDH(vi.feita_em)}</h4><dl>
@@ -2863,18 +3066,33 @@ function pvFichaHtml(){
     <section class="bloco"><h4>Histórico</h4><div id="pvHist">${pvHistHtml(e.id)}</div></section>
   </div>`;
 }
+function pvFidTxt(e){
+  if(e.fid_estado==="sim"||e.fid_fim) return `<span class="pv-chip pv-e6">${esc(e.fid_operadora||"")} até ${esc(pvFimTxt(e.fid_fim))}</span>${e.fid_mensal!=null?` · ${esc(pvEur(e.fid_mensal))}/mês`:""}${e.fid_consent?' · <span class="fmut">contacto autorizado</span>':""}`;
+  return e.fid_estado==="nao"?"Não fidelizado":e.fid_estado==="ns"?"Não sabe":"";
+}
 function pvHistHtml(id){
   const h=PV.hist[id]; if(!h) return `<div class="item fmut">A carregar…</div>`;
   if(!h.length) return `<div class="item fmut">Sem registos.</div>`;
-  return h.map(x=>{ const d=x.detalhe||{}, extra=[d.motivo,d.condicoes,d.plc&&`PLC ${d.plc}${d.plc_dist_m!=null?` · ${d.plc_dist_m} m`:""}`,d.conta_servico&&`Conta ${d.conta_servico}`,d.ot&&`OT ${d.ot}`].filter(Boolean).join(" · ");
-    return `<div class="pv-hl"><i class="${["reprovada","nao_vendida","cancelada"].includes(x.para_estado)?"mau":"ok"}"></i><div><b>${esc(x.acao)}</b><span class="fmut">${esc(x.quem_nome||"Sistema")} · ${pvDH(x.quando)}</span>${extra?`<span>${esc(extra)}</span>`:""}</div></div>`; }).join("");
+  return h.map(x=>{ const d=x.detalhe||{}, extra=[d.motivo,d.condicoes,d.plc&&`PLC ${d.plc}${d.plc_dist_m!=null?` · ${d.plc_dist_m} m`:""}`,d.conta_servico&&`Conta ${d.conta_servico}`,d.ot&&`OT ${d.ot}`,d.operadora&&`${d.operadora} até ${d.fim}`,d.fidelizado&&`fidelizado ${d.fidelizado}`].filter(Boolean).join(" · ");
+    return `<div class="pv-hl"><i class="${["reprovada","nao_vendida","cancelada"].includes(x.para_estado)?"mau":x.para_estado==="potencial"?"bco":"ok"}"></i><div><b>${esc(x.acao)}</b><span class="fmut">${esc(x.quem_nome||"Sistema")} · ${pvDH(x.quando)}</span>${extra?`<span>${esc(extra)}</span>`:""}</div></div>`; }).join("");
 }
 function pvAcoesHtml(e){
   const eu=pvEu(), meuTec=pvGestor()||(pvTem("tecnico")&&e.tecnico_email===eu), proef=pvTem("proef");
-  const canc=(pvGestor()&&["aguarda_vistoria","vistoria","aprovada","na_proef"].includes(e.estado))||(e.vendedor_email===eu&&e.estado==="aguarda_vistoria")
-    ?`<details class="pv-canc"><summary>Cancelar encomenda</summary><textarea id="pvCancMot" rows="2" placeholder="Motivo do cancelamento"></textarea><button class="pv-btn pv-mau" data-pvacao="cancelar">Cancelar encomenda</button></details>`:"";
+  const pot=e.estado==="potencial", cT=pot?"Retirar do banco":"Cancelar encomenda";
+  const canc=(pvGestor()&&["potencial","aguarda_vistoria","vistoria","aprovada","na_proef"].includes(e.estado))||(e.vendedor_email===eu&&["potencial","aguarda_vistoria"].includes(e.estado))
+    ?`<details class="pv-canc"><summary>${cT}</summary><textarea id="pvCancMot" rows="2" placeholder="${pot?"Motivo (ex.: cliente já não está interessado)":"Motivo do cancelamento"}"></textarea><button class="pv-btn pv-mau" data-pvacao="cancelar">${cT}</button></details>`:"";
   let h="";
-  if(e.estado==="aguarda_vistoria"){
+  if(pot){
+    const d=pvDiasAte(e.fid_fim), av=pvAvisoEm(e.fid_fim), meu=pvGestor()||e.vendedor_email===eu;
+    h=`<div class="pv-cnt"><div><span>Fidelização <b style="font-size:inherit">${esc(e.fid_operadora||"")}</b> acaba em <b style="font-size:inherit">${esc(pvFimTxt(e.fid_fim))}</b></span><br>
+        <span class="fmut" style="color:inherit;opacity:.8">${e.fid_avisado?"Alerta enviado "+pvDH(e.fid_avisado):"Alerta a "+av.toLocaleDateString("pt-PT")}</span></div>
+        <div style="text-align:right"><b>${d<=0?"já":d}</b><br><span class="fmut" style="color:inherit">${d<=0?"terminou":d===1?"dia":"dias"}</span></div></div>
+      <p>${d<=PV_BANCO_AVISO?"<b>Altura de contactar o cliente.</b> ":""}Quando o cliente estiver pronto, ative a pré-venda: segue ${e.vistoria?.decisao&&e.vistoria.decisao!=="reprovada"?"direto para a <b>PROEF</b> (já tem vistoria aprovada)":"para a <b>vistoria técnica</b>"}.</p>
+      ${meu?`<button class="pv-btn pv-prim pv-grande" data-pvacao="ativar">🚀 Ativar pré-venda agora</button>
+      <a class="pv-btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="tel:${esc(e.cliente_tel)}">📞 Ligar ao cliente</a>
+      <details class="pv-canc"><summary style="color:var(--accent)">Corrigir a fidelização</summary><form id="pvFidEd" class="pv-in" style="padding:0">${pvFidCampos({fid_operadora:e.fid_operadora,fid_ano:String(e.fid_fim).slice(0,4),fid_mes:+String(e.fid_fim).slice(5,7),fid_mensal:e.fid_mensal!=null?String(e.fid_mensal).replace(".",","):""})}
+        <button type="button" class="pv-btn" data-pvacao="fidedit">Guardar correção</button></form></details>`:""}`;
+  } else if(e.estado==="aguarda_vistoria"){
     h=meuTec?`<p>Vá ao local, confirme o acesso e o PLC e preencha a vistoria.</p><button class="pv-btn pv-prim pv-grande" data-pvacao="iniciar">Começar vistoria</button>`
       :`<p>À espera da vistoria de <b>${esc(e.tecnico_nome||"técnico")}</b>.</p>`;
   } else if(e.estado==="vistoria"){
@@ -2888,6 +3106,13 @@ function pvAcoesHtml(e){
     h=e.teste?`<p>Venda de <b>TESTE</b>: não há OT real. O gestor simula a instalação para conferir as bonificações.</p>${pvGestor()?'<button class="pv-btn pv-prim pv-grande" data-pvacao="simular">Simular instalação (teste)</button>':""}`
       :`<p>Vendida. Passa sozinha a <b>Instalada</b> quando a OT com a Conta de serviço <b class="mono">${esc(e.venda?.conta_servico||"")}</b> aparecer na coleta do Field Service.</p>`;
   } else if(e.estado==="instalada"){ h=`<p>Processo concluído ✓</p>`; }
+  else if(e.estado==="nao_vendida"&&(pvGestor()||(pvTem("proef")&&e.proef_email===eu))){
+    h=`<p>Encomenda fechada: Não vendida.</p>
+      <details class="pv-canc" id="pvBancoD"><summary style="color:#6b2fa3">🗄️ Cliente fidelizado? Guardar no banco de clientes</summary>
+        <form id="pvBancoF" class="pv-in" style="padding:0">${pvFidCampos({})}
+          <label class="pv-consent"><input type="checkbox" name="fid_consent"><span>O cliente autoriza ser contactado perto do fim da fidelização.</span></label>
+          <button type="button" class="pv-btn pv-grande pv-banco-btn" data-pvacao="banco">Guardar no banco · o vendedor é avisado</button></form></details>`;
+  }
   else { h=`<p>Encomenda fechada: ${esc(PV_EST[e.estado]?.n||e.estado)}.</p>`; }
   return `<section class="bloco pv-acao"><h4>O que falta</h4><div class="pv-in">${h}${canc}<div id="pvErroA" class="pv-erro" role="alert"></div></div></section>`;
 }
@@ -2968,7 +3193,13 @@ async function pvAcao(acao,dec){
       pvLS.gravar("pv_venda_"+e.id,null); toast(r.estado==="vendida"?"Venda concluída ✓":"Registado como não vendida"); pvNotificar(e.id);
     }
     else if(acao==="simular"){ await pvRpc("pv_simular_instalacao",{p_id:e.id}); toast("Instalação simulada ✓ · bonificação calculada"); pvNotificar(e.id); }
-    else if(acao==="cancelar"){ await pvRpc("pv_cancelar",{p_id:e.id,p_motivo:($("#pvCancMot")?.value||"").trim()}); toast("Encomenda cancelada"); pvNotificar(e.id); }
+    else if(acao==="cancelar"){ await pvRpc("pv_cancelar",{p_id:e.id,p_motivo:($("#pvCancMot")?.value||"").trim()}); toast(e.estado==="potencial"?"Retirada do banco":"Encomenda cancelada"); pvNotificar(e.id); }
+    else if(acao==="ativar"){ const r=await pvRpc("pv_potencial_ativar",{p_id:e.id}); toast(r.estado==="aprovada"?"🚀 Ativada · segue para a PROEF":`🚀 Ativada · vistoria com ${r.tecnico}`); pvNotificar(e.id); }
+    else if(acao==="fidedit"||acao==="banco"){
+      const f=$(acao==="banco"?"#pvBancoF":"#pvFidEd"), x=pvFidLer(f), m=pvFidErro(x,acao==="banco"); if(m) throw new Error(m);
+      if(acao==="banco"){ await pvRpc("pv_guardar_no_banco",{p_id:e.id,p:x}); toast("🗄️ Guardada no banco de clientes"); pvNotificar(e.id); }
+      else { await pvRpc("pv_fid_editar",{p_id:e.id,p:x}); toast("Fidelização corrigida ✓"); }
+    }
     await pvRecarregar(); await pvCarregarHist(e.id,true); renderPv();
   }catch(err){ if(er) er.textContent=err.message; else toast("⚠ "+err.message); }
   finally{ PV.ocupado=false; document.querySelectorAll("#vPv [data-pvacao],#vPv [data-pvdec]").forEach(b=>b.disabled=false); }
@@ -3052,6 +3283,10 @@ function pvLigar(){
   const q=$("#pvQ"); if(q){ q.oninput=()=>{ PV.q=q.value; clearTimeout(q._t); q._t=setTimeout(()=>{ renderPv(); const n=$("#pvQ"); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } },250); }; }
   c.querySelectorAll("[data-copiar]").forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.copiar).then(()=>toast("Copiado ✓"),()=>toast("Não consegui copiar")); });
   const f=$("#pvForm"); if(f){ f.onsubmit=pvSubmeter; f.oninput=ev=>{ PV.dupOk=false; ev.target?.classList?.remove("pv-auto"); pvGuardarRascunho(); }; $("#pvGps").onclick=pvLerGps;
+    f.addEventListener("change",ev=>{ if(ev.target.name==="destino") f.querySelector("[name=destino_manual]").value="1";
+      if(["fid_ano","fid_mes","fid_estado"].includes(ev.target.name)) f.querySelector("[name=destino_manual]").value="";
+      pvFidAtualizar(); pvGuardarRascunho(); });
+    pvFidLigar(f,pvFidAtualizar);
     $("#pvLimpar").onclick=()=>{ if(confirm("Apagar o que está escrito?")){ pvLS.gravar("pv_rascunho",null); PV.gps=null; renderPv(); } };
     if(PV.gps) setTimeout(pvMostrarGps,30); }
   const v=$("#pvVist"); if(v){ v.oninput=()=>pvLS.gravar("pv_vist_"+PV.aberta,pvLerVistoria(v)); v.querySelectorAll("[data-pvdec]").forEach(b=>b.onclick=()=>pvAcao("decidir",b.dataset.pvdec)); }
@@ -3059,6 +3294,17 @@ function pvLigar(){
     const z=$("#pvEsc"); if(z) z.textContent=pvEscalaoNome(o.pvp,o.alarme); }; }
   pvLigarExtra(c);
   c.querySelectorAll("[data-pvacao]").forEach(b=>b.onclick=()=>pvAcao(b.dataset.pvacao));
+  c.querySelectorAll("[data-pvbf]").forEach(b=>b.onclick=()=>{ PV.bfil=b.dataset.pvbf; renderPv(); });
+  c.querySelectorAll("[data-pvbo]").forEach(b=>b.onclick=()=>{ PV.bop=b.dataset.pvbo; renderPv(); });
+  const bv=$("#pvBV"); if(bv) bv.onchange=()=>{ PV.bvend=bv.value; renderPv(); };
+  c.querySelectorAll("[data-stop]").forEach(a=>a.addEventListener("click",ev=>ev.stopPropagation()));
+  c.querySelectorAll(".pv-bc[data-pvid]").forEach(b=>b.onkeydown=ev=>{ if(ev.key==="Enter") pvAbrir(b.dataset.pvid); });
+  c.querySelectorAll("[data-pvativar]").forEach(b=>b.onclick=async ev=>{ ev.stopPropagation(); if(PV.ocupado) return;
+    const e=PV.enc.find(x=>x.id===b.dataset.pvativar); if(!e||!confirm(`Ativar a pré-venda de ${e.cliente_nome}? Segue para ${e.vistoria?.decisao&&e.vistoria.decisao!=="reprovada"?"a PROEF":"a vistoria técnica"}.`)) return;
+    PV.ocupado=true; b.disabled=true; b.textContent="A ativar…";
+    try{ const r=await pvRpc("pv_potencial_ativar",{p_id:e.id}); toast(r.estado==="aprovada"?"🚀 Ativada · segue para a PROEF":`🚀 Ativada · vistoria com ${r.tecnico}`); pvNotificar(e.id); await pvRecarregar(); pvAbrir(e.id); }
+    catch(err){ toast("⚠ "+err.message); b.disabled=false; b.textContent="🚀 Ativar pré-venda"; } finally{ PV.ocupado=false; } });
+  ["#pvBancoF","#pvFidEd"].forEach(s=>{ const f=$(s); if(f) pvFidLigar(f); });
   const vb=$("#pvVoltar"); if(vb) vb.onclick=()=>{ PV.sub="lista"; PV.aberta=null; renderPv(); };
   const pf=$("#pvPessoa"); if(pf) pf.onsubmit=pvGuardarPessoa;
   const np=$("#pvNovaP"); if(np) np.onclick=()=>{ PV.editar=null; renderPv(); };
@@ -3070,8 +3316,8 @@ function pvLigar(){
 // ---------- Início (gestor): resumo da pré-venda
 function pvTileIni(){
   if(!PV.instalado||!PV.eu||!PV.eu.perfis.length) return "";
-  const mim=PV.enc.filter(pvParaMim).length, curso=PV.enc.filter(e=>!PV_EST[e.estado]?.fim).length, atr=PV.enc.filter(pvAtraso).length;
-  return `<button class="itile ${mim?"warn":""}" data-ir="pv"><span class="t">🤝 Pré-venda</span><b>${mim}</b><span>${mim===1?"encomenda à sua espera":"encomendas à sua espera"} · ${curso} em curso${atr?` · ${atr} atrasada${atr>1?"s":""}`:""}</span></button>`;
+  const mim=PV.enc.filter(pvParaMim).length, curso=PV.enc.filter(e=>!PV_EST[e.estado]?.fim&&e.estado!=="potencial").length, atr=PV.enc.filter(pvAtraso).length;
+  return `<button class="itile ${mim?"warn":""}" data-ir="pv"><span class="t">🤝 Pré-venda</span><b>${mim}</b><span>${mim===1?"encomenda à sua espera":"encomendas à sua espera"} · ${curso} em curso${atr?` · ${atr} atrasada${atr>1?"s":""}`:""}${PV.enc.some(pvBancoUrgente)?` · 🗄️ ${PV.enc.filter(pvBancoUrgente).length} no banco a contactar`:""}</span></button>`;
 }
 
 // ---------- mudar palavra-passe (todos)
