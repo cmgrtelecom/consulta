@@ -627,6 +627,12 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .tr-plcpop{display:flex;flex-direction:column;gap:3px;font-size:13px}
 .tr-plcpop b{font-size:14px}
 .tr-mt{font:700 11px var(--f-body);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+/* ficha da casa: no computador abre por cima do mapa, à direita; no telemóvel logo abaixo do mapa */
+.tr-mapa-w .tr-ficha-w{margin-top:10px}
+@media (min-width:900px){
+  .tr-mapa-w .tr-ficha-w{position:absolute;z-index:700;top:10px;right:64px;bottom:10px;width:380px;margin:0;overflow:auto;border-radius:16px;box-shadow:0 12px 36px -12px rgba(0,0,0,.5)}
+  .tr-mapa-w .tr-ficha{min-height:100%;box-sizing:border-box}
+}
 </style>
 </head>
 <body class="sem-sessao">
@@ -3487,11 +3493,11 @@ function trHtml(){
       <div id="trPlcMenu" class="tr-plcmenu" hidden></div>
       <div id="trZoom" class="tr-dica" hidden>Aproxime o mapa para ver as casas</div>
       <div id="trDes" class="tr-des" hidden></div>
+      <div id="trFicha" class="tr-ficha-w" hidden></div>
     </div>
     <div id="trFiltros" class="tr-filtros" hidden></div>
     <div class="tr-leg" id="trLeg"></div>
     <div id="trPainel"></div>
-    <div id="trFicha" class="tr-ficha-w" hidden></div>
     <p class="fmut tr-fonte">${esc(TR.idx?.fonte||"Edifícios: Overture Maps (Microsoft ML Buildings, OpenStreetMap). Moradas: INE via OpenAddresses.")}</p>
   </div>`;
 }
@@ -3620,7 +3626,7 @@ function trFicha(){
   const pb=$("#trPv"); if(pb) pb.onclick=()=>trCriarPv(c);
   const d=$("#trDesf"); if(d) d.onclick=()=>trDesfazer(c);
   w.querySelectorAll("[data-pvid]").forEach(b=>b.onclick=()=>pvAbrir(b.dataset.pvid));
-  if(window.innerWidth<900) w.scrollIntoView({behavior:"smooth",block:"nearest"});
+  if(TR.fichaVista!==c[0]){ TR.fichaVista=c[0]; if(window.innerWidth<900) w.scrollIntoView({behavior:"smooth",block:"nearest"}); else w.scrollTop=0; }
 }
 function trVoltarData(k){ if(!k) return null; const d=new Date();
   if(k==="amanha") d.setDate(d.getDate()+1); else if(k==="sab"){ d.setDate(d.getDate()+((6-d.getDay()+7)%7||7)); } else d.setDate(d.getDate()+(+k));
