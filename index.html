@@ -3426,8 +3426,8 @@ const TR_EST={
   sem_interesse:{n:"Sem interesse agora",c:"#f0997b"}, cliente:{n:"Já é cliente",c:"#444441"}, sem_viab:{n:"Sem viabilidade",c:"#8d6e63"},
   nao_bater:{n:"Não bater",c:"#e24b4a"}};
 const TR_MARCAR=["ausente","prospectado","oportunidade","sem_interesse","cliente","nao_bater"];   // pré-venda/banco/sem viabilidade vêm da encomenda
-const TR_ZONAS={F:"Felgueiras",L:"Lixa",A:"Fafe"};
-const TR_IR={Felgueiras:[41.3645,-8.1975,16],Lixa:[41.3343,-8.1570,16],Fafe:[41.4507,-8.1727,16]};
+const TR_ZONAS={F:"Felgueiras",L:"Lixa",A:"Fafe",V:"Vizela"};
+const TR_IR={Felgueiras:[41.3645,-8.1975,16],Lixa:[41.3343,-8.1570,16],Fafe:[41.4507,-8.1727,16],Vizela:[41.3780,-8.3060,16]};
 const TR_AUSENTE_DIAS=7, TR_SEMINT_DIAS=183;
 const TR={idx:null, tiles:new Map(), aCarregar:new Set(), casas:new Map(), portas:new Map(), zonas:[], carregado:false, mapa:null, cam:null, camZ:null, gps:null, gpsMk:null, seguir:false,
   aberta:null, hist:{}, filtros:null, semMorada:true, desenho:null, zonaEd:null, vista:null, painel:"hoje"};
@@ -3568,7 +3568,7 @@ function trZonasDesenhar(){
 
 // ---------------------------------------------------------------- ficha da casa
 function trAbrirId(id){ for(const c of trTodas()) if(c[0]===id) return trAbrir(c);
-  const s=TR.casas.get(id); if(!s) return; trAbrir([id,Math.round(s.lng*1e5),Math.round(s.lat*1e5),[],s.morada||"","",s.cp||"",s.localidade||"",({Felgueiras:"F",Lixa:"L",Fafe:"A"})[s.zona]||"F",1,0],true); }
+  const s=TR.casas.get(id); if(!s) return; trAbrir([id,Math.round(s.lng*1e5),Math.round(s.lat*1e5),[],s.morada||"","",s.cp||"",s.localidade||"",({Felgueiras:"F",Lixa:"L",Fafe:"A",Vizela:"V"})[s.zona]||"F",1,0],true); }
 async function trAbrir(c,semMapa){
   TR.aberta=c; TR.ponto=null; TR.sel={estado:null,nota:"",voltar:""}; trDesenhar(); trFicha();
   if(!semMapa&&TR.mapa&&TR.mapa.getZoom()<17) TR.mapa.setView(trLL(c),17,{animate:true});
@@ -4029,7 +4029,7 @@ function trPontoFicha(){
     <div class="tr-fcab"><div><b class="tr-mor">${p.aProcurar?"A procurar a morada…":esc(p.morada||"Ponto no mapa")}</b>
       ${p.cp||p.loc?`<span class="fmut">${esc([p.cp,p.loc].filter(Boolean).join(" "))}</span>`:""}
       ${origem?`<span class="fmut">${esc(origem)}</span>`:""}
-      <span class="tr-fora">${fora?"Fora do mapa casa a casa (só Felgueiras, Lixa e Fafe)":`Sem casa do mapa a menos de ${p.raio||40} m${p.dist!=null?` (a mais próxima a ${p.dist} m)`:""}`}</span></div>
+      <span class="tr-fora">${fora?"Fora do mapa casa a casa (só Felgueiras, Lixa, Fafe e Vizela)":`Sem casa do mapa a menos de ${p.raio||40} m${p.dist!=null?` (a mais próxima a ${p.dist} m)`:""}`}</span></div>
       <button class="fechar" id="trFechar" aria-label="Fechar">✕</button></div>
     <div class="tr-coord"><span>📍 <b class="mono">${co}</b></span>
       <button class="pv-lnk" id="trCopia">Copiar</button><a class="pv-lnk" href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>
