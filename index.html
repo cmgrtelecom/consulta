@@ -624,6 +624,12 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .tr-plc-i{display:inline-flex;align-items:center;gap:5px;transform:translate(-9px,-50%);white-space:nowrap}
 .tr-plc-i i{width:16px;height:16px;background:#0f6e56;border:2.5px solid #fff;transform:rotate(45deg);border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.45);flex:none}
 .tr-plc-i b{background:#0f6e56;color:#fff;font:700 11px/16px var(--f-body);padding:1px 6px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.tr-pin i{position:absolute;left:3px;top:0;width:24px;height:24px;border-radius:50% 50% 50% 0;background:#e24b4a;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 3px 8px rgba(0,0,0,.45)}
+.tr-pin b{position:absolute;left:11px;top:8px;width:8px;height:8px;border-radius:50%;background:#fff}
+.tr-pin::after{content:"";position:absolute;left:5px;top:30px;width:20px;height:8px;border-radius:50%;background:rgba(226,75,74,.35);animation:trPulso 1.4s ease-out infinite}
+@keyframes trPulso{0%{transform:scale(.4);opacity:1}100%{transform:scale(2.2);opacity:0}}
+.tr-fora{display:inline-block;margin-top:2px;padding:2px 8px;border-radius:999px;background:#fdecc8;color:#7a4a00;font-size:12.5px;font-weight:600}
+.tr-sug-on{padding:8px 12px;border-top:1px solid var(--line)}
 .tr-plcpop{display:flex;flex-direction:column;gap:3px;font-size:13px}
 .tr-plcpop b{font-size:14px}
 .tr-mt{font:700 11px var(--f-body);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
@@ -3458,17 +3464,20 @@ async function trCarregar(forcar){
   if(TR.carregado&&!forcar) return;
   try{
     if(!TR.idx){ const r=await fetch("terr/index.json"); if(!r.ok) throw new Error("Mapa das casas não encontrado (terr/index.json)."); TR.idx=await r.json(); TR.idxT=new Set(TR.idx.tiles.map(t=>t[0]+"_"+t[1])); }
-    const [cs,zs,ps,pl]=await Promise.all([pvPedido("/rest/v1/pv_casas?select=*&limit=100000"),pvPedido("/rest/v1/pv_zonas?select=*&ativa=eq.true&order=criada_em.asc"),
-      pvPedido("/rest/v1/pv_portas?select=*&limit=100000").catch(()=>[]),pvPedido("/rest/v1/pv_plcs?select=*&limit=20000").catch(()=>[])]);
-    TR.plcs=(pl||[]).map(x=>({plc:x.plc,lat:+x.lat,lng:+x.lng,n:x.n_ots||0,ult:x.ultima||"",fonte:x.fonte}));
+    const [cs,zs,ps,pl,mo]=await Promise.all([pvPedido("/rest/v1/pv_casas?select=*&limit=100000"),pvPedido("/rest/v1/pv_zonas?select=*&ativa=eq.true&order=criada_em.asc"),
+      pvPedido("/rest/v1/pv_portas?select=*&limit=100000").catch(()=>[]),pvPedido("/rest/v1/pv_plcs?select=*&limit=20000").catch(()=>[]),pvPedido("/rest/v1/pv_moradas?select=*&limit=50000").catch(()=>[])]);
+    TR.morDb=mo||[]; TR.morSig=null; TR.plcs=(pl||[]).map(x=>({plc:x.plc,lat:+x.lat,lng:+x.lng,n:x.n_ots||0,ult:x.ultima||"",fonte:x.fonte}));
     TR.casas=new Map((cs||[]).map(s=>[s.casa,s])); TR.zonas=zs||[]; TR.portas=new Map((ps||[]).map(x=>[x.casa,x])); TR.carregado=true;
   }catch(e){ toast("⚠ "+e.message); }
   if(VISTA==="pv"&&PV.sub==="terr"){ trAtualizar(); trPainel(); }
 }
-async function trCarregarTiles(lista){
-  const falta=lista.filter(k=>TR.idxT?.has(k)&&!TR.tiles.has(k)&&!TR.aCarregar.has(k)); if(!falta.length) return;
-  falta.forEach(k=>TR.aCarregar.add(k));
-  await Promise.all(falta.map(async k=>{ try{ const r=await fetch(`terr/t/${k}.json`); TR.tiles.set(k,r.ok?await r.json():[]); }catch(_){ } finally{ TR.aCarregar.delete(k); } }));
+async function trCarregarTiles(lista){   // espera também pelos quadrados que já estavam a carregar (antes a pesquisa não esperava e dizia "sem casa")
+  TR.pT=TR.pT||new Map(); const ps=[];
+  for(const k of lista){ if(!TR.idxT?.has(k)||TR.tiles.has(k)) continue;
+    if(!TR.pT.has(k)){ TR.aCarregar.add(k);
+      TR.pT.set(k,(async()=>{ try{ const r=await fetch(`terr/t/${k}.json`); TR.tiles.set(k,r.ok?await r.json():[]); }catch(_){ } finally{ TR.aCarregar.delete(k); TR.pT.delete(k); } })()); }
+    ps.push(TR.pT.get(k)); }
+  if(ps.length) await Promise.all(ps);
 }
 function trTilesNa(b){ const [x0,y0]=trTile(b.getWest(),b.getNorth()), [x1,y1]=trTile(b.getEast(),b.getSouth()); const r=[];
   for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++) r.push(x+"_"+y); return r; }
@@ -3561,7 +3570,7 @@ function trZonasDesenhar(){
 function trAbrirId(id){ for(const c of trTodas()) if(c[0]===id) return trAbrir(c);
   const s=TR.casas.get(id); if(!s) return; trAbrir([id,Math.round(s.lng*1e5),Math.round(s.lat*1e5),[],s.morada||"","",s.cp||"",s.localidade||"",({Felgueiras:"F",Lixa:"L",Fafe:"A"})[s.zona]||"F",1,0],true); }
 async function trAbrir(c,semMapa){
-  TR.aberta=c; TR.sel={estado:null,nota:"",voltar:""}; trDesenhar(); trFicha();
+  TR.aberta=c; TR.ponto=null; TR.sel={estado:null,nota:"",voltar:""}; trDesenhar(); trFicha();
   if(!semMapa&&TR.mapa&&TR.mapa.getZoom()<17) TR.mapa.setView(trLL(c),17,{animate:true});
   try{ TR.hist[c[0]]=await pvPedido(`/rest/v1/pv_visitas?casa=eq.${c[0]}&select=*&order=id.desc&limit=20`)||[]; }catch(_){ TR.hist[c[0]]=[]; }
   if(TR.aberta===c) trFicha();
@@ -3571,7 +3580,7 @@ function trPlc(c){ const ll=trLL(c); let best=null;
     const dist=Math.round(axDist(ll,[la,lo])*1000); if(!best||dist<best.d) best={d:dist,n:cc.PLC||"PLC"}; }
   return best; }
 function trFicha(){
-  const w=$("#trFicha"); if(!w) return; const c=TR.aberta; if(!c){ w.hidden=true; w.innerHTML=""; return; }
+  const w=$("#trFicha"); if(!w) return; const c=TR.aberta; if(!c){ if(TR.ponto) return trPontoFicha(); w.hidden=true; w.innerHTML=""; return; }
   const e=trEstado(c[0]), s=e.s, ll=trLL(c), h=TR.hist[c[0]], enc=s?.encomenda&&PV.enc.find(x=>x.id===s.encomenda);
   const sel=TR.sel.estado, plc=trPlc(c), ze=TR_ZONAS[c[8]]||"";
   const travado=s?.estado==="nao_bater"&&!pvGestor();
@@ -3671,10 +3680,9 @@ async function trLigarPreVenda(r){   // chamada depois de criar a pré-venda
 // ---------------------------------------------------------------- pesquisa, filtros, GPS
 function trLigarUI(){
   const q=$("#trQ"), sug=$("#trSug");
-  q.oninput=()=>{ const r=trBuscar(q.value); TR.sugs=r; sug.hidden=!r.length;
-    sug.innerHTML=r.map((x,i)=>`<button data-i="${i}"><b>${esc(x.t)}</b><span class="fmut">${esc(x.s)}</span></button>`).join("");
-    sug.querySelectorAll("button").forEach(b=>b.onclick=()=>trIrSug(TR.sugs[+b.dataset.i])); };
-  q.onkeydown=e=>{ if(e.key==="Escape"){ sug.hidden=true; } if(e.key==="Enter"){ e.preventDefault(); const r=TR.sugs?.length?TR.sugs:trBuscar(q.value); if(r.length) trIrSug(r[0]); } };
+  q.oninput=()=>trPesquisar(q.value);
+  q.onpaste=()=>setTimeout(()=>trPesquisar(q.value),0);
+  q.onkeydown=e=>{ if(e.key==="Escape"){ sug.hidden=true; } if(e.key==="Enter"){ e.preventDefault(); const r=TR.sugs?.length?TR.sugs:trBuscar(q.value); if(r.length) trIrSug(r[0]); else if(q.value.trim().length>=5){ toast("🌐 A procurar online…"); trOnline(q.value).then(o=>{ if(o.length) trIrSug(o[0]); else toast("Morada não encontrada. Experimente só a rua, ou cole as coordenadas."); }); } } };
   document.querySelectorAll("[data-trir]").forEach(b=>b.onclick=()=>{ const v=TR_IR[b.dataset.trir]; TR.mapa.setView([v[0],v[1]],v[2]); });
   $("#trEu").onclick=trGps;
   $("#trPlcB").onclick=()=>{ const m=$("#trPlcMenu"); m.hidden=!m.hidden; if(!m.hidden) trPlcMenu(); };
@@ -3844,39 +3852,127 @@ function trPlcPopup(p){
     <a href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>`).openOn(TR.mapa);
 }
 
-// ---------------------------------------------------------------- pesquisa: morada completa (com nº), rua, localidade ou coordenadas
-const TR_PAL={rua:"r",avenida:"av",travessa:"tv",largo:"lg",praca:"pc",praceta:"pct",lugar:"lug",beco:"bc",estrada:"estr",urbanizacao:"urb",
-  padre:"padre",doutor:"dr",santa:"sta",santo:"sto",senhora:"sra",nossa:"nsa",engenheiro:"eng",professor:"prof",dom:"d"};
-const TR_VAZIAS=new Set(["n","no","nº","n.","num","numero","de","da","do","das","dos","e","a","o","em","-",",","casa","porta"]);
+// ---------------------------------------------------------------- pesquisa (30/10/2026): morada colada ou escrita, rua, localidade ou coordenadas
+// Fontes, por ordem: 📋 moradas das OTs / 💾 guardadas (pv_moradas + OTs carregadas) · 🏠 ruas do INE · 📍 localidades · 🌐 online (Photon/OSM).
+// "São/Santa/Santo" = "S" do INE; código postal, "SN", "Portugal" e a freguesia não bloqueiam a pesquisa.
+const TR_CANON={rua:"r",avenida:"av",avd:"av",travessa:"tv",trav:"tv",largo:"lg",praca:"pc",praceta:"pct",lugar:"lug",beco:"bc",estrada:"estr",
+  urbanizacao:"urb",calcada:"cc",doutor:"dr",doutora:"dra",sao:"s",santa:"s",santo:"s",sta:"s",sto:"s",senhora:"sra",nossa:"nsa",
+  engenheiro:"eng",professor:"prof",dom:"d",dona:"d"};
+const TR_TIPOS=new Set(["r","av","tv","lg","pc","pct","lug","bc","estr","urb","cc","quinta","bairro","caminho","alameda","viela","rotunda"]);
+const TR_VAZIAS=new Set(["n","no","num","numero","de","da","do","das","dos","e","a","o","em","casa","porta","sn","portugal"]);
+const trCP=s=>(String(s||"").match(/\b\d{4}-\d{3}\b/)||[""])[0];
+function trTok(s){ return norm(String(s||"").replace(/\bs\s*\/\s*n\b/gi," ").replace(/\b\d{4}-\d{3}\b/g," ")).replace(/[^a-z0-9]+/g," ").trim().split(" ").filter(Boolean).map(w=>TR_CANON[w]||w); }
+const trHay=s=>" "+trTok(s).join(" ")+" ";
+const trTem=(h,w)=>h.includes(w.length<=2?" "+w+" ":" "+w);
+const trChave=(m,cp)=>norm(m).replace(/[^a-z0-9]/g,"")+"|"+(cp||"");
+// "Largo de São Gonçalo, 132, SN, 4815-573 SÃO PAIO VIZELA" -> {morada:"Largo de São Gonçalo, 132", cp, loc:"São Paio Vizela", num:"132"}
+function trPartir(s){
+  const t=String(s||"").replace(/\s+/g," ").trim(); if(!t) return null;
+  const cp=trCP(t), i=cp?t.indexOf(cp):-1;
+  const antes=i>=0?t.slice(0,i):t; let loc=i>=0?(t.slice(i+cp.length).split(",")[0]||"").trim():"";
+  const partes=antes.split(",").map(x=>x.trim()).filter(x=>x&&!/^(s\s*\/?\s*n|portugal)$/i.test(x));
+  if(!loc&&partes.length>1&&!/\d/.test(partes[partes.length-1])) loc=partes.pop();
+  if(!partes.length) return null;
+  const num=(partes.slice(1).find(x=>/^\d{1,5}\s?[a-z]{0,2}$/i.test(x))||(partes[0].match(/\s(\d{1,5}[a-z]?)$/i)||[])[1]||"").replace(/\s/g,"").toUpperCase();
+  return {morada:partes.join(", "),cp,loc:trTitulo(loc),num};
+}
+// moradas conhecidas: tabela pv_moradas (OTs enviadas pelo PC + guardadas pela equipa) e as OTs carregadas nesta sessão (gestor)
+function trMoradasLocais(){
+  const sig=(DIAS||[]).length+"|"+(DIAS?.[0]?._atualizado||"")+"|"+(TR.morDb||[]).length;
+  if(TR.morSig===sig&&TR.morL) return TR.morL;
+  const m=new Map();
+  const add=o=>{ if(!o||!o.morada||o.lat==null||o.lng==null||o.lat<36||o.lat>43||o.lng<-10||o.lng>-6) return;
+    const k=trChave(o.morada,o.cp), v=m.get(k);
+    if(v){ if(o.fonte==="ot"&&v.fonte!=="ot"||String(o.ult||"")>String(v.ult||"")) m.set(k,{...v,...o,hay:v.hay}); return; }
+    m.set(k,{...o,hay:trHay(`${o.morada} ${o.loc||""}`)}); };
+  for(const x of TR.morDb||[]) add({morada:x.morada,cp:x.cp||"",loc:x.localidade||"",lat:+x.lat,lng:+x.lng,fonte:x.fonte==="ots"?"ot":"guardada",ult:x.ultima||"",quem:x.criado_nome||"",num:(trPartir(x.morada)||{}).num||""});
+  for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos||{}, p=trPartir(c["Morada Completa"]||c.Morada); if(!p) continue;
+    let la=pvNum(c.Latitude), lo=pvNum(c.Longitude);
+    if((la==null||lo==null)&&c["Coordenadas cliente"]){ const k=String(c["Coordenadas cliente"]).split(/[,;]\s+|\s+/); la=pvNum(k[0]); lo=pvNum(k[1]); }
+    add({...p,lat:la,lng:lo,fonte:"ot",ult:d.data||""}); }
+  TR.morSig=sig; TR.morL=[...m.values()]; return TR.morL;
+}
+function trLerCoord(txt){
+  const dms=txt.match(/(\d{1,2})\s*[°º]\s*(\d{1,2})\s*['′]\s*([\d.,]+)?\s*["″]?\s*([NS])[\s,;]*(\d{1,2})\s*[°º]\s*(\d{1,2})\s*['′]\s*([\d.,]+)?\s*["″]?\s*([EWO])/i);
+  if(dms){ const g=(d,m,s,h)=>(+d+(+m)/60+(+(s||"0").replace(",","."))/3600)*(/[SWO]/i.test(h)?-1:1); return [g(dms[1],dms[2],dms[3],dms[4]),g(dms[5],dms[6],dms[7],dms[8])]; }
+  const co=txt.match(/(-?\d{1,2}[.,]\d{3,})\s*[,;·\s]\s*(-?\d{1,2}[.,]\d{3,})/); if(!co) return null;
+  let a=+co[1].replace(",","."), b=+co[2].replace(",","."); if(a<0&&b>0) [a,b]=[b,a]; return [a,b];
+}
 function trBuscar(v){
-  const txt=String(v||"").trim(); if(txt.length<3||!TR.idx) return [];
-  const co=txt.match(/(-?\d{1,2}[.,]\d{3,})\s*[,;·\s]\s*(-?\d{1,2}[.,]\d{3,})/);
-  if(co){ let a=+co[1].replace(",","."), b=+co[2].replace(",","."); if(a<0&&b>0) [a,b]=[b,a];
-    if(a>36&&a<43&&b>-10&&b<-6) return [{tipo:"coord",lat:a,lng:b,t:`📍 Ir para ${a.toFixed(6)}, ${b.toFixed(6)}`,s:"coordenadas · abre a casa mais próxima"}]; }
-  let ws=norm(txt).replace(/[,;.]/g," ").replace(/\bn\s*[ºo°]\s*/g," ").split(/\s+/).filter(Boolean), num="";
-  ws=ws.filter(w=>{ if(!num&&/^\d{1,5}[a-z]?$/.test(w)){ num=w.toUpperCase(); return false; } return !TR_VAZIAS.has(w); });
-  if(!ws.length) return [];
-  if(!TR.idxN) TR.idxN=TR.idx.ruas.map(x=>{ const raw=norm(x[0]+" "+x[1]); return " "+raw+" "+norm(trTitulo(x[0]))+" "; });
-  const alt=w=>[w,TR_PAL[w]].filter(Boolean);
-  const vistos=new Set(), r=[];
-  if(!num) for(const l of TR.idx.localidades) if(r.length<3&&norm(l[1]).split(/\s+/).filter(w=>!TR_VAZIAS.has(w)).join(" ")===ws.join(" ")) r.push({tipo:"loc",l,t:trTitulo(l[1]),s:`localidade · ${l[2]} casas`});
-  for(let i=0;i<TR.idx.ruas.length&&r.length<8;i++){ const h=TR.idxN[i];
-    if(!ws.every(w=>alt(w).some(a=>h.includes(a.length<=3?" "+a+" ":a)))) continue;
-    const x=TR.idx.ruas[i], k=norm(x[0]).replace(/[^a-z0-9]/g,"")+"|"+x[1]; if(vistos.has(k)) continue; vistos.add(k);
-    r.push({tipo:"rua",x,num,t:`${trTitulo(x[0])}${num?", "+num:""}`,s:`${trTitulo(x[1])} · ${x[4]} casa${x[4]>1?"s":""}${num?" · procurar o nº "+num:""}`}); }
-  if(!num) for(const l of TR.idx.localidades) if(r.length<10&&!r.some(y=>y.l===l)&&ws.every(w=>norm(l[1]).includes(w))) r.push({tipo:"loc",l,t:trTitulo(l[1]),s:`localidade · ${l[2]} casas`});
+  const txt=String(v||"").trim(); if(txt.length<3) return [];
+  const ll=trLerCoord(txt);
+  if(ll){ const [a,b]=ll; if(a>36&&a<43&&b>-10&&b<-6) return [{tipo:"coord",ic:"📍",lat:a,lng:b,t:`Ir para ${a.toFixed(6)}, ${b.toFixed(6)}`,s:"coordenadas · abre a casa ou o ponto"}]; }
+  // rua (antes da 1.ª vírgula) = obrigatória; o resto (freguesia, localidade) só ajuda a ordenar
+  const p=trPartir(txt)||{morada:txt,num:""}, temVirg=txt.includes(",");
+  let num=p.num||"";
+  const sem=w=>!TR_VAZIAS.has(w)&&!/^\d+[a-z]?$/.test(w);
+  const tudo=trTok(txt); if(!num){ const n=tudo.find(w=>/^\d{1,5}[a-z]?$/.test(w)); if(n) num=n.toUpperCase(); }
+  const st=(temVirg?trTok(txt.split(",")[0]):tudo).filter(sem), ex=temVirg?trTok(txt.slice(txt.indexOf(",")+1)).filter(sem):[];
+  if(!st.length) return [];
+  const pont=h=>ex.reduce((s,w)=>s+(trTem(h,w)?1:0),0);
+  const procurar=ws=>{ const r=[];
+    // 📋 / 💾 moradas conhecidas
+    const loc=trMoradasLocais().filter(x=>ws.every(w=>trTem(x.hay,w))).map(x=>({x,sc:pont(x.hay)+(num&&x.num===num?5:0)+(x.fonte==="ot"?.5:0)}))
+      .sort((a,b)=>b.sc-a.sc||String(b.x.ult||"").localeCompare(String(a.x.ult||""))).slice(0,4);
+    for(const {x} of loc) r.push({tipo:"mor",ic:x.fonte==="ot"?"📋":"💾",...x,t:x.morada,
+      s:[x.cp,x.loc].filter(Boolean).join(" ")+(x.fonte==="ot"?` · das OTs${x.ult?" · "+x.ult.slice(8,10)+"/"+x.ult.slice(5,7):""}`:` · guardada${x.quem?" por "+x.quem.split(" ")[0]:""}`)});
+    // 🏠 ruas do INE (mapa casa a casa)
+    if(TR.idx&&!num&&!temVirg) for(const l of TR.idx.localidades) if(trHay(l[1])===" "+ws.join(" ")+" ") r.push({tipo:"loc",ic:"📍",l,t:trTitulo(l[1]),s:`localidade · ${l[2]} casas`});
+    if(TR.idx){ if(!TR.idxH) TR.idxH=TR.idx.ruas.map(x=>trHay(x[0]+" "+x[1]));
+      const vistos=new Set(), ine=[];
+      for(let i=0;i<TR.idx.ruas.length;i++){ const h=TR.idxH[i]; if(!ws.every(w=>trTem(h,w))) continue;
+        const x=TR.idx.ruas[i], k=norm(x[0]).replace(/[^a-z0-9]/g,"")+"|"+x[1]; if(vistos.has(k)) continue; vistos.add(k); ine.push({x,sc:pont(h)}); }
+      ine.sort((a,b)=>b.sc-a.sc||b.x[4]-a.x[4]);
+      for(const {x} of ine.slice(0,6)) r.push({tipo:"rua",ic:"🏠",x,num,t:`${trTitulo(x[0])}${num?", "+num:""}`,s:`${trTitulo(x[1])} · ${x[4]} casa${x[4]>1?"s":""} no mapa${num?" · procurar o nº "+num:""}`});
+      if(!num&&!temVirg) for(const l of TR.idx.localidades) if(r.length<10&&!r.some(y=>y.l===l)&&ws.every(w=>trTem(trHay(l[1]),w))) r.push({tipo:"loc",ic:"📍",l,t:trTitulo(l[1]),s:`localidade · ${l[2]} casas`});
+    }
+    return r; };
+  let r=procurar(st);
+  if(!r.length&&st.length>1&&TR_TIPOS.has(st[0])){ r=procurar(st.slice(1)).map(x=>({...x,s:x.s+" · nome parecido"})); }   // "Largo X" não existe -> "Rua X"
   return r;
 }
+// 🌐 online (OpenStreetMap via Photon): para moradas fora do mapa ou que o INE não tem
+async function trOnline(txt){
+  const ll=trLerCoord(txt); if(ll) return [];
+  const limpo=String(txt).replace(/\bs\s*\/\s*n\b/gi," ").replace(/,\s*(sn|portugal)\b/gi," ").replace(/\s+/g," ").trim();
+  if(limpo.replace(/[^a-zà-ÿ]/gi,"").length<5) return [];
+  const c=TR.mapa?TR.mapa.getCenter():{lat:41.37,lng:-8.19};
+  const pedir=async q=>{ try{ const r=await fetch(`https://photon.komoot.io/api/?limit=6&lang=default&lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}&bbox=-9.6,36.9,-6.1,42.2&q=${encodeURIComponent(q)}`);
+    return r.ok?((await r.json()).features||[]):[]; }catch(_){ return []; } };
+  let fs=await pedir(limpo); if(!fs.length&&limpo.includes(",")) fs=await pedir(limpo.split(",")[0]);
+  const num=(trPartir(txt)||{}).num||"", vistos=new Set(), r=[];
+  for(const f of fs){ const p=f.properties||{}, g=f.geometry?.coordinates; if(p.countrycode!=="PT"||!g) continue;
+    const rua=p.type==="street"?p.name:(p.street||p.name||""); if(!rua) continue;
+    const n=p.housenumber||(p.type==="street"?num:""); const morada=rua+(n?", "+n:"");
+    const loc=[p.district||p.locality,p.city].filter((x,i,a)=>x&&a.indexOf(x)===i).join(", ");
+    const k=norm(morada+"|"+(p.postcode||"")); if(vistos.has(k)) continue; vistos.add(k);
+    r.push({tipo:"mor",ic:"🌐",fonte:"online",morada,cp:/^\d{4}-\d{3}$/.test(p.postcode||"")?p.postcode:"",loc,lat:g[1],lng:g[0],num:n,
+      t:morada,s:[p.postcode,loc].filter(Boolean).join(" ")+(p.type!=="street"&&p.type!=="house"?"":p.type==="house"&&p.name&&p.name!==rua?` · ${p.name}`:"")+" · online (OpenStreetMap)"}); }
+  return r.slice(0,4);
+}
+function trSugMostrar(){
+  const sug=$("#trSug"); if(!sug) return; const r=TR.sugs||[];
+  sug.hidden=!r.length&&!TR.sugOn;
+  sug.innerHTML=r.map((x,i)=>`<button data-i="${i}"><b>${x.ic?x.ic+" ":""}${esc(x.t)}</b><span class="fmut">${esc(x.s)}</span></button>`).join("")
+    +(TR.sugOn?'<span class="tr-sug-on fmut">🌐 A procurar online…</span>':"");
+  sug.querySelectorAll("button").forEach(b=>b.onclick=()=>trIrSug(TR.sugs[+b.dataset.i]));
+}
+function trPesquisar(v){
+  TR.sugs=trBuscar(v); TR.sugOn=false; trSugMostrar();
+  clearTimeout(TR.sugT); const seq=TR.sugSeq=(TR.sugSeq||0)+1;
+  if(trLerCoord(v)||String(v).trim().length<5) return;
+  TR.sugT=setTimeout(async()=>{ TR.sugOn=true; trSugMostrar();
+    const on=await trOnline(v); if(seq!==TR.sugSeq) return; TR.sugOn=false;
+    const loc=TR.sugs.filter(x=>x.lat!=null);   // tira o que já está nas OTs/guardadas (mesmo sítio)
+    TR.sugs=[...TR.sugs,...on.filter(o=>!loc.some(x=>axDist([x.lat,x.lng],[o.lat,o.lng])*1000<150&&trChave(x.morada.split(",")[0])===trChave(o.morada.split(",")[0])))];
+    trSugMostrar(); },450);
+}
 async function trIrSug(x){
-  const sug=$("#trSug"); if(sug) sug.hidden=true; if(!x) return;
-  const m=TR.mapa; $("#trQ").value=x.t.replace(/^📍 Ir para /,"");
-  if(x.tipo==="coord"){
-    m.setView([x.lat,x.lng],19); if(TR.mkBusca) TR.mkBusca.remove();
-    TR.mkBusca=L.circleMarker([x.lat,x.lng],{radius:9,color:"#e24b4a",weight:3,fillColor:"#fff",fillOpacity:.6,interactive:false}).addTo(m);
-    await trCarregarTiles(trTilesNa(L.latLng(x.lat,x.lng).toBounds(300)));
-    let best=null,bd=1e9; for(const c of trTodas()){ const d=axDist(trLL(c),[x.lat,x.lng])*1000; if(d<bd){ bd=d; best=c; } }
-    trDesenhar(); if(best&&bd<=40) trAbrir(best,true); else toast("Sem casa a menos de 40 m destas coordenadas");
-    return; }
+  const sug=$("#trSug"); if(sug) sug.hidden=true; clearTimeout(TR.sugT); TR.sugSeq=(TR.sugSeq||0)+1; TR.sugOn=false; if(!x) return;
+  const m=TR.mapa; $("#trQ").value=x.tipo==="coord"?`${x.lat.toFixed(6)}, ${x.lng.toFixed(6)}`:x.t;
+  if(x.tipo==="coord") return trIrPonto({lat:x.lat,lng:x.lng,fonte:"coord",raio:40});
+  if(x.tipo==="mor") return trIrPonto({...x,raio:30});
+  if(TR.pin){ TR.pin.remove(); TR.pin=null; }
   if(x.tipo==="loc"){ const pts=[]; await trCarregarTiles([...TR.idxT]); for(const c of trTodas()) if(c[7]===x.l[1]) pts.push(trLL(c));
     if(pts.length) m.fitBounds(pts); return; }
   const r=x.x, centro=[r[3]/1e5,r[2]/1e5];
@@ -3889,6 +3985,85 @@ async function trIrSug(x){
     toast(`Nº ${x.num} não está no INE para esta rua: mostro a rua. Toque na casa e use "✏️ Nº da porta".`);
   }
   if(casas.length) m.fitBounds(casas.map(trLL),{maxZoom:18,padding:[30,30]}); else m.setView(centro,18);
+}
+// ---------------------------------------------------------------- ponto pesquisado (coordenadas ou morada fora do mapa casa a casa)
+function trPin(lat,lng){ if(TR.pin) TR.pin.remove();
+  TR.pin=L.marker([lat,lng],{zIndexOffset:1000,interactive:false,icon:L.divIcon({className:"tr-pin",html:"<i></i><b></b>",iconSize:[30,40],iconAnchor:[15,38]})}).addTo(TR.mapa); }
+async function trIrPonto(p){
+  const m=TR.mapa; m.setView([p.lat,p.lng],19); trPin(p.lat,p.lng);
+  await trCarregarTiles(trTilesNa(L.latLng(p.lat,p.lng).toBounds(300)));
+  let best=null,bd=1e9; for(const c of trTodas()){ const d=axDist(trLL(c),[p.lat,p.lng])*1000; if(d<bd){ bd=d; best=c; } }
+  if(best&&bd<=(p.raio||40)){ trAbrir(best,true); if(p.morada) toast(`${p.morada} → casa do mapa a ${Math.round(bd)} m`); return; }
+  trPontoAbrir({...p,dist:best?Math.round(bd):null});
+}
+function trPontoAbrir(p){
+  TR.aberta=null; TR.ponto=p; TR.pontoEd=false; trDesenhar(); trFicha();
+  if(p.morada) return;
+  // sem morada (coordenadas coladas): morada da OT a ≤ 50 m; senão, a morada online desse ponto
+  let best=null,bd=1e9; for(const x of trMoradasLocais()){ const d=axDist([x.lat,x.lng],[p.lat,p.lng])*1000; if(d<bd){ bd=d; best=x; } }
+  if(best&&bd<=50){ Object.assign(p,{morada:best.morada,cp:best.cp,loc:best.loc,fonte:best.fonte,ult:best.ult,quem:best.quem,aDist:Math.round(bd)}); trFicha(); return; }
+  p.aProcurar=true; trFicha();
+  trInverso(p.lat,p.lng).then(r=>{ p.aProcurar=false; if(r) Object.assign(p,r,{fonte:"online",aprox:true}); if(TR.ponto===p) trFicha(); });
+}
+async function trInverso(lat,lng){
+  const j=async u=>{ try{ const r=await fetch(u,{headers:{Accept:"application/json"}}); return r.ok?await r.json():null; }catch(_){ return null; } };
+  const [n,ph]=await Promise.all([j(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=pt&lat=${lat}&lon=${lng}`),
+    j(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=default&limit=3`)]);
+  const a=n?.address||{}, f=(ph?.features||[]).map(x=>x.properties||{});
+  const rua=a.road||a.pedestrian||a.footway||f.find(x=>x.street)?.street||(f[0]?.type==="street"?f[0].name:"")||""; if(!rua) return null;
+  const num=a.house_number||f.find(x=>x.housenumber&&x.street===rua)?.housenumber||"";
+  const cp=[a.postcode,...f.map(x=>x.postcode)].find(x=>/^\d{4}-\d{3}$/.test(String(x||"").trim()))||"";
+  const loc=[a.village||a.hamlet||a.suburb||a.town||a.city||f[0]?.district,a.municipality||a.city||a.town||f[0]?.city].filter((x,i,ar)=>x&&ar.indexOf(x)===i).join(", ");
+  return {morada:rua+(num?", "+num:""),cp,loc};
+}
+function trPontoFicha(){
+  const w=$("#trFicha"), p=TR.ponto; if(!w||!p) return;
+  const co=`${p.lat.toFixed(6).replace(".",",")} · ${p.lng.toFixed(6).replace(".",",")}`;
+  const [tx,ty]=trTile(p.lng,p.lat), fora=!TR.idxT?.has(tx+"_"+ty);
+  const origem=p.fonte==="ot"?`📋 Morada das OTs${p.ult?" · "+p.ult.slice(8,10)+"/"+p.ult.slice(5,7):""}${p.aDist?` · a ${p.aDist} m`:""}`
+    :p.fonte==="guardada"?`💾 Morada guardada${p.quem?" por "+p.quem.split(" ")[0]:""}${p.aDist?` · a ${p.aDist} m`:""}`
+    :p.fonte==="online"?`🌐 ${p.aprox?"Morada aproximada (OpenStreetMap) — confirme na porta":"OpenStreetMap"}`:"";
+  const podeGuardar=p.morada&&p.fonte!=="ot"&&p.fonte!=="guardada";
+  w.hidden=false;
+  w.innerHTML=`<div class="tr-ficha" role="dialog" aria-label="Ponto pesquisado">
+    <div class="tr-fcab"><div><b class="tr-mor">${p.aProcurar?"A procurar a morada…":esc(p.morada||"Ponto no mapa")}</b>
+      ${p.cp||p.loc?`<span class="fmut">${esc([p.cp,p.loc].filter(Boolean).join(" "))}</span>`:""}
+      ${origem?`<span class="fmut">${esc(origem)}</span>`:""}
+      <span class="tr-fora">${fora?"Fora do mapa casa a casa (só Felgueiras, Lixa e Fafe)":`Sem casa do mapa a menos de ${p.raio||40} m${p.dist!=null?` (a mais próxima a ${p.dist} m)`:""}`}</span></div>
+      <button class="fechar" id="trFechar" aria-label="Fechar">✕</button></div>
+    <div class="tr-coord"><span>📍 <b class="mono">${co}</b></span>
+      <button class="pv-lnk" id="trCopia">Copiar</button><a class="pv-lnk" href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>
+    <form id="trMorF" class="tr-porta" ${TR.pontoEd?"":"hidden"}>
+      <label>Morada (rua e nº)<input name="morada" value="${esc(p.morada||"")}" placeholder="ex.: Largo de São Gonçalo, 132" required minlength="4" maxlength="160"></label>
+      <div class="pv-2"><label>Código postal<input name="cp" value="${esc(p.cp||"")}" placeholder="4815-573" inputmode="numeric" maxlength="8"></label>
+      <label>Localidade<input name="localidade" value="${esc(p.loc||"")}" maxlength="80"></label></div>
+      <button class="pv-btn pv-prim" type="submit">💾 Guardar morada</button><span class="fmut">Fica nas sugestões da pesquisa para toda a equipa.</span></form>
+    <div class="tr-acs">
+      <button class="pv-btn pv-ok" id="trPvP">＋ Criar pré-venda aqui</button>
+      <a class="pv-btn" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">🧭 Ir</a>
+      ${podeGuardar||!p.morada?`<button class="pv-lnk" id="trMorB">${p.morada?"💾 Guardar morada":"✏️ Escrever a morada"}</button>`:""}
+    </div>
+    <div id="trErro" class="pv-erro" role="alert"></div></div>`;
+  $("#trFechar").onclick=()=>{ TR.ponto=null; if(TR.pin){ TR.pin.remove(); TR.pin=null; } trFicha(); };
+  $("#trCopia").onclick=()=>{ navigator.clipboard?.writeText(co).then(()=>toast("Coordenadas copiadas ✓"),()=>toast("Não consegui copiar")); };
+  $("#trPvP").onclick=()=>trCriarPvPonto(p);
+  const mb=$("#trMorB"); if(mb) mb.onclick=()=>{ TR.pontoEd=!TR.pontoEd; trPontoFicha(); if(TR.pontoEd) $("#trMorF [name=morada]")?.focus(); };
+  $("#trMorF").onsubmit=async ev=>{ ev.preventDefault(); const fd=new FormData(ev.target), er=$("#trErro"); er.textContent="";
+    const o={morada:String(fd.get("morada")||"").trim(),cp:String(fd.get("cp")||"").trim(),localidade:String(fd.get("localidade")||"").trim(),lat:p.lat,lng:p.lng};
+    if(o.cp&&!/^\d{4}-\d{3}$/.test(o.cp)){ er.textContent="Código postal: 0000-000."; return; }
+    try{ const r=await pvRpc("pv_morada_guardar",{p:o});
+      TR.morDb=[...(TR.morDb||[]),{...o,fonte:"manual",criado_nome:PV.eu?.nome||"",...(r&&r.morada?r:{})}]; TR.morSig=null;
+      Object.assign(p,{morada:o.morada,cp:o.cp,loc:o.localidade,fonte:"guardada",quem:PV.eu?.nome||"",aprox:false}); TR.pontoEd=false;
+      toast("Morada guardada ✓ — já aparece na pesquisa"); trPontoFicha(); }
+    catch(e){ er.textContent=/pv_morada_guardar|does not exist|404/i.test(e.message)?"Falta correr o prevenda_moradas.sql no Supabase.":e.message; } };
+  if(TR.fichaVista!=="p"+p.lat+p.lng){ TR.fichaVista="p"+p.lat+p.lng; if(window.innerWidth<900) w.scrollIntoView({behavior:"smooth",block:"nearest"}); else w.scrollTop=0; }
+}
+function trCriarPvPonto(p){
+  const r=pvLS.ler("pv_rascunho")||{};
+  pvLS.gravar("pv_rascunho",{...r,morada:p.morada||r.morada||"",cp:/^\d{4}-\d{3}$/.test(p.cp||"")?p.cp:(r.cp||""),localidade:p.loc||r.localidade||""});
+  PV.gps={lat:p.lat,lng:p.lng,acc:null,info:p.fonte==="ot"?"Coordenadas da OT (pesquisa do Território)":"Ponto pesquisado no mapa do Território"};
+  PV.casaPend=null; PV.sub="nova"; renderPv(); window.scrollTo({top:0});
+  toast(p.morada?"Morada e coordenadas preenchidas pelo ponto pesquisado":"Coordenadas preenchidas — escreva a morada");
 }
 
 // ---------- Início (gestor): resumo da pré-venda
