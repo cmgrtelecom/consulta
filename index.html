@@ -1919,9 +1919,15 @@ function polTextoPedido(d,o,b){
   const c=o.campos||{}, pc=plcCliente(c), mor=c["Morada Completa"]||c.Morada||"", p=pc.cli||pc.plc;
   const hm=v=>String(v||"").match(/\d{1,2}:\d{2}/)?.[0]||"";
   const jan=hm(c["Início agendamento"])&&hm(c["Fim agendamento"])?`${hm(c["Início agendamento"])}–${hm(c["Fim agendamento"])}`:(c["Hora início"]?`${c["Hora início"]}${c["Hora fim"]?"–"+c["Hora fim"]:""}`:"");
-  return [`Pedido de policiamento — CR Telecom`,`Data: ${fData(d.data)}${jan?" · "+jan:""}`,`Estrada: ${b.ref} (${b.onde} a ${Math.round(b.d)} m)`,
+  const tipo=[c["Tipo de tarefa"],c["Tipo de OT"]].filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join(" · ");
+  const rota=pc.rota||(pc.plc&&mor?`https://www.google.com/maps/dir/?api=1&origin=${pc.plc[0]},${pc.plc[1]}&destination=${encodeURIComponent(mor)}&travelmode=driving`:"");
+  return [`Pedido de policiamento — CR Telecom`,`Data: ${fData(d.data)}${jan?" · "+jan:""}`,
+    c["Nº OT"]?`Nº OT: ${c["Nº OT"]}${tipo?" — "+tipo:""}`:(tipo?`Tarefa: ${tipo}`:""),
+    c["Conta de serviço"]?`Conta de serviço: ${c["Conta de serviço"]}`:"",
+    `Estrada: ${b.ref} (${b.onde} a ${Math.round(b.d)} m)`,
     mor?`Local: ${mor}`:"",p?`Coordenadas: ${p[0]}, ${p[1]}`:"",pc.plc&&c.PLC?`PLC: ${c.PLC} (${pc.plc[0]}, ${pc.plc[1]})`:"",
-    `Trabalho: ${c["Tipo de OT"]||"intervenção na rede de fibra"}`].filter(Boolean).join("\n");
+    rota?`Mapa rota PLC→cliente: ${rota}`:"",
+    `Trabalho: ${tipo||"intervenção na rede de fibra"}`].filter(Boolean).join("\n");
 }
 function polAvisoIni(dia){
   if(!dia) return "";
