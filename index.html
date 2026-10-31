@@ -677,6 +677,9 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .plcm-ok{font:inherit;font-size:15px;font-weight:800;min-height:50px;border:none;border-radius:12px;background:#17211f;color:#fff;cursor:pointer}
 .plcm-ok:disabled{opacity:.45}
 .plcm-rec{font-size:13px}.plcm-rec div{padding:4px 0;border-top:1px solid var(--line)}
+.plcm-cola{display:grid;grid-template-columns:1fr auto;gap:8px}.plcm-cola input{min-width:0}.plcm-cola button{font:inherit;font-size:13px;font-weight:700;min-height:44px;padding:0 12px;border-radius:10px;border:2px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer}
+.plcm-cp{font:inherit;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.plcm-av{color:#b3341f;font-weight:600}
 .plcm-los{width:14px;height:14px;background:#17211f;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.5)}
 </style>
 </head>
@@ -1969,7 +1972,7 @@ function plcmAplicar(){
   if(!PLCM.mapa.size) return;
   for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos; if(!c||!c.PLC) continue;
     const m=PLCM.mapa.get(plcmNorm(c.PLC)); if(!m) continue;
-    if(plcCliente(c).plc&&!o.plcManual) continue;
+    if(!o.plcManual&&plcCliente(c).plc) o.plcFS=[c["Latitude PLC"],c["Longitude PLC"]];
     c["Latitude PLC"]=String(m.lat); c["Longitude PLC"]=String(m.lng); o.plcManual=true; }
 }
 const plcmSemCoord=o=>!!(o&&o.campos&&o.campos.PLC&&!o.saiu&&!plcCliente(o.campos).plc);
@@ -1994,9 +1997,24 @@ function plcmGps(){
     {enableHighAccuracy:true,timeout:20000,maximumAge:0});
 }
 function plcmPonto(){ return PLCM.sel||(PLCM.gps?{lat:PLCM.gps.lat,lng:PLCM.gps.lng,acc:PLCM.gps.acc,gps:true}:null); }
+function plcmLerTexto(t){
+  t=String(t||""); const n=(t.match(/-?\d{1,3}[.,]\d{3,}/g)||[]).map(x=>+x.replace(",","."));
+  for(let i=0;i+1<n.length;i++){ let [a,b]=[n[i],n[i+1]]; if(a<0&&b>0) [a,b]=[b,a];
+    if(a>36&&a<43&&b>-10&&b<-6) return {lat:+a.toFixed(6),lng:+b.toFixed(6),colado:true}; }
+  return null;
+}
+function plcmColado(v){
+  const p=plcmLerTexto(v), aviso=$("#plcmColaAv");
+  if(p){ PLCM.sel=p; if(aviso) aviso.textContent=""; plcmEstado(); }
+  else if(aviso) aviso.textContent=String(v||"").trim()?"Não reconheço estas coordenadas (ex.: 41.339361, -8.189433).":"";
+}
+async function plcmColar(){
+  try{ const t=await navigator.clipboard.readText(); const i=$("#plcmCola"); if(i) i.value=t; plcmColado(t); if(!plcmLerTexto(t)) toast("A área de transferência não tem coordenadas."); }
+  catch(_){ const i=$("#plcmCola"); if(i) i.focus(); toast("Toque no campo e cole (segurar → Colar)."); }
+}
 function plcmEstado(){
   const el=$("#plcmPos"); if(!el) return; const p=plcmPonto();
-  el.innerHTML=p?`<span class="mono">${p.lat}, ${p.lng}</span> <small>${p.gps?`GPS · precisão ± ${p.acc} m`:"escolhido no mapa"}</small>`:`<small>${esc(PLCM.gpsErro||"Sem posição")}</small>`;
+  el.innerHTML=p?`<span class="mono">${p.lat}, ${p.lng}</span> <small>${p.gps?`GPS · precisão ± ${p.acc} m`:p.colado?"coladas":"escolhido no mapa"}</small> <button type="button" class="plcm-cp" data-copiar="${p.lat}, ${p.lng}">📋 Copiar</button>`:`<small>${esc(PLCM.gpsErro||"Sem posição")}</small>`;
   if(PLCM.mini&&p){ PLCM.mini._mk.setLatLng([p.lat,p.lng]); }
   const g=$("#plcmGravar"); if(g) g.disabled=!p||PLCM.aGravar;
 }
@@ -2014,10 +2032,11 @@ function plcmDesenhar(){
     ${PLCM.ok===false?`<div class="dx-aviso" style="animation:none">A tabela de PLCs ainda não existe no Supabase (correr plcs_manuais.sql). ${esc(PLCM.erro||"")}</div>`:""}
     <div class="plcm-abas" role="tablist"><button type="button" role="tab" aria-selected="${ot}" class="${ot?"on":""}" data-plcmaba="ot">PLC de uma OT</button><button type="button" role="tab" aria-selected="${!ot}" class="${!ot?"on":""}" data-plcmaba="novo">Novo PLC no trajeto</button></div>
     ${ot?`<p class="pol-nota">OTs cujo PLC veio do Field Service sem coordenadas. Escolha uma, vá ao PLC e grave a posição.</p><div class="plcm-ots" id="plcmOts"></div>
-      ${sel?`<div class="plcm-sel">PLC <b>${esc(sel.o.campos.PLC)}</b> · ${esc(sel.o.campos["Nome de cliente"]||"")}</div>`:""}`
+      ${sel?`<div class="plcm-sel">PLC <b>${esc(sel.o.campos.PLC)}</b> · ${esc(sel.o.campos["Nome de cliente"]||"")}${(()=>{ const pc=plcCliente(sel.o.campos).plc; return pc?`<br><small>Atual${sel.o.plcManual?" (marcada à mão)":" (Field Service)"}: <span class="mono">${pc[0]}, ${pc[1]}</span> <button type="button" class="plcm-cp" data-copiar="${pc[0]}, ${pc[1]}">📋 Copiar</button></small>`:""; })()}</div>`:""}`
     :`<label for="plcmRef">Referência do PLC</label><input id="plcmRef" placeholder="a que está na caixa (ex.: PLC-YFL09-155)" autocomplete="off" autocapitalize="characters">`}
     <label for="plcmNota">Nota (opcional)</label><input id="plcmNota" maxlength="280" placeholder="ex.: poste junto à rotunda">
-    <div class="plcm-pos"><div id="plcmPos"></div><div class="plcm-bts"><button type="button" class="sec" onclick="PLCM.sel=null;plcmGps()">📍 Usar GPS aqui</button><button type="button" class="sec" onclick="plcmMini()">🗺️ Tocar no mapa</button></div></div>
+    <div class="plcm-pos"><div id="plcmPos"></div><div class="plcm-bts"><button type="button" class="sec" onclick="PLCM.sel=null;plcmGps()">📍 Usar GPS aqui</button><button type="button" class="sec" onclick="plcmMini()">🗺️ Tocar no mapa</button></div>
+      <label for="plcmCola">Ou colar coordenadas</label><div class="plcm-cola"><input id="plcmCola" inputmode="text" autocomplete="off" placeholder="41.339361, -8.189433 ou link do mapa" oninput="plcmColado(this.value)"><button type="button" class="sec" onclick="plcmColar()">📋 Colar</button></div><small id="plcmColaAv" class="plcm-av"></small></div>
     <div id="plcmMini" class="plcm-mini" hidden></div>
     <button type="button" class="plcm-ok" id="plcmGravar" onclick="plcmGravar()">Guardar PLC</button>
     ${PLCM.lista.length?`<details class="plcm-rec"><summary>Marcados por si (${PLCM.lista.length})</summary>${PLCM.lista.slice(0,30).map(p=>`<div><b>${esc(p.plc)}</b> <small>${esc(p.origem==="ot"?"da OT":"no trajeto")} · ${pvDH(p.atualizado_em)}${p.nota?" · "+esc(p.nota):""}</small> <a href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>`).join("")}</details>`:""}
@@ -2051,6 +2070,8 @@ async function plcmGravar(){
   if(p.gps&&p.acc>50&&!confirm(`A precisão do GPS é de ± ${p.acc} m. Gravar mesmo assim?`)) return;
   const linha={plc,lat:p.lat,lng:p.lng,precisao_m:p.gps?p.acc:null,origem:PLCM.aba==="ot"?"ot":"trajeto",ot,nota:($("#plcmNota")?.value||"").trim().slice(0,280)||null,atualizado_em:new Date().toISOString()};
   if(PLCM.mapa.has(plc)&&!confirm(`O PLC ${plc} já estava marcado. Substituir a posição?`)) return;
+  if(PLCM.aba==="ot"&&!PLCM.mapa.has(plc)){ const [dd,id]=PLCM.ot.split("|"); const o=DIAS.find(x=>x.data===dd)?.ots.find(x=>String(x.id)===id); const pc=o&&plcCliente(o.campos).plc;
+    if(pc&&!confirm(`O Field Service tem ${pc[0]}, ${pc[1]} para o PLC ${plc}. Substituir pelas novas coordenadas?`)) return; }
   PLCM.aGravar=true; plcmEstado();
   try{ await pvPedido("/rest/v1/plc_manual?on_conflict=plc",{method:"POST",body:JSON.stringify(linha),headers:{Prefer:"resolution=merge-duplicates,return=minimal"}});
     toast(`PLC ${plc} guardado ✓`); await plcmCarregar(); plcmAplicar(); PLCM.ot=null; PLCM.sel=null; plcmFechar(); polRefrescar();
@@ -2107,7 +2128,7 @@ function axCartoes(d,o,loc){
   { polPedir(polPts(o)); const pb=polPrecisa(o);
     if(pb) C.pol={i:"🚓",n:"Policiamento",s:`${pb.ref} · ${Math.round(pb.d)} m`,x:true,t:"Pedir policiamento",copiar:polTextoPedido(d,o,pb),b:"Copiar dados para o pedido",
       h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin">Copie os dados (data, local, coordenadas, estrada) para o pedido de policiamento.</div>`}; }
-  if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
+  if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+`<div class="ax-lin"><span class="mono">${pc.plc[0]}, ${pc.plc[1]}</span>${o.plcManual?" · marcadas à mão":""}</div><div class="ax-lin"><button class="ax-loc" data-plcm="${esc(d.data+"|"+o.id)}">✏️ Alterar / colar coordenadas</button> <button class="ax-loc" data-copiar="${pc.plc[0]}, ${pc.plc[1]}">📋 Copiar</button></div>`+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
   const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
   if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
     const alt=[c["Contactos alternativos"],c["Contacto acompanhamento"]&&c["Contacto acompanhamento"]!==c["Contacto de cliente"]?c["Contacto acompanhamento"]:""].filter(Boolean).map(esc).join(" · ");
