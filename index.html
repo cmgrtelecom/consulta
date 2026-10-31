@@ -2081,6 +2081,14 @@ async function plcmGravar(){
 }
 // a agenda rápida do telemóvel volta a montar os dias: reaplicar os PLCs marcados à mão
 { const _jar=juntarAgendaRapida; juntarAgendaRapida=function(){ const r=_jar.apply(this,arguments); try{ plcmAplicar(); }catch(_){} return r; }; }
+// abre Relatórios → Percurso entre OTs no dia pedido (onde está o mapa das estradas)
+function polVerMapa(data){
+  try{ fechar(); }catch(_){}
+  mudarVista("rel");
+  setTimeout(()=>{ const s=$("#rDia"); if(s&&[...s.options].some(o=>o.value===data)&&s.value!==data){ s.value=data; desenharPercurso(); }
+    const b=$("#percurso"); if(b) b.closest(".cartao")?.scrollIntoView({behavior:"smooth",block:"start"}); },350);
+}
+const polRotaGM=p=>`https://www.google.com/maps/dir/?api=1&destination=${p[0]},${p[1]}&travelmode=driving`;
 // ---------- ações da OT: faixa de cartões com informação; segurar um cartão para mudar a ordem (guardada no telemóvel)
 let AQUI=null, AQUI_PEDIDO=false, AX=null;
 const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","pol","rota","plc","tel","copiar","folha","mapa","perc"];
@@ -2126,9 +2134,10 @@ function axCartoes(d,o,loc){
     url:mor?`https://www.google.com/maps/dir/?api=1&origin=${pc.plc[0]},${pc.plc[1]}&destination=${encodeURIComponent(mor)}&travelmode=driving`:undefined,b:"Ver rota pela morada",
     h:()=>`<div class="dx-aviso">📍 Faltam as coordenadas da casa do cliente: o ecrã “Exibir detalhes” desta OT não foi lido. Toque em ▶ Recolher o dia (macro v10) para a voltar a ler.</div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${mor?`<div class="ax-lin">Rota provisória até à morada: ${esc(mor)}</div>`:""}`};
   { polPedir(polPts(o)); const pb=polPrecisa(o);
-    if(pb) C.pol={i:"🚓",n:"Policiamento",s:`${pb.ref} · ${Math.round(pb.d)} m`,x:true,t:"Pedir policiamento",copiar:polTextoPedido(d,o,pb),b:"Copiar dados para o pedido",
-      h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin">Copie os dados (data, local, coordenadas, estrada) para o pedido de policiamento.</div>`}; }
-  if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+`<div class="ax-lin"><span class="mono">${pc.plc[0]}, ${pc.plc[1]}</span>${o.plcManual?" · marcadas à mão":""}</div><div class="ax-lin"><button class="ax-loc" data-plcm="${esc(d.data+"|"+o.id)}">✏️ Alterar / colar coordenadas</button> <button class="ax-loc" data-copiar="${pc.plc[0]}, ${pc.plc[1]}">📋 Copiar</button></div>`+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
+    if(pb){ const pp=pb.onde==="PLC"?pc.plc:(pc.cli||polPts(o)[0]), txt=polTextoPedido(d,o,pb);
+    C.pol={i:"🚓",n:"Policiamento",s:`${pb.ref} · ${Math.round(pb.d)} m`,x:true,t:"Pedir policiamento",url:pp?polRotaGM(pp):undefined,b:"Rota no Google Maps",
+      h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin"><button class="ax-loc" data-copiar="${esc(txt)}">📋 Copiar dados para o pedido</button> <button class="ax-loc" onclick="polVerMapa('${d.data}')">🛣️ Mapa das estradas</button></div>`}; } }
+  if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+`<div class="ax-lin"><span class="mono">${pc.plc[0]}, ${pc.plc[1]}</span>${o.plcManual?" · marcadas à mão":""}</div><div class="ax-lin"><button class="ax-loc" data-plcm="${esc(d.data+"|"+o.id)}">✏️ Alterar / colar coordenadas</button> <button class="ax-loc" data-copiar="${pc.plc[0]}, ${pc.plc[1]}">📋 Copiar</button></div><div class="ax-lin"><a class="ax-loc" href="${polRotaGM(pc.plc)}" target="_blank" rel="noopener">🗺️ Rota no Google Maps</a> <button class="ax-loc" onclick="polVerMapa('${d.data}')">🛣️ Mapa das estradas</button></div>`+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
   const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
   if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
     const alt=[c["Contactos alternativos"],c["Contacto acompanhamento"]&&c["Contacto acompanhamento"]!==c["Contacto de cliente"]?c["Contacto acompanhamento"]:""].filter(Boolean).map(esc).join(" · ");
