@@ -639,6 +639,45 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
   .tr-mapa-w .tr-ficha-w{position:absolute;z-index:700;top:10px;right:64px;bottom:10px;width:380px;margin:0;overflow:auto;border-radius:16px;box-shadow:0 12px 36px -12px rgba(0,0,0,.5)}
   .tr-mapa-w .tr-ficha{min-height:100%;box-sizing:border-box}
 }
+
+/* policiamento + PLCs marcados (31/10/2026) */
+.chip.pol{background:#c2410c;color:#fff;font-weight:800}
+.chip.plcsc{background:#fde68a;color:#1c1917;font-weight:700}
+.pol-aviso{margin:6px 0;padding:8px 10px;border-radius:10px;background:#fff4ec;border:1px solid #f5c9a8;color:#7c2d12;font-weight:700}
+.pol-nota{font-size:12.5px;color:var(--muted);margin:4px 0}
+.pin.pol{box-shadow:0 0 0 3px #ea580c,0 1px 4px rgba(0,0,0,.45)}
+.pol-ctl{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.pol-chips{display:flex;gap:6px;flex-wrap:wrap}
+.pol-chip{font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 12px;border-radius:18px;border:2px solid var(--c);background:var(--surface);color:var(--c);cursor:pointer}
+.pol-chip.on{background:var(--c);color:#fff}
+.pol-dist{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14px;font-weight:600}
+.pol-dist b{font-size:20px;color:var(--accent)}
+#polDist{width:100%;accent-color:var(--accent)}
+.plcm-fab{font:700 14px var(--f-body);min-height:44px;padding:0 16px;border-radius:22px;border:none;background:#17211f;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer}
+.plcm-fundo{position:fixed;inset:0;z-index:3000;background:rgba(10,20,18,.45);display:flex;flex-direction:column;justify-content:flex-end}
+.plcm-fundo[hidden]{display:none}
+.plcm{background:var(--surface);color:var(--fg);border-radius:20px 20px 0 0;padding:14px 16px 22px;display:flex;flex-direction:column;gap:8px;max-height:92vh;overflow-y:auto;width:100%;max-width:640px;margin:0 auto;box-sizing:border-box}
+.plcm-cab{display:flex;justify-content:space-between;align-items:center}.plcm-cab h3{margin:0;font-size:18px}
+.plcm-x{width:44px;height:44px;border-radius:22px;border:none;background:var(--line);color:var(--fg);font-size:18px;cursor:pointer}
+.plcm-abas{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--line);padding:4px;border-radius:12px}
+.plcm-abas button{font:inherit;font-size:13px;font-weight:700;min-height:40px;border:none;border-radius:9px;background:transparent;color:var(--fg);cursor:pointer}
+.plcm-abas button.on{background:var(--surface)}
+.plcm label{font-size:13px;font-weight:600}
+.plcm input{font:inherit;font-size:15px;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);color:var(--fg)}
+.plcm-ots{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow-y:auto}
+.plcm-ot{font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);cursor:pointer}
+.plcm-ot.on{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.plcm-ot small,.plcm-rec small{color:var(--muted)}
+.plcm-sel{font-size:14px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
+.plcm-pos{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.plcm-pos small{color:var(--muted)}
+.plcm-bts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.plcm-bts button{font:inherit;font-size:13px;font-weight:700;min-height:44px;border-radius:10px;border:2px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer}
+.plcm-mini{height:260px;border-radius:12px;overflow:hidden}
+.plcm-ok{font:inherit;font-size:15px;font-weight:800;min-height:50px;border:none;border-radius:12px;background:#17211f;color:#fff;cursor:pointer}
+.plcm-ok:disabled{opacity:.45}
+.plcm-rec{font-size:13px}.plcm-rec div{padding:4px 0;border-top:1px solid var(--line)}
+.plcm-los{width:14px;height:14px;background:#17211f;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.5)}
 </style>
 </head>
 <body class="sem-sessao">
@@ -1249,9 +1288,10 @@ function renderIni(){
   el.innerHTML=`<div class="isaud">${saud}, Carlos<small>${esc(dt)}</small></div>
     <div class="itile ok tel" id="telCard">
       <button class="telPrinc" id="macroBtn" onclick="recolherDia()"><span>▶ Recolher o dia</span><small>${whLer()?"MacroDroid abre o Field Service, lê tudo e volta aqui":"toque para ligar ao MacroDroid (uma vez)"}</small></button>
-      <div class="telLinks"><button onclick="lerTelemovel()">📋 Ler recolhido</button>${whLer()?'<button onclick="configurarWebhook()">⚙ MacroDroid</button>':""}</div>
+      <div class="telLinks"><button onclick="lerTelemovel()">📋 Ler recolhido</button><button onclick="plcmAbrir()">📡 Marcar PLC</button>${whLer()?'<button onclick="configurarWebhook()">⚙ MacroDroid</button>':""}</div>
       <div class="telMsg" id="capAviso" ${CAP_MSG?"":"hidden"}>${CAP_MSG}</div>
       ${(()=>{ const f=dia?dia.ots.filter(semCoordCli):[]; return f.length?`<div class="dx-aviso">📍 ${f.length} OT${f.length>1?"s":""} de hoje sem coordenadas do cliente (${f.map(o=>esc(o.campos["Nome de cliente"]||o.campos["Nº OT"])).join(", ")}): sem rota PLC→cliente. Toque em ▶ Recolher o dia para as voltar a ler.</div>`:""; })()}
+      ${polAvisoIni(dia)}
     </div>
     <button class="itile ${dP?(pct>=100?"ok":pct>=80?"warn":""):""}" data-ir="fin:prod"><span class="t">🎯 Hoje · meta ${fnum(meta)} €</span>
       <b>${dP?(dP.previsto>0?"≈ ":"")+fnum(vh)+" € · "+pct+"%":"—"}</b><div class="ibarra"><i style="width:${Math.min(100,pct)}%;background:${pct>=100?"var(--ok)":pct>=80?"var(--warn)":"var(--bad)"}"></i></div>
@@ -1304,7 +1344,7 @@ function render(){
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
           <div class="c">${realce(c["Nome de cliente"]||"(sem nome)",q)}</div>
           <div class="m"><span class="mono">${realce(c["Nº OT"]||"",q)}</span> · ${esc(c["Tipo de OT"]||"")}</div>
-          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
+          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
   $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
@@ -1646,13 +1686,19 @@ function desenharPercurso(){
   const lista=(kms,porEstrada)=>`<ol style="margin:8px 0 0;padding-left:22px;font-size:13.5px;display:flex;flex-direction:column;gap:3px">`+
     p.map((o,i)=>{ const km=kms?kms[i]:o.km; return `<li><b>${esc(hhmm(o.ini))}</b> ${esc(o.cliente||"")} <span style="color:var(--muted)">${i===0?"· primeira OT":(km!=null?`· ${km.toLocaleString("pt-PT",{maximumFractionDigits:1})} km ${porEstrada?"por estrada":"(estimado)"} desde a anterior`:"")}</span></li>`; }).join("")+`</ol>`;
   if(typeof L==="undefined") return desenharPercursoSvg(d,p,box,lista());
-  box.innerHTML=`<div class="mapa" id="mapaOt"></div><div class="rota-nota" id="rotaNota">A calcular o percurso por estrada…</div><div id="rotaLista">${lista()}</div>`;
+  box.innerHTML=`${polControlos()}<div class="mapa" id="mapaOt"></div><div class="rota-nota" id="rotaNota">A calcular o percurso por estrada…</div><div id="rotaLista">${lista()}</div>`;
   MAPA=L.map("mapaOt",{scrollWheelZoom:false});
-  camadasMapa(MAPA);
+  camadasMapa(MAPA); polBotaoMapa(MAPA);
+  const dOts=(DIAS.find(x=>x.data===d.data)||{}).ots||[], otDe=o=>dOts.find(x=>x.id===o.id);
   const pts=p.map(o=>[o.lat,o.lng]);
   const reta=L.polyline(pts,{color:"#1f7f8c",weight:3,dashArray:"6 8",opacity:.8}).addTo(MAPA);
-  p.forEach((o,i)=>L.marker([o.lat,o.lng],{icon:L.divIcon({className:"",html:`<div class="pin ${o.ok?"ok":"nao"}">${i+1}</div>`,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:1000-i})
-    .addTo(MAPA).bindPopup(`<b>${i+1}. ${esc(hhmm(o.ini))}–${esc(hhmm(o.fim))}</b><br>${esc(o.cliente||"")}<br>${esc(o.estado||"")}${o.morada?"<br><span style='color:#666'>"+esc(o.morada)+"</span>":""}`));
+  p.forEach((o,i)=>{ const od=otDe(o), pb=od?polPrecisa(od):null, pc=od?plcCliente(od.campos||{}):{};
+    if(od) polPedir(polPts(od)); else polPedir([[o.lat,o.lng]]);
+    L.marker([o.lat,o.lng],{icon:L.divIcon({className:"",html:`<div class="pin ${o.ok?"ok":"nao"}${pb?" pol":""}">${i+1}</div>`,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:1000-i})
+    .addTo(MAPA).bindPopup(`<b>${i+1}. ${esc(hhmm(o.ini))}–${esc(hhmm(o.fim))}</b><br>${esc(o.cliente||"")}<br>${esc(o.estado||"")}${o.morada?"<br><span style='color:#666'>"+esc(o.morada)+"</span>":""}${pb?`<br><b style="color:#c2410c">🚓 Policiamento · ${esc(pb.ref)} a ${Math.round(pb.d)} m</b>`:""}${od&&plcmSemCoord(od)?`<br><button class="sec" data-plcm="${esc(d.data+"|"+od.id)}">📡 Marcar PLC ${esc(od.campos.PLC)}</button>`:""}`);
+    if(pc.plc) L.marker(pc.plc,{icon:L.divIcon({className:"",html:'<div class="plcm-los" title="PLC"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(MAPA).bindPopup(`PLC ${esc(od.campos.PLC||"")}${od.plcManual?" · marcado à mão":""}`); });
+  for(const m of PLCM.lista) if(m.origem==="trajeto") L.marker([m.lat,m.lng],{icon:L.divIcon({className:"",html:'<div class="plcm-los" title="PLC"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(MAPA).bindPopup(`PLC ${esc(m.plc)} · marcado no trajeto${m.nota?"<br>"+esc(m.nota):""}`);
+  polCamadasMapa();
   MAPA.fitBounds(L.latLngBounds(pts).pad(.2),{maxZoom:15});
   if(p.length<2){ $("#rotaNota").textContent=""; return; }
   // percurso real por estrada (servico publico OSRM); se falhar fica a linha reta
@@ -1751,7 +1797,7 @@ function abrir(data,id){
   ABERTA={d,o}; TAB="det";
   const c=o.campos;
   $("#fTitulo").textContent=c["Nome de cliente"]||c["Nº OT"];
-  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}`;
+  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}`;
   $("#fundo").hidden=false; $("#ficha").hidden=false; desenharFicha(); $("#fFechar").focus();
 }
 function fechar(){ $("#fundo").hidden=true; $("#ficha").hidden=true; ABERTA=null; }
@@ -1773,9 +1819,250 @@ const DX_LIMITE=250;
 // OT sem coordenadas do cliente (Latitude/Longitude do ecrã "Exibir detalhes") mas com PLC: a rota PLC→cliente fica incompleta
 function semCoordCli(o){ const c=o&&o.campos||{}; if(!c.PLC||o.saiu) return false; if(o.rapida&&!o.completa) return false; return !plcCliente(c).cli; }
 function distExcessiva(c){ const p=plcCliente(c||{}); if(!p.plc||!p.cli) return ""; const m=axDist(p.plc,p.cli)*1000; return m>DX_LIMITE?p.dist:""; }
+// ====================================================================== POLICIAMENTO (estradas) + PLCs MARCADOS À MÃO (31/10/2026)
+// Estradas: OpenStreetMap via Overpass (público, CORS), guardadas no telemóvel por quadrícula (0,05°) durante 60 dias.
+// Classes: ae = Autoestrada (A…), ip = IP/IC, en = Nacional/Regional (EN/N/ER). Estradas municipais (EM/CM) ficam de fora.
+// Alerta: a casa do cliente OU o PLC a ≤ POL.dist metros de uma dessas estradas → "🚓 Policiamento".
+// PLCs: tabela plc_manual no Supabase (plcs_manuais.sql). Preenche a Latitude/Longitude PLC das OTs que vêm sem ela.
+const POL_CLS={ae:{n:"Autoestradas",c:"#1d4ed8",w:7},ip:{n:"IP / IC",c:"#7c3aed",w:6},en:{n:"Nacionais",c:"#ea580c",w:5}};
+const POL_Q=0.05, POL_MARGEM=0.004, POL_VALIDADE=60*86400000;
+const POL_EP=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://overpass.private.coffee/api/interpreter"];
+const POL={dist:50, ver:{ae:true,ip:true,en:true}, tiles:{}, pend:new Set(), fila:[], ocupado:false, falhou:{}, t:null};
+(()=>{ try{ const d=+localStorage.getItem("cr-pol-dist"); if(d>=5&&d<=500) POL.dist=d;
+  const v=JSON.parse(localStorage.getItem("cr-pol-ver")||"null"); if(v) Object.assign(POL.ver,v); }catch(_){} })();
+function polGuardarCfg(){ try{ localStorage.setItem("cr-pol-dist",String(POL.dist)); localStorage.setItem("cr-pol-ver",JSON.stringify(POL.ver)); }catch(_){} }
+const polChave=(la,ln)=>`${Math.floor(la/POL_Q)}_${Math.floor(ln/POL_Q)}`;
+function polTile(k){
+  if(POL.tiles[k]) return POL.tiles[k];
+  try{ const g=JSON.parse(localStorage.getItem("cr-estr-"+k)||"null"); if(g&&Date.now()-g.t<POL_VALIDADE){ POL.tiles[k]=g; return g; } }catch(_){}
+  return null;
+}
+function polClasse(ref,hw){
+  const r=String(ref||"").toUpperCase().split(/[;,]/).map(s=>s.replace(/\s+/g,"").trim()).filter(Boolean);
+  if(r.some(x=>/^A\d/.test(x))||/^motorway/.test(hw)) return {cls:"ae",ref:r.find(x=>/^A\d/.test(x))||r[0]||"AE"};
+  if(r.some(x=>/^(IP|IC)\d/.test(x))) return {cls:"ip",ref:r.find(x=>/^(IP|IC)\d/.test(x))};
+  const en=r.find(x=>/^(EN|N|ER|R)\d/.test(x)); if(en) return {cls:"en",ref:en.replace(/^N(?=\d)/,"EN")};
+  return null;
+}
+async function polBaixar(k){
+  const [a,b]=k.split("_").map(Number), S=a*POL_Q-POL_MARGEM, W=b*POL_Q-POL_MARGEM, N=(a+1)*POL_Q+POL_MARGEM, E=(b+1)*POL_Q+POL_MARGEM;
+  const q=`[out:json][timeout:40];way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|motorway_link|trunk_link|primary_link|secondary_link)$"](if:t["ref"]!=""||t["highway"]=="motorway")(${S.toFixed(4)},${W.toFixed(4)},${N.toFixed(4)},${E.toFixed(4)});out tags geom;`;
+  let ult=null;
+  for(const ep of POL_EP){
+    try{
+      const ctl=new AbortController(), tm=setTimeout(()=>ctl.abort(),45000);
+      const r=await fetch(ep,{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal});
+      clearTimeout(tm); if(!r.ok) throw new Error("Overpass "+r.status);
+      const j=await r.json(), w=[];
+      for(const e of j.elements||[]){ const c=polClasse(e.tags&&e.tags.ref,e.tags&&e.tags.highway); if(!c||!e.geometry) continue;
+        w.push([c.cls,c.ref,e.geometry.map(p=>[+p.lat.toFixed(5),+p.lon.toFixed(5)])]); }
+      const t={t:Date.now(),w}; POL.tiles[k]=t;
+      try{ localStorage.setItem("cr-estr-"+k,JSON.stringify(t)); }
+      catch(_){ try{ Object.keys(localStorage).filter(x=>x.startsWith("cr-estr-")).slice(0,10).forEach(x=>localStorage.removeItem(x)); localStorage.setItem("cr-estr-"+k,JSON.stringify(t)); }catch(__){} }
+      return t;
+    }catch(e){ ult=e; }
+  }
+  throw ult||new Error("sem resposta");
+}
+// pede as quadrículas que faltam (uma de cada vez) e volta a desenhar o ecrã quando chegam
+function polPedir(pts){
+  for(const p of pts){ if(!p) continue; const k=polChave(p[0],p[1]);
+    if(polTile(k)||POL.pend.has(k)||(POL.falhou[k]&&Date.now()-POL.falhou[k]<120000)) continue; POL.pend.add(k); POL.fila.push(k); }
+  polCorrer();
+}
+async function polCorrer(){
+  if(POL.ocupado) return; POL.ocupado=true;
+  while(POL.fila.length){ const k=POL.fila.shift();
+    try{ await polBaixar(k); delete POL.falhou[k]; }catch(e){ POL.falhou[k]=Date.now(); console.warn("Estradas:",k,e.message||e); }
+    POL.pend.delete(k); polRefrescar(); }
+  POL.ocupado=false;
+}
+function polRefrescar(){ clearTimeout(POL.t); POL.t=setTimeout(()=>{
+  try{ if(VISTA==="ini") renderIni(); }catch(_){}
+  try{ if(VISTA==="ots") render(); }catch(_){}
+  try{ if(ABERTA&&!$("#ficha").hidden) desenharFicha(); }catch(_){}
+  try{ polCamadasMapa(); }catch(_){}
+  try{ plcmLista(); }catch(_){}
+},250); }
+// distância (m) de um ponto à estrada mais próxima de cada classe: {d, ref, cls} ou null; undefined = estradas ainda não carregadas
+function polPerto(p){
+  const t=polTile(polChave(p[0],p[1])); if(!t) return undefined;
+  const k=Math.cos(p[0]*Math.PI/180), mx=111320*k, my=110574; let best=null;
+  for(const [cls,ref,g] of t.w){
+    for(let i=1;i<g.length;i++){
+      const ax=(g[i-1][1]-p[1])*mx, ay=(g[i-1][0]-p[0])*my, bx=(g[i][1]-p[1])*mx, by=(g[i][0]-p[0])*my;
+      const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy; let u=l2?-(ax*dx+ay*dy)/l2:0; u=Math.max(0,Math.min(1,u));
+      const d=Math.hypot(ax+u*dx,ay+u*dy); if(!best||d<best.d) best={d,ref,cls};
+    }
+  }
+  return best;
+}
+// avaliação da OT: casa do cliente e PLC; devolve {d, ref, cls, onde} da mais próxima, null se nenhuma estrada, undefined se a carregar
+function polOT(o){
+  const c=o&&o.campos||{}; if(o&&o.saiu) return null;
+  const pc=plcCliente(c), r=o&&o.rel||{}, pts=[];
+  if(pc.cli) pts.push(["casa do cliente",pc.cli]); else if(r.lat&&r.lng) pts.push(["morada",[+r.lat,+r.lng]]);
+  if(pc.plc) pts.push(["PLC",pc.plc]);
+  if(!pts.length) return null;
+  let best=null, falta=false;
+  for(const [onde,p] of pts){ const b=polPerto(p); if(b===undefined){ falta=true; continue; } if(b&&(!best||b.d<best.d)) best={...b,onde}; }
+  if(falta&&!best) return undefined;
+  return best;
+}
+const polPrecisa=o=>{ const b=polOT(o); return b&&b.d<=POL.dist?b:null; };
+const polPts=o=>{ const c=o&&o.campos||{}, pc=plcCliente(c), r=o&&o.rel||{}; return [pc.cli||(r.lat&&r.lng?[+r.lat,+r.lng]:null),pc.plc].filter(Boolean); };
+function polChip(o){ const b=polPrecisa(o); return b?`<span class="chip pol">🚓 Policiamento · ${esc(b.ref)} a ${Math.round(b.d)} m</span>`:""; }
+function polTextoPedido(d,o,b){
+  const c=o.campos||{}, pc=plcCliente(c), mor=c["Morada Completa"]||c.Morada||"", p=pc.cli||pc.plc;
+  const hm=v=>String(v||"").match(/\d{1,2}:\d{2}/)?.[0]||"";
+  const jan=hm(c["Início agendamento"])&&hm(c["Fim agendamento"])?`${hm(c["Início agendamento"])}–${hm(c["Fim agendamento"])}`:(c["Hora início"]?`${c["Hora início"]}${c["Hora fim"]?"–"+c["Hora fim"]:""}`:"");
+  return [`Pedido de policiamento — CR Telecom`,`Data: ${fData(d.data)}${jan?" · "+jan:""}`,`Estrada: ${b.ref} (${b.onde} a ${Math.round(b.d)} m)`,
+    mor?`Local: ${mor}`:"",p?`Coordenadas: ${p[0]}, ${p[1]}`:"",pc.plc&&c.PLC?`PLC: ${c.PLC} (${pc.plc[0]}, ${pc.plc[1]})`:"",
+    `Trabalho: ${c["Tipo de OT"]||"intervenção na rede de fibra"}`].filter(Boolean).join("\n");
+}
+function polAvisoIni(dia){
+  if(!dia) return "";
+  const ots=dia.ots.filter(o=>!o.saiu); polPedir(ots.flatMap(polPts));
+  const f=ots.map(o=>({o,b:polPrecisa(o)})).filter(x=>x.b), aCarregar=ots.some(o=>polOT(o)===undefined);
+  if(!f.length) return aCarregar?`<div class="pol-nota">🚓 A verificar estradas junto às OTs de hoje…</div>`:"";
+  return `<div class="pol-aviso">🚓 ${f.length} OT${f.length>1?"s":""} de hoje a ≤ ${POL.dist} m de EN/IP/AE — pedir policiamento: ${f.map(x=>`${esc(x.o.campos["Nome de cliente"]||x.o.campos["Nº OT"])} (${esc(x.b.ref)}, ${Math.round(x.b.d)} m)`).join(", ")}</div>`;
+}
+// ---------- controlos e camada de estradas no mapa do percurso
+let POL_CAMADA=null;
+function polControlos(){
+  return `<div class="pol-ctl"><div class="pol-chips">${Object.entries(POL_CLS).map(([k,v])=>`<button type="button" class="pol-chip${POL.ver[k]?" on":""}" data-polver="${k}" style="--c:${v.c}" aria-pressed="${POL.ver[k]}">${v.n}</button>`).join("")}</div>
+    <div class="pol-dist"><label for="polDist">🚓 Alerta de policiamento até</label><b id="polDistV">${POL.dist} m</b></div>
+    <input id="polDist" type="range" min="5" max="200" step="5" value="${POL.dist}" aria-label="Distância para o alerta de policiamento">
+    <p class="pol-nota">Definido por si e guardado neste aparelho. Mede a casa do cliente e o PLC até à estrada mais próxima.</p></div>`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-polver]"); if(!b) return; const k=b.dataset.polver;
+  POL.ver[k]=!POL.ver[k]; polGuardarCfg(); b.classList.toggle("on",POL.ver[k]); b.setAttribute("aria-pressed",POL.ver[k]); polCamadasMapa(); });
+document.addEventListener("input",e=>{ if(e.target.id!=="polDist") return; POL.dist=+e.target.value; const v=$("#polDistV"); if(v) v.textContent=POL.dist+" m"; });
+document.addEventListener("change",e=>{ if(e.target.id!=="polDist") return; POL.dist=+e.target.value; polGuardarCfg(); polRefrescar(); });
+function polCamadasMapa(){
+  if(!MAPA||typeof L==="undefined") return;
+  if(POL_CAMADA){ try{ MAPA.removeLayer(POL_CAMADA); }catch(_){} }
+  POL_CAMADA=L.layerGroup(); const vistos=new Set();
+  const ks=new Set(); MAPA.eachLayer(l=>{ if(l.getLatLng&&l.options&&l.options.icon){ const p=l.getLatLng(); ks.add(polChave(p.lat,p.lng)); } });
+  for(const k of ks){ const t=polTile(k); if(!t) continue;
+    for(const [cls,ref,g] of t.w){ if(!POL.ver[cls]) continue; const id=cls+ref+g[0]+g[g.length-1]; if(vistos.has(id)) continue; vistos.add(id);
+      L.polyline(g,{color:POL_CLS[cls].c,weight:POL_CLS[cls].w,opacity:.75,interactive:true}).bindTooltip(ref,{sticky:true}).addTo(POL_CAMADA); } }
+  POL_CAMADA.addTo(MAPA); POL_CAMADA.eachLayer(l=>l.bringToBack&&l.bringToBack());
+}
+// botão "📡 PLC" no canto do mapa
+function polBotaoMapa(mapa){
+  const C=L.Control.extend({options:{position:"bottomright"},onAdd(){ const b=L.DomUtil.create("button","plcm-fab"); b.type="button"; b.innerHTML="📡 PLC"; b.setAttribute("aria-label","Marcar PLC");
+    L.DomEvent.disableClickPropagation(b); b.onclick=()=>plcmAbrir(); return b; }});
+  new C().addTo(mapa);
+}
+
+// ====================================================================== PLCs marcados à mão (tabela plc_manual)
+const PLCM={lista:[], mapa:new Map(), ok:null, aba:"ot", ot:null, gps:null, gpsErro:"", sel:null, mini:null, aGravar:false};
+const plcmNorm=s=>String(s||"").trim().toUpperCase().replace(/\s+/g," ");
+async function plcmCarregar(){
+  try{ const r=await pvPedido("/rest/v1/plc_manual?select=*&order=atualizado_em.desc&limit=5000"); PLCM.lista=r||[]; PLCM.ok=true; }
+  catch(e){ PLCM.ok=false; PLCM.erro=e.message; PLCM.lista=[]; }
+  PLCM.mapa=new Map(PLCM.lista.map(p=>[plcmNorm(p.plc),p]));
+}
+// OTs com PLC mas sem Latitude/Longitude PLC: usa a coordenada marcada à mão (não mexe se o Field Service já a tem)
+function plcmAplicar(){
+  if(!PLCM.mapa.size) return;
+  for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos; if(!c||!c.PLC) continue;
+    const m=PLCM.mapa.get(plcmNorm(c.PLC)); if(!m) continue;
+    if(plcCliente(c).plc&&!o.plcManual) continue;
+    c["Latitude PLC"]=String(m.lat); c["Longitude PLC"]=String(m.lng); o.plcManual=true; }
+}
+const plcmSemCoord=o=>!!(o&&o.campos&&o.campos.PLC&&!o.saiu&&!plcCliente(o.campos).plc);
+function plcmPendentes(){
+  const vistos=new Set(), out=[];
+  for(const d of (DIAS||[]).slice().sort((a,b)=>b.data.localeCompare(a.data))) for(const o of d.ots||[]){
+    if(!plcmSemCoord(o)) continue; const k=plcmNorm(o.campos.PLC); if(vistos.has(k)) continue; vistos.add(k); out.push({d,o}); if(out.length>=40) return out; }
+  return out;
+}
+function plcmAbrir(otRef){
+  PLCM.aba=otRef?"ot":(PLCM.aba||"ot"); PLCM.ot=otRef||null; PLCM.sel=null; PLCM.gps=null; PLCM.gpsErro="";
+  let el=$("#plcm"); if(!el){ el=document.createElement("div"); el.id="plcm"; el.className="plcm-fundo"; document.body.appendChild(el);
+    el.addEventListener("click",e=>{ if(e.target===el) plcmFechar(); }); }
+  el.hidden=false; plcmDesenhar(); plcmGps();
+}
+function plcmFechar(){ const el=$("#plcm"); if(el) el.hidden=true; if(PLCM.mini){ try{ PLCM.mini.remove(); }catch(_){} PLCM.mini=null; } }
+function plcmGps(){
+  if(!navigator.geolocation){ PLCM.gpsErro="Este aparelho não tem GPS disponível."; return plcmEstado(); }
+  PLCM.gpsErro="a obter…"; plcmEstado();
+  navigator.geolocation.getCurrentPosition(p=>{ PLCM.gps={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy)}; PLCM.gpsErro=""; plcmEstado(); },
+    e=>{ PLCM.gpsErro=e.code===1?"Localização bloqueada: autorize em Definições → Apps → Consulta → Permissões.":"Não foi possível obter a posição."; plcmEstado(); },
+    {enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
+function plcmPonto(){ return PLCM.sel||(PLCM.gps?{lat:PLCM.gps.lat,lng:PLCM.gps.lng,acc:PLCM.gps.acc,gps:true}:null); }
+function plcmEstado(){
+  const el=$("#plcmPos"); if(!el) return; const p=plcmPonto();
+  el.innerHTML=p?`<span class="mono">${p.lat}, ${p.lng}</span> <small>${p.gps?`GPS · precisão ± ${p.acc} m`:"escolhido no mapa"}</small>`:`<small>${esc(PLCM.gpsErro||"Sem posição")}</small>`;
+  if(PLCM.mini&&p){ PLCM.mini._mk.setLatLng([p.lat,p.lng]); }
+  const g=$("#plcmGravar"); if(g) g.disabled=!p||PLCM.aGravar;
+}
+function plcmLista(){
+  const el=$("#plcmOts"); if(!el) return; const L2=plcmPendentes();
+  el.innerHTML=L2.length?L2.map(({d,o})=>{ const c=o.campos, on=PLCM.ot===d.data+"|"+o.id;
+    return `<button type="button" class="plcm-ot${on?" on":""}" data-plcmot="${esc(d.data+"|"+o.id)}"><b>${esc(c.PLC)}</b><small>${fData(d.data)} · ${esc(c["Nome de cliente"]||c["Nº OT"]||"")}</small></button>`; }).join("")
+    :`<p class="pol-nota">Todas as OTs têm coordenadas do PLC. ✓</p>`;
+}
+function plcmDesenhar(){
+  const el=$("#plcm"); if(!el) return; const ot=PLCM.aba==="ot";
+  const sel=PLCM.ot?(()=>{ const [dd,id]=PLCM.ot.split("|"); const d=DIAS.find(x=>x.data===dd); const o=d&&d.ots.find(x=>String(x.id)===id); return o?{d,o}:null; })():null;
+  el.innerHTML=`<div class="plcm" role="dialog" aria-modal="true" aria-labelledby="plcmT">
+    <div class="plcm-cab"><h3 id="plcmT">📡 Marcar PLC</h3><button type="button" class="plcm-x" aria-label="Fechar" onclick="plcmFechar()">✕</button></div>
+    ${PLCM.ok===false?`<div class="dx-aviso" style="animation:none">A tabela de PLCs ainda não existe no Supabase (correr plcs_manuais.sql). ${esc(PLCM.erro||"")}</div>`:""}
+    <div class="plcm-abas" role="tablist"><button type="button" role="tab" aria-selected="${ot}" class="${ot?"on":""}" data-plcmaba="ot">PLC de uma OT</button><button type="button" role="tab" aria-selected="${!ot}" class="${!ot?"on":""}" data-plcmaba="novo">Novo PLC no trajeto</button></div>
+    ${ot?`<p class="pol-nota">OTs cujo PLC veio do Field Service sem coordenadas. Escolha uma, vá ao PLC e grave a posição.</p><div class="plcm-ots" id="plcmOts"></div>
+      ${sel?`<div class="plcm-sel">PLC <b>${esc(sel.o.campos.PLC)}</b> · ${esc(sel.o.campos["Nome de cliente"]||"")}</div>`:""}`
+    :`<label for="plcmRef">Referência do PLC</label><input id="plcmRef" placeholder="a que está na caixa (ex.: PLC-YFL09-155)" autocomplete="off" autocapitalize="characters">`}
+    <label for="plcmNota">Nota (opcional)</label><input id="plcmNota" maxlength="280" placeholder="ex.: poste junto à rotunda">
+    <div class="plcm-pos"><div id="plcmPos"></div><div class="plcm-bts"><button type="button" class="sec" onclick="PLCM.sel=null;plcmGps()">📍 Usar GPS aqui</button><button type="button" class="sec" onclick="plcmMini()">🗺️ Tocar no mapa</button></div></div>
+    <div id="plcmMini" class="plcm-mini" hidden></div>
+    <button type="button" class="plcm-ok" id="plcmGravar" onclick="plcmGravar()">Guardar PLC</button>
+    ${PLCM.lista.length?`<details class="plcm-rec"><summary>Marcados por si (${PLCM.lista.length})</summary>${PLCM.lista.slice(0,30).map(p=>`<div><b>${esc(p.plc)}</b> <small>${esc(p.origem==="ot"?"da OT":"no trajeto")} · ${pvDH(p.atualizado_em)}${p.nota?" · "+esc(p.nota):""}</small> <a href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>`).join("")}</details>`:""}
+  </div>`;
+  if(ot) plcmLista(); plcmEstado();
+}
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-plcmaba]"); if(a){ PLCM.aba=a.dataset.plcmaba; plcmDesenhar(); return; }
+  const o=e.target.closest("[data-plcmot]"); if(o){ PLCM.ot=o.dataset.plcmot; plcmDesenhar(); return; }
+  const f=e.target.closest("[data-plcm]"); if(f){ e.preventDefault(); plcmAbrir(f.dataset.plcm); }
+});
+function plcmMini(){
+  const box=$("#plcmMini"); if(!box||typeof L==="undefined") return toast("Mapa indisponível neste momento.");
+  box.hidden=false; if(PLCM.mini) return;
+  const p=plcmPonto(); let c=p?[p.lat,p.lng]:null;
+  if(!c&&PLCM.ot){ const [dd,id]=PLCM.ot.split("|"); const o=DIAS.find(x=>x.data===dd)?.ots.find(x=>String(x.id)===id); const pc=o&&plcCliente(o.campos); c=pc&&pc.cli||null; }
+  c=c||[41.36,-8.19];
+  const m=L.map(box,{zoomControl:true}).setView(c,18); camadasMapa(m);
+  m._mk=L.marker(c,{draggable:true,icon:L.divIcon({className:"",html:'<div class="plcm-los"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(m);
+  const usar=ll=>{ PLCM.sel={lat:+ll.lat.toFixed(6),lng:+ll.lng.toFixed(6)}; plcmEstado(); };
+  m.on("click",e=>{ m._mk.setLatLng(e.latlng); usar(e.latlng); }); m._mk.on("dragend",()=>usar(m._mk.getLatLng()));
+  PLCM.mini=m; setTimeout(()=>m.invalidateSize(),60);
+}
+async function plcmGravar(){
+  const p=plcmPonto(); if(!p) return toast("Ainda sem posição.");
+  let plc="", ot=null;
+  if(PLCM.aba==="ot"){ if(!PLCM.ot) return toast("Escolha a OT do PLC.");
+    const [dd,id]=PLCM.ot.split("|"); const o=DIAS.find(x=>x.data===dd)?.ots.find(x=>String(x.id)===id); if(!o) return toast("OT não encontrada.");
+    plc=plcmNorm(o.campos.PLC); ot=o.campos["Nº OT"]||null; }
+  else { plc=plcmNorm($("#plcmRef")?.value); if(plc.length<2) return toast("Escreva a referência do PLC."); }
+  if(p.gps&&p.acc>50&&!confirm(`A precisão do GPS é de ± ${p.acc} m. Gravar mesmo assim?`)) return;
+  const linha={plc,lat:p.lat,lng:p.lng,precisao_m:p.gps?p.acc:null,origem:PLCM.aba==="ot"?"ot":"trajeto",ot,nota:($("#plcmNota")?.value||"").trim().slice(0,280)||null,atualizado_em:new Date().toISOString()};
+  if(PLCM.mapa.has(plc)&&!confirm(`O PLC ${plc} já estava marcado. Substituir a posição?`)) return;
+  PLCM.aGravar=true; plcmEstado();
+  try{ await pvPedido("/rest/v1/plc_manual?on_conflict=plc",{method:"POST",body:JSON.stringify(linha),headers:{Prefer:"resolution=merge-duplicates,return=minimal"}});
+    toast(`PLC ${plc} guardado ✓`); await plcmCarregar(); plcmAplicar(); PLCM.ot=null; PLCM.sel=null; plcmFechar(); polRefrescar();
+    try{ if(MAPA) desenharPercurso(); }catch(_){}
+  }catch(e){ toast("Não foi possível guardar: "+(e.message||e)); }
+  finally{ PLCM.aGravar=false; plcmEstado(); }
+}
+// a agenda rápida do telemóvel volta a montar os dias: reaplicar os PLCs marcados à mão
+{ const _jar=juntarAgendaRapida; juntarAgendaRapida=function(){ const r=_jar.apply(this,arguments); try{ plcmAplicar(); }catch(_){} return r; }; }
 // ---------- ações da OT: faixa de cartões com informação; segurar um cartão para mudar a ordem (guardada no telemóvel)
 let AQUI=null, AQUI_PEDIDO=false, AX=null;
-const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","rota","plc","tel","copiar","folha","mapa","perc"];
+const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","pol","rota","plc","tel","copiar","folha","mapa","perc"];
 function axDist(a,b){ const t=x=>x*Math.PI/180, h=Math.sin(t(b[0]-a[0])/2)**2+Math.cos(t(a[0]))*Math.cos(t(b[0]))*Math.sin(t(b[1]-a[1])/2)**2; return 2*6371*Math.asin(Math.sqrt(h)); }
 const axKm=k=>k<1?Math.round(k*1000)+" m":k.toFixed(1).replace(".",",")+" km";
 // localização: só é pedida quando o técnico toca em "Ver distância"; se já foi autorizada, é lida sozinha
@@ -1812,11 +2099,14 @@ function axCartoes(d,o,loc){
     C.rota={i:"🗺️",n:"Rota PLC→cliente",s:igual?"mesmo ponto":(dx?"⚠ ":"≈ ")+pc.dist,x:!!dx,t:"PLC ⟷ casa do cliente",url:pc.rota,b:"Ver rota no Google Maps",
       h:()=>igual?`<div><span class="ax-big">0 m</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${avIgual}`
         :`<div><span class="ax-big">≈ ${pc.dist}</span> <span class="ax-lin">em linha reta · ≈ ${Math.max(1,Math.round(k*1000/80))} min a pé</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}<div class="ax-lin">Ajuda a estimar o cabo de drop.</div>${dx?`<div class="dx-aviso">📏 Distância excessiva (mais de ${DX_LIMITE} m): confirmar as coordenadas do PLC e do cliente no Field Service.</div>`:""}`}; }
-  else if(pc.cli&&!pc.plc&&c.PLC) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. PLC",t:"PLC ⟷ casa do cliente",
+  else if(pc.cli&&!pc.plc&&c.PLC) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. PLC",t:"PLC ⟷ casa do cliente",plcm:d.data+"|"+o.id,b:"📡 Marcar o PLC agora",
     h:()=>`<div class="ax-av">O Field Service não tem a Latitude/Longitude deste PLC, por isso não há rota nem distância.</div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}`};
   else if(!pc.cli&&pc.plc) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. cliente",x:true,t:"PLC ⟷ casa do cliente (pela morada)",
     url:mor?`https://www.google.com/maps/dir/?api=1&origin=${pc.plc[0]},${pc.plc[1]}&destination=${encodeURIComponent(mor)}&travelmode=driving`:undefined,b:"Ver rota pela morada",
     h:()=>`<div class="dx-aviso">📍 Faltam as coordenadas da casa do cliente: o ecrã “Exibir detalhes” desta OT não foi lido. Toque em ▶ Recolher o dia (macro v10) para a voltar a ler.</div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${mor?`<div class="ax-lin">Rota provisória até à morada: ${esc(mor)}</div>`:""}`};
+  { polPedir(polPts(o)); const pb=polPrecisa(o);
+    if(pb) C.pol={i:"🚓",n:"Policiamento",s:`${pb.ref} · ${Math.round(pb.d)} m`,x:true,t:"Pedir policiamento",copiar:polTextoPedido(d,o,pb),b:"Copiar dados para o pedido",
+      h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin">Copie os dados (data, local, coordenadas, estrada) para o pedido de policiamento.</div>`}; }
   if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
   const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
   if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
@@ -1855,6 +2145,7 @@ function axMostrar(k){ if(!AX||k==null||k===AX.atual||AX.editar||!$("#axPn")) re
   let bt="";
   if(c.url) bt=`<a class="ax-go" href="${esc(c.url)}" ${c.url.startsWith("tel:")?"":'target="_blank" rel="noopener"'}>${c.b}</a>`;
   else if(c.copiar) bt=`<button class="ax-go" data-copiar="${esc(c.copiar)}">${c.b}</button>`;
+  else if(c.plcm) bt=`<button class="ax-go" data-plcm="${esc(c.plcm)}">${c.b}</button>`;
   else if(c.folha) bt=c.folha.f?`<button class="ax-go folha-btn" data-f="${esc(c.folha.f)}">${c.b}</button>`:`<button class="ax-go folha-btn" data-gerar="1">${c.b}</button>`;
   $("#axPn").innerHTML=`<h4>${c.i} ${esc(c.t)}</h4>${c.h()}${bt}`; }
 let axTimer=null, axIni=null, axFant=null, axArr=null;
@@ -2660,6 +2951,7 @@ async function carregar(silencioso){
     AGR=((data.find(x=>x.pacote&&x.pacote.tipo==="agenda_rapida")||{}).pacote||{}).dias||{};
     COMB=(data.find(x=>x.pacote&&x.pacote.tipo==="combustivel")||{}).pacote||null;
     DIAS=data.filter(x=>x.pacote&&!["guias","financas","custos_entrada","capturas","agenda_rapida","combustivel"].includes(x.pacote.tipo)).map(x=>({...x.pacote,_atualizado:x.atualizado}));
+    try{ await plcmCarregar(); }catch(_){}
     juntarAgendaRapida();
     if(!AUTO_LIDO&&/^#(texto|auto)$/.test(location.hash)){ AUTO_LIDO=true; setTimeout(()=>lerTelemovel(null,true),200); }   // aberto pela macro: lê sozinho
     if(VISTA==="guia") renderGuia();
