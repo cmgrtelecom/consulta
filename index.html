@@ -680,6 +680,8 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .plcm-cola{display:grid;grid-template-columns:1fr auto;gap:8px}.plcm-cola input{min-width:0}.plcm-cola button{font:inherit;font-size:13px;font-weight:700;min-height:44px;padding:0 12px;border-radius:10px;border:2px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer}
 .plcm-cp{font:inherit;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
 .plcm-av{color:#b3341f;font-weight:600}
+.tr-cor{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.tr-plcfab{background:#17211f!important;color:#fff!important}
 .plcm-los{width:14px;height:14px;background:#17211f;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.5)}
 </style>
 </head>
@@ -1689,7 +1691,7 @@ function desenharPercurso(){
   const lista=(kms,porEstrada)=>`<ol style="margin:8px 0 0;padding-left:22px;font-size:13.5px;display:flex;flex-direction:column;gap:3px">`+
     p.map((o,i)=>{ const km=kms?kms[i]:o.km; return `<li><b>${esc(hhmm(o.ini))}</b> ${esc(o.cliente||"")} <span style="color:var(--muted)">${i===0?"· primeira OT":(km!=null?`· ${km.toLocaleString("pt-PT",{maximumFractionDigits:1})} km ${porEstrada?"por estrada":"(estimado)"} desde a anterior`:"")}</span></li>`; }).join("")+`</ol>`;
   if(typeof L==="undefined") return desenharPercursoSvg(d,p,box,lista());
-  box.innerHTML=`${polControlos()}<div class="mapa" id="mapaOt"></div><div class="rota-nota" id="rotaNota">A calcular o percurso por estrada…</div><div id="rotaLista">${lista()}</div>`;
+  box.innerHTML=`<div class="pol-nota" style="margin:0 0 6px">🛣️ Estradas, casas e PLCs: <button type="button" class="ax-loc" onclick="polVerMapa('${d.data}')">abrir no mapa do Território</button></div><div class="mapa" id="mapaOt"></div><div class="rota-nota" id="rotaNota">A calcular o percurso por estrada…</div><div id="rotaLista">${lista()}</div>`;
   MAPA=L.map("mapaOt",{scrollWheelZoom:false});
   camadasMapa(MAPA); polBotaoMapa(MAPA);
   const dOts=(DIAS.find(x=>x.data===d.data)||{}).ots||[], otDe=o=>dOts.find(x=>x.id===o.id);
@@ -1701,7 +1703,7 @@ function desenharPercurso(){
     .addTo(MAPA).bindPopup(`<b>${i+1}. ${esc(hhmm(o.ini))}–${esc(hhmm(o.fim))}</b><br>${esc(o.cliente||"")}<br>${esc(o.estado||"")}${o.morada?"<br><span style='color:#666'>"+esc(o.morada)+"</span>":""}${pb?`<br><b style="color:#c2410c">🚓 Policiamento · ${esc(pb.ref)} a ${Math.round(pb.d)} m</b>`:""}${od&&plcmSemCoord(od)?`<br><button class="sec" data-plcm="${esc(d.data+"|"+od.id)}">📡 Marcar PLC ${esc(od.campos.PLC)}</button>`:""}`);
     if(pc.plc) L.marker(pc.plc,{icon:L.divIcon({className:"",html:'<div class="plcm-los" title="PLC"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(MAPA).bindPopup(`PLC ${esc(od.campos.PLC||"")}${od.plcManual?" · marcado à mão":""}`); });
   for(const m of PLCM.lista) if(m.origem==="trajeto") L.marker([m.lat,m.lng],{icon:L.divIcon({className:"",html:'<div class="plcm-los" title="PLC"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(MAPA).bindPopup(`PLC ${esc(m.plc)} · marcado no trajeto${m.nota?"<br>"+esc(m.nota):""}`);
-  polCamadasMapa();
+
   MAPA.fitBounds(L.latLngBounds(pts).pad(.2),{maxZoom:15});
   if(p.length<2){ $("#rotaNota").textContent=""; return; }
   // percurso real por estrada (servico publico OSRM); se falhar fica a linha reta
@@ -1882,9 +1884,9 @@ async function polCorrer(){
 }
 function polRefrescar(){ clearTimeout(POL.t); POL.t=setTimeout(()=>{
   try{ if(VISTA==="ini") renderIni(); }catch(_){}
-  try{ if(VISTA==="ots") render(); }catch(_){}
+  try{ if((DIAS||[]).length) render(); }catch(_){}
   try{ if(ABERTA&&!$("#ficha").hidden) desenharFicha(); }catch(_){}
-  try{ polCamadasMapa(); }catch(_){}
+  try{ trCamadasExtra(); if(typeof TR!=="undefined"&&TR.mapa) trPlcDesenhar(); }catch(_){}
   try{ plcmLista(); }catch(_){}
 },250); }
 // distância (m) de um ponto à estrada mais próxima de cada classe: {d, ref, cls} ou null; undefined = estradas ainda não carregadas
@@ -2087,14 +2089,84 @@ async function plcmGravar(){
 }
 // a agenda rápida do telemóvel volta a montar os dias: reaplicar os PLCs marcados à mão
 { const _jar=juntarAgendaRapida; juntarAgendaRapida=function(){ const r=_jar.apply(this,arguments); try{ plcmAplicar(); }catch(_){} return r; }; }
-// abre Relatórios → Percurso entre OTs no dia pedido (onde está o mapa das estradas)
+// ====================================================================== MAPA ÚNICO = mapa do Território (31/10/2026)
+// Botão de camadas (à direita): casas, nº da porta, PLCs, nº do PLC, raio, PLCs marcados à mão, estradas (AE / IP-IC / EN),
+// OTs do dia com alerta 🚓 (só gestor) e a distância do alerta. Os vendedores veem casas, PLCs e estradas; nunca OTs.
+const trEuGestor=()=>{ try{ return !PV_SO()&&(DIAS||[]).length>0; }catch(_){ return false; } };
+function trCfgGuardar(){ try{ localStorage.setItem("cr-terr-plc",JSON.stringify(TR.plcCfg)); }catch(_){ } }
+const TR_PIN=(html,w)=>L.divIcon({className:"",html,iconSize:[w,w],iconAnchor:[w/2,w/2]});
+function trCamadasExtra(){
+  if(typeof TR==="undefined") return; const m=TR.mapa; if(!m||!m._container||!document.body.contains(m._container)) return;
+  if(!TR.camE||TR.camE._mapa!==m){ TR.camE=L.layerGroup().addTo(m); TR.camE._mapa=m; TR.camO=L.layerGroup().addTo(m); TR.camM=L.layerGroup().addTo(m); }
+  const c=TR.plcCfg||{};
+  // casas
+  if(TR.cam){ const on=c.casas!==false; if(on&&!m.hasLayer(TR.cam)) TR.cam.addTo(m); else if(!on&&m.hasLayer(TR.cam)) m.removeLayer(TR.cam); }
+  // estradas
+  TR.camE.clearLayers(); const z=m.getZoom();
+  if(z>=11&&Object.values(POL.ver).some(Boolean)){
+    const b=m.getBounds(), ks=[];
+    for(let a=Math.floor(b.getSouth()/POL_Q);a<=Math.floor(b.getNorth()/POL_Q);a++) for(let o=Math.floor(b.getWest()/POL_Q);o<=Math.floor(b.getEast()/POL_Q);o++) ks.push([a,o]);
+    if(ks.length<=20){ const falta=[];
+      for(const [a,o] of ks){ const k=a+"_"+o, t=polTile(k); if(!t){ falta.push([(a+.5)*POL_Q,(o+.5)*POL_Q]); continue; }
+        for(const [cls,ref,g] of t.w){ if(!POL.ver[cls]) continue;
+          L.polyline(g,{color:POL_CLS[cls].c,weight:POL_CLS[cls].w,opacity:.7}).bindTooltip(ref,{sticky:true}).addTo(TR.camE); } }
+      if(z>=12&&falta.length) polPedir(falta); }
+    TR.camE.eachLayer(l=>l.bringToBack&&l.bringToBack());
+  }
+  // OTs do dia (gestor)
+  TR.camO.clearLayers();
+  if(trEuGestor()&&c.ots!==false){
+    const data=TR.otsDia||hojeISO(), d=(DIAS||[]).find(x=>x.data===data);
+    if(d){ const ots=d.ots.filter(o=>!o.saiu).sort((a,b)=>(a.campos?.["Hora início"]||"99").localeCompare(b.campos?.["Hora início"]||"99"));
+      ots.forEach((o,i)=>{ const p=polPts(o)[0]; if(!p) return; polPedir([p]); const pb=polPrecisa(o);
+        L.marker(p,{zIndexOffset:1200,icon:TR_PIN(`<div class="pin ${realizada(o)?"ok":"nao"}${pb?" pol":""}">${i+1}</div>`,28)})
+          .bindPopup(`<b>${i+1}. ${esc(o.campos["Hora início"]||"")} · ${esc(o.campos["Nome de cliente"]||o.campos["Nº OT"]||"")}</b>${pb?`<br><b style="color:#c2410c">🚓 ${esc(pb.ref)} a ${Math.round(pb.d)} m</b>`:""}<br><button class="sec" onclick="abrir('${d.data}','${esc(String(o.id))}')">Abrir OT</button>`)
+          .addTo(TR.camO); }); }
+  }
+  // PLCs marcados à mão
+  TR.camM.clearLayers();
+  if(c.man!==false) for(const x of PLCM.lista||[]) L.marker([x.lat,x.lng],{zIndexOffset:950,icon:TR_PIN('<div class="plcm-los"></div>',18)})
+    .bindPopup(`<div class="tr-plcpop"><b>${esc(x.plc)}</b><span>marcado à mão${x.origem==="trajeto"?" no trajeto":""} · ${pvDH(x.atualizado_em)}</span>${x.nota?`<span>${esc(x.nota)}</span>`:""}<span class="mono">📍 ${x.lat}, ${x.lng}</span><a href="${polRotaGM([x.lat,x.lng])}" target="_blank" rel="noopener">Rota no Google Maps</a> <a href="https://waze.com/ul?ll=${x.lat},${x.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>`).addTo(TR.camM);
+}
+// mais opções no menu de camadas do Território
+{ const _m=trPlcMenu; trPlcMenu=function(){ _m.apply(this,arguments); const m=$("#trPlcMenu"); if(!m) return; const c=TR.plcCfg;
+  const sw=(k,t,sub,on,cor)=>`<label class="tr-sw"><input type="checkbox" data-trx="${k}" ${on?"checked":""}><i></i><span>${cor?`<em class="tr-cor" style="background:${cor}"></em>`:""}${t}${sub?`<small>${sub}</small>`:""}</span></label>`;
+  const t1=m.querySelector(".tr-mt"); if(t1) t1.insertAdjacentHTML("afterend",sw("casas","Casas e estados","",c.casas!==false));
+  const g=trEuGestor(), dOts=TR.otsDia&&TR.otsDia!==hojeISO()?fData(TR.otsDia):"hoje";
+  m.insertAdjacentHTML("beforeend",sw("man","PLCs marcados à mão","",c.man!==false,"#17211f")
+    +`<span class="tr-mt">Estradas</span>`+Object.entries(POL_CLS).map(([k,v])=>sw(k,v.n,"",POL.ver[k],v.c)).join("")
+    +(g?`<span class="tr-mt">OTs · só o gestor</span>${sw("ots",`OTs de ${dOts} + alerta 🚓`,"anel laranja = pedir policiamento",c.ots!==false,"#ea580c")}
+      <div class="pol-dist"><label for="polDist">🚓 Alerta até</label><b id="polDistV">${POL.dist} m</b></div>
+      <input id="polDist" type="range" min="5" max="200" step="5" value="${POL.dist}" aria-label="Distância para o alerta de policiamento">`:""));
+  m.querySelectorAll("[data-trx]").forEach(i=>i.onchange=()=>{ const k=i.dataset.trx;
+    if(k in POL.ver){ POL.ver[k]=i.checked; polGuardarCfg(); } else { TR.plcCfg[k]=i.checked; trCfgGuardar(); }
+    trCamadasExtra(); });
+}; }
+// sempre que o Território redesenha, redesenha também as camadas novas
+{ const _d=trDesenhar; trDesenhar=function(){ const r=_d.apply(this,arguments); try{ trCamadasExtra(); }catch(e){ console.warn(e); } return r; }; }
+// abrir o Território num ponto (cartão PLC, policiamento, OTs de um dia)
+function trIrPara(lat,lng,z,opc){
+  opc=opc||{}; try{ fechar(); }catch(_){}
+  if(opc.raio){ TR.plcCfg.ver=true; TR.plcCfg.raio=true; trCfgGuardar(); }
+  if(opc.dia){ TR.otsDia=opc.dia; TR.plcCfg.ots=true; }
+  TR.vista={c:[lat,lng],z:z||17}; try{ localStorage.setItem("cr-terr-v",JSON.stringify(TR.vista)); }catch(_){ }
+  PV.sub="terr"; mudarVista("pv"); window.scrollTo({top:0});
+  setTimeout(()=>{ if(TR.mapa){ TR.mapa.setView([lat,lng],z||17); try{ trPlcDesenhar(); trCamadasExtra(); }catch(_){ } } },500);
+}
+// "Mapa das estradas" de um dia → Território com as OTs desse dia
 function polVerMapa(data){
-  try{ fechar(); }catch(_){}
-  mudarVista("rel");
-  setTimeout(()=>{ const s=$("#rDia"); if(s&&[...s.options].some(o=>o.value===data)&&s.value!==data){ s.value=data; desenharPercurso(); }
-    const b=$("#percurso"); if(b) b.closest(".cartao")?.scrollIntoView({behavior:"smooth",block:"start"}); },350);
+  const d=(DIAS||[]).find(x=>x.data===data), pts=d?d.ots.flatMap(o=>polPts(o).slice(0,1)):[];
+  if(!pts.length) return trIrPara(41.36,-8.19,13,{dia:data});
+  const la=pts.reduce((s,p)=>s+p[0],0)/pts.length, ln=pts.reduce((s,p)=>s+p[1],0)/pts.length;
+  trIrPara(la,ln,pts.length>1?13:16,{dia:data});
+  setTimeout(()=>{ if(TR.mapa&&pts.length>1) TR.mapa.fitBounds(L.latLngBounds(pts).pad(.25),{maxZoom:16}); },700);
 }
 const polRotaGM=p=>`https://www.google.com/maps/dir/?api=1&destination=${p[0]},${p[1]}&travelmode=driving`;
+// "✏️ Alterar" no PLC do mapa do Território → janela do PLC com a OT mais recente desse PLC (ou como PLC novo)
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-plcmplc]"); if(!b) return; e.preventDefault();
+  const k=plcmNorm(b.dataset.plcmplc);
+  for(const d of (DIAS||[]).slice().sort((a,b2)=>b2.data.localeCompare(a.data))) for(const o of d.ots||[]) if(plcmNorm(o.campos?.PLC)===k) return plcmAbrir(d.data+"|"+o.id);
+  PLCM.aba="novo"; plcmAbrir(); const i=$("#plcmRef"); if(i) i.value=b.dataset.plcmplc; });
 // ---------- ações da OT: faixa de cartões com informação; segurar um cartão para mudar a ordem (guardada no telemóvel)
 let AQUI=null, AQUI_PEDIDO=false, AX=null;
 const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","pol","rota","plc","tel","copiar","folha","mapa","perc"];
@@ -2142,8 +2214,8 @@ function axCartoes(d,o,loc){
   { polPedir(polPts(o)); const pb=polPrecisa(o);
     if(pb){ const pp=pb.onde==="PLC"?pc.plc:(pc.cli||polPts(o)[0]), txt=polTextoPedido(d,o,pb);
     C.pol={i:"🚓",n:"Policiamento",s:`${pb.ref} · ${Math.round(pb.d)} m`,x:true,t:"Pedir policiamento",url:pp?polRotaGM(pp):undefined,b:"Rota no Google Maps",
-      h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin"><button class="ax-loc" data-copiar="${esc(txt)}">📋 Copiar dados para o pedido</button> <button class="ax-loc" onclick="polVerMapa('${d.data}')">🛣️ Mapa das estradas</button></div>`}; } }
-  if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+`<div class="ax-lin"><span class="mono">${pc.plc[0]}, ${pc.plc[1]}</span>${o.plcManual?" · marcadas à mão":""}</div><div class="ax-lin"><button class="ax-loc" data-plcm="${esc(d.data+"|"+o.id)}">✏️ Alterar / colar coordenadas</button> <button class="ax-loc" data-copiar="${pc.plc[0]}, ${pc.plc[1]}">📋 Copiar</button></div><div class="ax-lin"><a class="ax-loc" href="${polRotaGM(pc.plc)}" target="_blank" rel="noopener">🗺️ Rota no Google Maps</a> <button class="ax-loc" onclick="polVerMapa('${d.data}')">🛣️ Mapa das estradas</button></div>`+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
+      h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin"><button class="ax-loc" data-copiar="${esc(txt)}">📋 Copiar dados para o pedido</button> ${pp?`<button class="ax-loc" onclick="trIrPara(${pp[0]},${pp[1]},16,{dia:'${d.data}'})">🛣️ Mapa das estradas</button>`:""}</div>`}; } }
+  if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+`<div class="ax-lin"><span class="mono">${pc.plc[0]}, ${pc.plc[1]}</span>${o.plcManual?" · marcadas à mão":""}</div><div class="ax-lin"><button class="ax-loc" data-plcm="${esc(d.data+"|"+o.id)}">✏️ Alterar / colar coordenadas</button> <button class="ax-loc" data-copiar="${pc.plc[0]}, ${pc.plc[1]}">📋 Copiar</button></div><div class="ax-lin"><a class="ax-loc" href="${polRotaGM(pc.plc)}" target="_blank" rel="noopener">🗺️ Rota no Google Maps</a> <button class="ax-loc" onclick="trIrPara(${pc.plc[0]},${pc.plc[1]},17,{raio:1})">🏘️ Território</button></div>`+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
   const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
   if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
     const alt=[c["Contactos alternativos"],c["Contacto acompanhamento"]&&c["Contacto acompanhamento"]!==c["Contacto de cliente"]?c["Contacto acompanhamento"]:""].filter(Boolean).map(esc).join(" · ");
@@ -3823,9 +3895,9 @@ function trHtml(){
     <div class="tr-mapa-w"><div id="trMapa" class="tr-mapa"></div>
       <div class="tr-fl tr-fl-d">
         <button id="trEu" class="tr-fb" aria-label="A minha posição" title="A minha posição">◎</button>
-        <button id="trPlcB" class="tr-fb tr-plcb" aria-label="O que mostrar no mapa" title="O que mostrar no mapa">Ver</button>
+        <button id="trPlcB" class="tr-fb tr-plcb" aria-label="Camadas do mapa" title="Camadas do mapa"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
         <button id="trFil" class="tr-fb" aria-label="Filtros" title="Filtros">☰</button>
-        ${g?`<button id="trZn" class="tr-fb" aria-label="Zonas" title="Desenhar zona">✏️</button>`:""}
+        ${g?`<button id="trZn" class="tr-fb" aria-label="Zonas" title="Desenhar zona">✏️</button>`:""}${trEuGestor()?`<button class="tr-fb tr-plcfab" aria-label="Marcar PLC" title="Marcar PLC" onclick="plcmAbrir()">📡</button>`:""}
       </div>
       <div id="trPlcMenu" class="tr-plcmenu" hidden></div>
       <div id="trZoom" class="tr-dica" hidden>Aproxime o mapa para ver as casas</div>
@@ -4177,7 +4249,7 @@ function trPlcPopup(p){
     <span>${p.n} OT${p.n===1?"":"s"} feitas aqui${p.ult?` · última ${esc(p.ult.slice(8,10)+"/"+p.ult.slice(5,7))}`:""}</span>
     <span>${casas} casa${casas===1?"":"s"} a ≤ ${DX_LIMITE||250} m</span>
     <span class="mono">📍 ${co}</span>
-    <a href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>`).openOn(TR.mapa);
+    <a href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a> <a href="${polRotaGM([p.lat,p.lng])}" target="_blank" rel="noopener">Google Maps</a>${trEuGestor()?` <button class="sec" data-plcmplc="${esc(p.plc)}">✏️ Alterar</button>`:""}</div>`).openOn(TR.mapa);
 }
 
 // ---------------------------------------------------------------- pesquisa (30/10/2026): morada colada ou escrita, rua, localidade ou coordenadas
