@@ -682,6 +682,15 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .plcm-av{color:#b3341f;font-weight:600}
 .tr-cor{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
 .tr-plcfab{background:#17211f!important;color:#fff!important}
+.rota-mapa{height:52vh;min-height:280px;border-radius:12px;overflow:hidden}
+.rota-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;font-weight:600}.rota-leg i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.rl-plc{background:#0f6e56}.rl-cli{background:#c2410c}
+.rota-bt{display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px;font-weight:700;min-height:44px;border-radius:10px;border:2px solid var(--accent);color:var(--accent);background:var(--surface)}
+.rpin{position:relative;width:34px;height:34px}
+.rpin i{position:absolute;left:2px;top:0;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--c);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+.rpin em{transform:rotate(45deg);font-style:normal;font-size:14px}
+.rpin b{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--c);color:#fff;font:700 12px var(--f-body);padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.rpin-plc{--c:#0f6e56}.rpin-cli{--c:#c2410c}
 .plcm-los{width:14px;height:14px;background:#17211f;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.5)}
 </style>
 </head>
@@ -1928,7 +1937,8 @@ function polTextoPedido(d,o,b){
     c["Conta de serviço"]?`Conta de serviço: ${c["Conta de serviço"]}`:"",
     `Estrada: ${b.ref} (${b.onde} a ${Math.round(b.d)} m)`,
     mor?`Local: ${mor}`:"",p?`Coordenadas: ${p[0]}, ${p[1]}`:"",pc.plc&&c.PLC?`PLC: ${c.PLC} (${pc.plc[0]}, ${pc.plc[1]})`:"",
-    rota?`Mapa rota PLC→cliente: ${rota}`:"",
+    rota?`Mapa rota PLC→cliente (Google Maps): ${rota}`:"",
+    pc.plc&&pc.cli?`Mapa com alfinetes (verde = PLC, vermelho = cliente): ${rotaOsm(pc.plc,pc.cli)}`:"",
     `Trabalho: ${tipo||"intervenção na rede de fibra"}`].filter(Boolean).join("\n");
 }
 function polAvisoIni(dia){
@@ -2171,6 +2181,47 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-plcmplc]"
     if(e){ e.lat=la; e.lng=lo; e.manual=true; }
     else if((TR.plcCfg||{}).man!==false){ const n={plc:m.plc,lat:la,lng:lo,n:0,ult:"",manual:true,nota:m.nota||""}; base.push(n); idx.set(k,n); } }
   return base; }; }
+// ====================================================================== ROTA PLC → CLIENTE COM ALFINETES (31/10/2026)
+// Mapa da própria Consulta: alfinete verde 📡 PLC e vermelho 🏠 Cliente, com etiquetas, rota por estrada (OSRM) ou linha reta.
+// Para fora (pedido de policiamento): OpenStreetMap com alfinete verde no PLC e vermelho no cliente (público, sem conta).
+function rotaOsm(plc,cli){ const m=axDist(plc,cli)*1000;
+  return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_${m>800?"car":"foot"}&route=${plc[0]}%2C${plc[1]}%3B${cli[0]}%2C${cli[1]}`; }
+const ROTA_M={m:null,ped:0};
+function rotaFechar(){ const el=$("#rotam"); if(el) el.hidden=true; if(ROTA_M.m){ try{ ROTA_M.m.remove(); }catch(_){} ROTA_M.m=null; } }
+function rotaAbrir(ref){
+  const [dd,id]=String(ref).split("|"), d=(DIAS||[]).find(x=>x.data===dd), o=d&&d.ots.find(x=>String(x.id)===id);
+  if(!o) return toast("OT não encontrada."); const c=o.campos||{}, pc=plcCliente(c);
+  if(!pc.plc||!pc.cli) return toast("Faltam as coordenadas do PLC ou do cliente.");
+  const km=axDist(pc.plc,pc.cli), mor=c["Morada Completa"]||c.Morada||"", nome=c["Nome de cliente"]||c["Nº OT"]||"Cliente";
+  let el=$("#rotam"); if(!el){ el=document.createElement("div"); el.id="rotam"; el.className="plcm-fundo"; document.body.appendChild(el);
+    el.addEventListener("click",e=>{ if(e.target===el) rotaFechar(); }); }
+  el.hidden=false;
+  el.innerHTML=`<div class="plcm" role="dialog" aria-modal="true" aria-labelledby="rotaT">
+    <div class="plcm-cab"><h3 id="rotaT">🗺️ PLC ⟷ casa do cliente</h3><button type="button" class="plcm-x" aria-label="Fechar" onclick="rotaFechar()">✕</button></div>
+    <div class="rota-leg"><span><i class="rl-plc"></i>📡 ${esc(c.PLC||"PLC")}</span><span><i class="rl-cli"></i>🏠 ${esc(nome)}</span></div>
+    <div id="rotaMapa" class="rota-mapa"></div>
+    <div class="pol-nota" id="rotaInfo">≈ ${axKm(km)} em linha reta · a calcular o caminho…</div>
+    ${mor?`<div class="pol-nota">${esc(mor)}</div>`:""}
+    <div class="plcm-bts"><a class="sec rota-bt" href="${esc(pc.rota)}" target="_blank" rel="noopener">Google Maps</a><a class="sec rota-bt" href="${esc(rotaOsm(pc.plc,pc.cli))}" target="_blank" rel="noopener">Mapa público (alfinetes)</a></div>
+    <button type="button" class="plcm-ok" data-copiar="${esc(`PLC ${c.PLC||""}: ${pc.plc[0]}, ${pc.plc[1]}\nCliente: ${pc.cli[0]}, ${pc.cli[1]}\nMapa: ${rotaOsm(pc.plc,pc.cli)}`)}">📋 Copiar coordenadas e mapa</button>
+  </div>`;
+  if(typeof L==="undefined"){ $("#rotaMapa").innerHTML='<div class="vazio">Mapa indisponível neste momento.</div>'; return; }
+  if(ROTA_M.m){ try{ ROTA_M.m.remove(); }catch(_){} }
+  const m=L.map("rotaMapa",{zoomControl:true}); ROTA_M.m=m; camadasMapa(m);
+  const pin=(cls,txt)=>L.divIcon({className:"",html:`<div class="rpin ${cls}"><b>${esc(txt)}</b><i><em>${cls==="rpin-plc"?"📡":"🏠"}</em></i></div>`,iconSize:[34,34],iconAnchor:[17,40]});
+  L.marker(pc.plc,{icon:pin("rpin-plc",c.PLC||"PLC"),zIndexOffset:900}).addTo(m);
+  L.marker(pc.cli,{icon:pin("rpin-cli",nome),zIndexOffset:1000}).addTo(m);
+  const reta=L.polyline([pc.plc,pc.cli],{color:"#1d4ed8",weight:3,dashArray:"6 8",opacity:.8}).addTo(m);
+  m.fitBounds(L.latLngBounds([pc.plc,pc.cli]).pad(.6),{maxZoom:19}); setTimeout(()=>m.invalidateSize(),80);
+  const meu=++ROTA_M.ped;
+  fetch(`https://router.project-osrm.org/route/v1/driving/${pc.plc[1]},${pc.plc[0]};${pc.cli[1]},${pc.cli[0]}?overview=full&geometries=geojson`)
+    .then(r=>r.json()).then(j=>{ if(meu!==ROTA_M.ped||!ROTA_M.m||j.code!=="Ok") throw 0; const rt=j.routes[0];
+      reta.setStyle({opacity:.35}); L.polyline(rt.geometry.coordinates.map(x=>[x[1],x[0]]),{color:"#1d4ed8",weight:5,opacity:.85}).addTo(m);
+      $("#rotaInfo").textContent=`≈ ${axKm(km)} em linha reta · ${axKm(rt.distance/1000)} pelo caminho (OpenStreetMap). A tracejado: linha reta.`; })
+    .catch(()=>{ if(meu===ROTA_M.ped&&$("#rotaInfo")) $("#rotaInfo").textContent=`≈ ${axKm(km)} em linha reta (sem caminho calculado neste momento).`; });
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-rmapa]"); if(!b) return; e.preventDefault(); rotaAbrir(b.dataset.rmapa); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("#rotam")&&!$("#rotam").hidden) rotaFechar(); });
 // ---------- ações da OT: faixa de cartões com informação; segurar um cartão para mudar a ordem (guardada no telemóvel)
 let AQUI=null, AQUI_PEDIDO=false, AX=null;
 const AX_CHAVE="cr_ordem_acoes", AX_PADRAO=["cli","pol","rota","plc","tel","copiar","folha","mapa","perc"];
@@ -2207,7 +2258,7 @@ function axCartoes(d,o,loc){
     h:()=>(cli?axDeMim(cli):"")+(mor?`<div class="ax-lin">${esc(mor)}</div>`:"")+linJan+avIgual};
   if(pc.rota){ const k=axDist(pc.plc,pc.cli);
     const dx=distExcessiva(c);
-    C.rota={i:"🗺️",n:"Rota PLC→cliente",s:igual?"mesmo ponto":(dx?"⚠ ":"≈ ")+pc.dist,x:!!dx,t:"PLC ⟷ casa do cliente",url:pc.rota,b:"Ver rota no Google Maps",
+    C.rota={i:"🗺️",n:"Rota PLC→cliente",s:igual?"mesmo ponto":(dx?"⚠ ":"≈ ")+pc.dist,x:!!dx,t:"PLC ⟷ casa do cliente",rmapa:d.data+"|"+o.id,b:"🗺️ Ver rota com alfinetes",
       h:()=>igual?`<div><span class="ax-big">0 m</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}${avIgual}`
         :`<div><span class="ax-big">≈ ${pc.dist}</span> <span class="ax-lin">em linha reta · ≈ ${Math.max(1,Math.round(k*1000/80))} min a pé</span></div>${plcNome?`<div class="ax-lin">${plcNome}</div>`:""}<div class="ax-lin">Ajuda a estimar o cabo de drop.</div>${dx?`<div class="dx-aviso">📏 Distância excessiva (mais de ${DX_LIMITE} m): confirmar as coordenadas do PLC e do cliente no Field Service.</div>`:""}`}; }
   else if(pc.cli&&!pc.plc&&c.PLC) C.rota={i:"🗺️",n:"Rota PLC→cliente",s:"sem coord. PLC",t:"PLC ⟷ casa do cliente",plcm:d.data+"|"+o.id,b:"📡 Marcar o PLC agora",
@@ -2218,7 +2269,7 @@ function axCartoes(d,o,loc){
   { polPedir(polPts(o)); const pb=polPrecisa(o);
     if(pb){ const pp=pb.onde==="PLC"?pc.plc:(pc.cli||polPts(o)[0]), txt=polTextoPedido(d,o,pb);
     C.pol={i:"🚓",n:"Policiamento",s:`${pb.ref} · ${Math.round(pb.d)} m`,x:true,t:"Pedir policiamento",url:pp?polRotaGM(pp):undefined,b:"Rota no Google Maps",
-      h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin"><button class="ax-loc" data-copiar="${esc(txt)}">📋 Copiar dados para o pedido</button> ${pp?`<button class="ax-loc" onclick="trIrPara(${pp[0]},${pp[1]},16,{dia:'${d.data}'})">🛣️ Mapa das estradas</button>`:""}</div>`}; } }
+      h:()=>`<div><span class="ax-big">${esc(pb.ref)}</span> <span class="ax-lin">a ${Math.round(pb.d)} m da ${esc(pb.onde)}</span></div><div class="ax-lin">${esc(POL_CLS[pb.cls].n)} · alerta definido para ≤ ${POL.dist} m</div><div class="ax-lin"><button class="ax-loc" data-copiar="${esc(txt)}">📋 Copiar dados para o pedido</button>${pc.plc&&pc.cli?` <button class="ax-loc" data-rmapa="${esc(d.data+"|"+o.id)}">🗺️ Rota PLC→cliente com alfinetes</button>`:""} ${pp?`<button class="ax-loc" onclick="trIrPara(${pp[0]},${pp[1]},16,{dia:'${d.data}'})">🛣️ Mapa das estradas</button>`:""}</div>`}; } }
   if(pc.plc) C.plc={i:"📡",n:"PLC",s:"Waze",t:"Ir ao PLC",url:w(pc.plc),b:"Abrir no Waze",h:()=>axDeMim(pc.plc)+`<div class="ax-lin"><span class="mono">${pc.plc[0]}, ${pc.plc[1]}</span>${o.plcManual?" · marcadas à mão":""}</div><div class="ax-lin"><button class="ax-loc" data-plcm="${esc(d.data+"|"+o.id)}">✏️ Alterar / colar coordenadas</button> <button class="ax-loc" data-copiar="${pc.plc[0]}, ${pc.plc[1]}">📋 Copiar</button></div><div class="ax-lin"><a class="ax-loc" href="${polRotaGM(pc.plc)}" target="_blank" rel="noopener">🗺️ Rota no Google Maps</a> <button class="ax-loc" onclick="trIrPara(${pc.plc[0]},${pc.plc[1]},17,{raio:1})">🏘️ Território</button></div>`+(plcNome?`<div class="ax-lin">${plcNome}</div>`:"")+(c["Tipo infraestrutura"]?`<div class="ax-lin">${esc(c["Tipo infraestrutura"])}</div>`:"")};
   const tel=String(c["Contacto de cliente"]||c["Contacto acompanhamento"]||"").replace(/[^\d+]/g,"");
   if(tel.length>=9){ const f=tel.replace(/^(\+?\d*?)(\d{3})(\d{3})(\d{3})$/,(m,p,a,b2,c2)=>(p?p+" ":"")+a+" "+b2+" "+c2);
@@ -2258,6 +2309,7 @@ function axMostrar(k){ if(!AX||k==null||k===AX.atual||AX.editar||!$("#axPn")) re
   if(c.url) bt=`<a class="ax-go" href="${esc(c.url)}" ${c.url.startsWith("tel:")?"":'target="_blank" rel="noopener"'}>${c.b}</a>`;
   else if(c.copiar) bt=`<button class="ax-go" data-copiar="${esc(c.copiar)}">${c.b}</button>`;
   else if(c.plcm) bt=`<button class="ax-go" data-plcm="${esc(c.plcm)}">${c.b}</button>`;
+  else if(c.rmapa) bt=`<button class="ax-go" data-rmapa="${esc(c.rmapa)}">${c.b}</button>`;
   else if(c.folha) bt=c.folha.f?`<button class="ax-go folha-btn" data-f="${esc(c.folha.f)}">${c.b}</button>`:`<button class="ax-go folha-btn" data-gerar="1">${c.b}</button>`;
   $("#axPn").innerHTML=`<h4>${c.i} ${esc(c.t)}</h4>${c.h()}${bt}`; }
 let axTimer=null, axIni=null, axFant=null, axArr=null;
