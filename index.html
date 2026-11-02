@@ -1362,7 +1362,7 @@ function render(){
           <div class="h">${esc(c["Hora início"]||"--:--")}<small>${esc(c["Hora fim"]||"")}</small></div>
           <div class="c">${realce(c["Nome de cliente"]||"(sem nome)",q)}</div>
           <div class="m"><span class="mono">${realce(c["Nº OT"]||"",q)}</span> · ${esc(c["Tipo de OT"]||"")}</div>
-          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
+          <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}${o.plcFeed?'<span class="chip">📡 PLC da lista do Feed</span>':""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
   $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
@@ -1815,7 +1815,7 @@ function abrir(data,id){
   ABERTA={d,o}; TAB="det";
   const c=o.campos;
   $("#fTitulo").textContent=c["Nome de cliente"]||c["Nº OT"];
-  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}`;
+  $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}${o.plcFeed?'<span class="chip">📡 PLC da lista do Feed</span>':""}`;
   $("#fundo").hidden=false; $("#ficha").hidden=false; desenharFicha(); $("#fFechar").focus();
 }
 function fechar(){ $("#fundo").hidden=true; $("#ficha").hidden=true; ABERTA=null; }
@@ -2112,13 +2112,35 @@ async function plcmGravar(){
     if(pc&&!confirm(`O Field Service tem ${pc[0]}, ${pc[1]} para o PLC ${plc}. Substituir pelas novas coordenadas?`)) return; }
   PLCM.aGravar=true; plcmEstado();
   try{ await pvPedido("/rest/v1/plc_manual?on_conflict=plc",{method:"POST",body:JSON.stringify(linha),headers:{Prefer:"resolution=merge-duplicates,return=minimal"}});
-    toast(`PLC ${plc} guardado ✓`); await plcmCarregar(); plcmAplicar(); PLCM.ot=null; PLCM.sel=null; plcmFechar(); polRefrescar();
+    toast(`PLC ${plc} guardado ✓`); await plcmCarregar(); plcmAplicar(); feedPlcAplicar(); PLCM.ot=null; PLCM.sel=null; plcmFechar(); polRefrescar();
     try{ if(MAPA) desenharPercurso(); }catch(_){}
   }catch(e){ toast("Não foi possível guardar: "+(e.message||e)); }
   finally{ PLCM.aGravar=false; plcmEstado(); }
 }
+// ====================================================================== PLCs da lista do Feed (robô NOS "nossgps", 02/11/2026)
+// Mensagens do tipo "PLC-YFL01-119 (19m): https://www.google.com/maps/place/41.381739,-8.209289 || ..." no Feed das OTs.
+// Cada PLC listado entra no mapa; e uma OT que veio sem coordenadas do PLC fica com a posição da lista (nunca substitui as do Field Service nem as marcadas à mão).
+const FEED_PLC_RE=/([A-Z]{2,4}-[A-Z0-9]+(?:-[A-Z0-9]+)+)\s*\(\s*(\d+)\s*m\s*\)\s*:\s*https?:\/\/(?:www\.)?google\.[a-z.]+\/maps\/place\/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/gi;
+let FEED_PLC_CACHE={sig:"",mapa:new Map()};
+function feedPlcs(){
+  const sig=(DIAS||[]).length+"|"+(DIAS||[]).reduce((n,d)=>n+(d.ots||[]).length,0)+"|"+((DIAS||[])[0]?.data||"");
+  if(FEED_PLC_CACHE.sig===sig) return FEED_PLC_CACHE.mapa;
+  const m=new Map();
+  for(const d of DIAS||[]) for(const o of d.ots||[]) for(const f of o.feed||[]){
+    const t=String(f&&f.Texto||""); if(!/maps\/place/i.test(t)) continue; FEED_PLC_RE.lastIndex=0; let r;
+    while((r=FEED_PLC_RE.exec(t))){ const la=+r[3], lo=+r[4]; if(!(la>36&&la<43&&lo>-10&&lo<-6)) continue;
+      const k=plcmNorm(r[1]), e=m.get(k)||{plc:r[1].toUpperCase(),lat:la,lng:lo,vezes:0,ult:"",ot:""};
+      e.vezes++; if(d.data>=e.ult){ e.ult=d.data; e.lat=+la.toFixed(6); e.lng=+lo.toFixed(6); e.ot=o.campos?.["Nº OT"]||""; } m.set(k,e); } }
+  FEED_PLC_CACHE={sig,mapa:m}; return m;
+}
+function feedPlcAplicar(){
+  const m=feedPlcs(); if(!m.size) return;
+  for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos; if(!c||!c.PLC||o.plcManual) continue;
+    if(plcCliente(c).plc) continue; const e=m.get(plcmNorm(c.PLC)); if(!e) continue;
+    c["Latitude PLC"]=String(e.lat); c["Longitude PLC"]=String(e.lng); o.plcFeed=true; }
+}
 // a agenda rápida do telemóvel volta a montar os dias: reaplicar os PLCs marcados à mão
-{ const _jar=juntarAgendaRapida; juntarAgendaRapida=function(){ const r=_jar.apply(this,arguments); try{ plcmAplicar(); }catch(_){} return r; }; }
+{ const _jar=juntarAgendaRapida; juntarAgendaRapida=function(){ const r=_jar.apply(this,arguments); try{ plcmAplicar(); }catch(_){} try{ feedPlcAplicar(); }catch(_){} return r; }; }
 // ====================================================================== MAPA ÚNICO = mapa do Território (31/10/2026)
 // Botão de camadas (à direita): casas, nº da porta, PLCs, nº do PLC, raio, PLCs marcados à mão, estradas (AE / IP-IC / EN),
 // OTs do dia com alerta 🚓 (só gestor) e a distância do alerta. Os vendedores veem casas, PLCs e estradas; nunca OTs.
@@ -2161,13 +2183,14 @@ function trCamadasExtra(){
   const t1=m.querySelector(".tr-mt"); if(t1) t1.insertAdjacentHTML("afterend",sw("casas","Casas e estados","",c.casas!==false));
   const g=trEuGestor(), dOts=TR.otsDia&&TR.otsDia!==hojeISO()?fData(TR.otsDia):"hoje";
   m.insertAdjacentHTML("beforeend",sw("man","PLCs marcados à mão","os novos do trajeto (os das OTs ficam sempre)",c.man!==false,"#0f6e56")
+    +sw("feed","PLCs da lista do Feed",(()=>{ try{ return feedPlcs().size+" PLCs próximos indicados pelo robô da NOS"; }catch(_){ return ""; } })(),c.feed!==false,"#0f6e56")
     +`<span class="tr-mt">Estradas</span>`+Object.entries(POL_CLS).map(([k,v])=>sw(k,v.n,"",POL.ver[k],v.c)).join("")
     +(g?`<span class="tr-mt">OTs · só o gestor</span>${sw("ots",`OTs de ${dOts} + alerta 🚓`,"anel laranja = pedir policiamento",c.ots!==false,"#ea580c")}
       <div class="pol-dist"><label for="polDist">🚓 Alerta até</label><b id="polDistV">${POL.dist} m</b></div>
       <input id="polDist" type="range" min="5" max="200" step="5" value="${POL.dist}" aria-label="Distância para o alerta de policiamento">`:""));
   m.querySelectorAll("[data-trx]").forEach(i=>i.onchange=()=>{ const k=i.dataset.trx;
     if(k in POL.ver){ POL.ver[k]=i.checked; polGuardarCfg(); } else { TR.plcCfg[k]=i.checked; trCfgGuardar(); }
-    if(k==="man") trPlcDesenhar(); trCamadasExtra(); });
+    if(k==="man"||k==="feed") trPlcDesenhar(); trCamadasExtra(); });
 }; }
 // sempre que o Território redesenha, redesenha também as camadas novas
 { const _d=trDesenhar; trDesenhar=function(){ const r=_d.apply(this,arguments); try{ trCamadasExtra(); }catch(e){ console.warn(e); } return r; }; }
@@ -4302,6 +4325,7 @@ function trPlcs(){
     const kk=k(n), p=m[kk]||(m[kk]={plc:n,lat:la,lng:lo,n:0,ult:"",fonte:"ot"});
     p.n++; if(d.data>p.ult){ p.ult=d.data; if(p.fonte==="ot"){ p.lat=la; p.lng=lo; } } }
   for(const p of Object.values(m)) p.n=Math.max(p.n,p.nTab||0);
+  try{ if(TR.plcCfg?.feed!==false) for(const [kk,e] of feedPlcs()) if(!m[kk]) m[kk]={plc:e.plc,lat:e.lat,lng:e.lng,n:0,ult:"",feed:true,feedUlt:e.ult,fonte:"feed"}; }catch(_){}
   return Object.values(m);
 }
 function trPlcMenu(){
@@ -4328,7 +4352,7 @@ function trPlcPopup(p){
   let casas=0; for(const c of trTodas()){ const ll=trLL(c); if(axDist(ll,[p.lat,p.lng])*1000<=(DX_LIMITE||250)) casas++; }
   const co=`${p.lat.toFixed(6).replace(".",",")} · ${p.lng.toFixed(6).replace(".",",")}`;
   L.popup({maxWidth:260}).setLatLng([p.lat,p.lng]).setContent(`<div class="tr-plcpop"><b>${esc(p.plc)}</b>
-    ${p.manual?`<span>📡 posição marcada à mão${p.nota?" · "+esc(p.nota):""}</span>`:""}<span>${p.n} OT${p.n===1?"":"s"} feitas aqui${p.ult?` · última ${esc(p.ult.slice(8,10)+"/"+p.ult.slice(5,7))}`:""}</span>
+    ${p.manual?`<span>📡 posição marcada à mão${p.nota?" · "+esc(p.nota):""}</span>`:""}${p.feed?`<span>📡 da lista de PLCs próximos no Feed${p.feedUlt?` · ${esc(p.feedUlt.slice(8,10)+"/"+p.feedUlt.slice(5,7))}`:""}</span>`:""}<span>${p.n} OT${p.n===1?"":"s"} feitas aqui${p.ult?` · última ${esc(p.ult.slice(8,10)+"/"+p.ult.slice(5,7))}`:""}</span>
     <span>${casas} casa${casas===1?"":"s"} a ≤ ${DX_LIMITE||250} m</span>
     <span class="mono">📍 ${co}</span>
     <a href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a> <a href="${polRotaGM([p.lat,p.lng])}" target="_blank" rel="noopener">Google Maps</a>${trEuGestor()?` <button class="sec" data-plcmplc="${esc(p.plc)}">✏️ Alterar</button>`:""}</div>`).openOn(TR.mapa);
