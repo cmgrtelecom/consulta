@@ -673,7 +673,11 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .plcm-pos small{color:var(--muted)}
 .plcm-bts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .plcm-bts button{font:inherit;font-size:13px;font-weight:700;min-height:44px;border-radius:10px;border:2px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer}
-.plcm-mini{height:260px;border-radius:12px;overflow:hidden}
+.plcm-mini{height:52vh;min-height:300px;border-radius:12px;overflow:hidden}
+.plcm-mini.full{position:fixed;inset:0;height:auto;min-height:0;border-radius:0;z-index:3200}
+.plcm-mctl{display:flex;gap:8px}.plcm-mctl button{font:700 14px var(--f-body);min-height:44px;padding:0 14px;border-radius:22px;border:none;box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer;background:#fff;color:#17211f}
+.plcm-mctl button.ok{background:#17211f;color:#fff}
+.plcm-mira{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;pointer-events:none;z-index:500;border:2px solid #c2410c;border-radius:50%;box-shadow:0 0 0 2px #fff}
 .plcm-ok{font:inherit;font-size:15px;font-weight:800;min-height:50px;border:none;border-radius:12px;background:#17211f;color:#fff;cursor:pointer}
 .plcm-ok:disabled{opacity:.45}
 .plcm-rec{font-size:13px}.plcm-rec div{padding:4px 0;border-top:1px solid var(--line)}
@@ -2006,7 +2010,7 @@ function plcmAbrir(otRef){
     el.addEventListener("click",e=>{ if(e.target===el) plcmFechar(); }); }
   el.hidden=false; plcmDesenhar(); plcmGps();
 }
-function plcmFechar(){ const el=$("#plcm"); if(el) el.hidden=true; if(PLCM.mini){ try{ PLCM.mini.remove(); }catch(_){} PLCM.mini=null; } }
+function plcmFechar(){ const el=$("#plcm"); if(el) el.hidden=true; const bx=$("#plcmMini"); if(bx) bx.classList.remove("full"); if(PLCM.mini){ try{ PLCM.mini.remove(); }catch(_){} PLCM.mini=null; } }
 function plcmGps(){
   if(!navigator.geolocation){ PLCM.gpsErro="Este aparelho não tem GPS disponível."; return plcmEstado(); }
   PLCM.gpsErro="a obter…"; plcmEstado();
@@ -2068,7 +2072,7 @@ document.addEventListener("click",e=>{
 });
 function plcmMini(){
   const box=$("#plcmMini"); if(!box||typeof L==="undefined") return toast("Mapa indisponível neste momento.");
-  box.hidden=false; if(PLCM.mini) return;
+  box.hidden=false; if(PLCM.mini){ plcmMiniTam(true); return; }
   const p=plcmPonto(); let c=p?[p.lat,p.lng]:null;
   if(!c&&PLCM.ot){ const [dd,id]=PLCM.ot.split("|"); const o=DIAS.find(x=>x.data===dd)?.ots.find(x=>String(x.id)===id); const pc=o&&plcCliente(o.campos); c=pc&&pc.cli||null; }
   c=c||[41.36,-8.19];
@@ -2076,7 +2080,23 @@ function plcmMini(){
   m._mk=L.marker(c,{draggable:true,icon:L.divIcon({className:"",html:'<div class="plcm-los"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(m);
   const usar=ll=>{ PLCM.sel={lat:+ll.lat.toFixed(6),lng:+ll.lng.toFixed(6)}; plcmEstado(); };
   m.on("click",e=>{ m._mk.setLatLng(e.latlng); usar(e.latlng); }); m._mk.on("dragend",()=>usar(m._mk.getLatLng()));
-  PLCM.mini=m; setTimeout(()=>m.invalidateSize(),60);
+  // botões no mapa: ampliar/reduzir e, em ecrã inteiro, "usar este ponto"
+  const C=L.Control.extend({options:{position:"bottomright"},onAdd(){ const d=L.DomUtil.create("div","plcm-mctl"); L.DomEvent.disableClickPropagation(d);
+    d.innerHTML=`<button type="button" data-mt="tam"></button><button type="button" class="ok" data-mt="ok">✓ Usar este ponto</button>`;
+    d.querySelector('[data-mt="tam"]').onclick=()=>plcmMiniTam(!box.classList.contains("full"));
+    d.querySelector('[data-mt="ok"]').onclick=()=>{ if(!PLCM.sel) usar(m._mk.getLatLng()); plcmMiniTam(false); toast("Ponto escolhido — falta Guardar PLC."); };
+    return d; }});
+  new C().addTo(m);
+  PLCM.mini=m; plcmMiniTam(true);
+}
+// ecrã inteiro (on=true) ou pequeno, dentro da janela
+function plcmMiniTam(on){
+  const box=$("#plcmMini"), m=PLCM.mini; if(!box||!m) return;
+  box.classList.toggle("full",!!on);
+  const b=box.querySelector('[data-mt="tam"]'); if(b) b.textContent=on?"⤡ Reduzir":"⛶ Ampliar";
+  const ok=box.querySelector('[data-mt="ok"]'); if(ok) ok.hidden=!on;
+  setTimeout(()=>{ m.invalidateSize(); m.panTo(m._mk.getLatLng()); },80);
+  if(!on) setTimeout(()=>box.scrollIntoView({block:"nearest",behavior:"smooth"}),120);
 }
 async function plcmGravar(){
   const p=plcmPonto(); if(!p) return toast("Ainda sem posição.");
@@ -4271,11 +4291,17 @@ function trExcel(){
 // ---------------------------------------------------------------- PLCs no mapa (das OTs recolhidas; mais tarde também do KMZ)
 try{ TR.plcCfg={porta:true,ver:true,num:true,raio:false,...(JSON.parse(localStorage.getItem("cr-terr-plc")||"{}"))}; }catch(_){ TR.plcCfg={porta:true,ver:true,num:true,raio:false}; }
 function trPlcs(){
-  if(TR.plcs&&TR.plcs.length) return TR.plcs;
-  const m={};   // gestor: a partir das OTs (DIAS); vendedores: tabela pv_plcs (preenchida pelo PC)
-  for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos||{}, n=String(c.PLC||"").trim(); if(!n) continue;
-    const la=pvNum(c["Latitude PLC"]), lo=pvNum(c["Longitude PLC"]); if(la==null||lo==null) continue;
-    const k=n.toUpperCase(); const p=m[k]||(m[k]={plc:n,lat:la,lng:lo,n:0,ult:""}); p.n++; if(d.data>p.ult) p.ult=d.data; }
+  // junta a tabela pv_plcs (feita pelo PC; é o que os vendedores veem) com TODAS as OTs recolhidas (gestor),
+  // para que um PLC novo que chega numa OT apareça logo no mapa, sem esperar pelo PC
+  const m={}, k=n=>String(n||"").trim().toUpperCase().replace(/\s+/g," ");
+  for(const x of TR.plcs||[]){ if(!isFinite(x.lat)||!isFinite(x.lng)) continue; m[k(x.plc)]={...x,n:0,ult:x.ult||"",nTab:x.n||0}; }
+  for(const d of DIAS||[]) for(const o of d.ots||[]){ const c=o.campos||{}, n=String(c.PLC||"").trim(); if(!n||o.plcManual) continue;
+    let la=pvNum(c["Latitude PLC"]), lo=pvNum(c["Longitude PLC"]);
+    if((la==null||lo==null)&&typeof plcmLerTexto==="function"){ const q=plcmLerTexto(c["Latitude PLC"]||""); if(q){ la=q.lat; lo=q.lng; } }   // "41.3, -8.1" tudo num campo
+    if(la==null||lo==null||lo>0) continue;
+    const kk=k(n), p=m[kk]||(m[kk]={plc:n,lat:la,lng:lo,n:0,ult:"",fonte:"ot"});
+    p.n++; if(d.data>p.ult){ p.ult=d.data; if(p.fonte==="ot"){ p.lat=la; p.lng=lo; } } }
+  for(const p of Object.values(m)) p.n=Math.max(p.n,p.nTab||0);
   return Object.values(m);
 }
 function trPlcMenu(){
