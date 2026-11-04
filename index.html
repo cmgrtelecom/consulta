@@ -1595,7 +1595,7 @@ const CRT=(()=>{
     const totNaoM=mots.reduce((s,m)=>s+m.v,0)||1;
     // cor própria por motivo; reincidência (OT anterior no mesmo cliente) vem de op.rein(data,id) quando existe
     const mCor=i=>`var(--crt-m${i%8})`, motIdx=k=>mots.findIndex(m=>m.k===k);
-    const reinOT=o=>{ if(!op.rein) return null; try{ return op.rein(o.data,o.id)||null; }catch(_){ return null; } };
+    const reinOT=o=>{ if(!op.rein) return null; try{ return op.rein(o.data,o.id,o)||null; }catch(_){ return null; } };
     const nRein=m=>m.ots.filter(reinOT).length;
     const fEur=v=>Math.round(v).toLocaleString("pt-PT")+" €";
     const SEL_N={prod:"Produtividade",nao:"Não realizadas · motivos",esp:"Espera por causa",int:"Maiores intervalos",hor:"A que horas se espera",opp:"Oportunidades"};
@@ -1648,13 +1648,13 @@ const CRT=(()=>{
         el.querySelectorAll('[data-pi^="m"]').forEach(p=>p.style.opacity=p.dataset.pi==="m"+i?1:.3);
         el.querySelectorAll("[data-mleg]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.mleg===i));
         const box=el.querySelector("#crtMotLista"); if(!box) return;
-        const nr=nRein(m), abrirOT=(data,id)=>{ const dd=dias.find(d=>d.data===data)||{data}; const oo=(dd.ots||[]).find(x=>x.id===id)||{id,data}; op.onOT(dd,oo); };
+        const nr=nRein(m), abrirOT=a=>{ const dd=dias.find(d=>d.data===a.data)||{data:a.data}; const oo=(dd.ots||[]).find(x=>x.id===a.id&&(a.pasta==null||x.pasta==null||x.pasta===a.pasta))||a; op.onOT(dd,oo); };
         box.innerHTML=`<div class="crt-h" style="margin-top:10px"><i class="crt-dot" style="background:${mCor(i)}"></i>${e_(m.k)} · ${m.n} OT${m.n>1?"s":""}${nr?` · <span style="color:var(--crt-bad)">🔁 ${nr} reincidência${nr>1?"s":""}</span>`:""}</div><table><thead><tr><th>Data</th><th>Hora</th><th>Nº OT</th><th>Cliente</th><th>Tipo</th><th style="min-width:260px">Feed</th><th class="n">€</th></tr></thead><tbody>${m.ots.map((o,j)=>{ const r=reinOT(o); return `<tr data-oti="${j}" style="box-shadow:inset 3px 0 0 ${mCor(i)}"><td style="white-space:nowrap">${rot(o.data)}</td><td>${fh(o.ini)}</td><td style="white-space:nowrap">${e_(o.ot||"")}${r?`<span class="crt-rb">🔁 ${r.ant&&r.ant.length?(r.ant.length+1)+".ª visita":"reincidente"} ▾</span>`:""}</td><td>${e_(o.cliente||"")}</td><td>${e_(tC(o.tipo))}</td><td class="crt-feed" ${o.feedAuto?'style="color:var(--crt-mut)"':""}>${o.feed?e_(o.feed):'<span style="color:var(--crt-mut)">Feed não recolhido</span>'}${o.feed?`<small>${e_(o.feedAuto?"só nota automática":(o.feedAutor||""))}${o.feedN>1?` · ${o.feedN} entradas no Feed`:""}</small>`:""}</td><td class="n">${fEur(vOT(o))}</td></tr>`; }).join("")}</tbody></table>${op.onOT?`<div style="font-size:12px;color:var(--crt-mut);margin-top:4px">Toque numa OT para a abrir.${nr?" Nas reincidências 🔁 abre primeiro o histórico com a OT anterior.":""}</div>`:""}`;
         box.querySelectorAll("tr[data-oti]").forEach(r=>r.onclick=()=>{ const o=m.ots[+r.dataset.oti], rn=reinOT(o);
           if(rn){ const nx=r.nextElementSibling, aberto=nx&&nx.classList.contains("crt-rein");
             box.querySelectorAll("tr.crt-rein").forEach(x=>x.remove()); box.querySelectorAll("tr[data-oti]").forEach(x=>x.classList.remove("sel"));
             if(aberto) return; r.classList.add("sel"); r.insertAdjacentHTML("afterend",reinHTML(o,rn,i));
-            r.nextElementSibling.querySelectorAll("[data-rabre]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const a=[o,...(rn.ant||[])][+b.dataset.rabre]; if(a&&op.onOT) abrirOT(a.data,a.id); });
+            r.nextElementSibling.querySelectorAll("[data-rabre]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const a=[o,...(rn.ant||[])][+b.dataset.rabre]; if(a&&op.onOT) abrirOT(a); });
             return; }
           if(op.onOT) op.onOT(dias.find(d=>d.data===o.data)||{data:o.data},o); });
         box.scrollIntoView({behavior:"smooth",block:"nearest"}); };
