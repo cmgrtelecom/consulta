@@ -1433,10 +1433,29 @@ function renderRel(){
 // Entrada: dias = [{data:"AAAA-MM-DD", ots:[{id, ot, cliente, tipo, estado, ok, ini, fim (minutos), cond (min|null), km, ag, motivo, antec}]}]
 const CRT=(()=>{
   const css=`
-.crt{--crt-ok:#178a48;--crt-bad:#cc5527;--crt-cond:#3069b0;--crt-wait:#c9d3d0;--crt-grid:#e6ebe9;--crt-ink:#1d2a27;--crt-mut:#5f716d;--crt-surf:#fff;--crt-bar:#3069b0;--crt-line:#12343b}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .crt{--crt-ok:#33a361;--crt-bad:#e2683a;--crt-cond:#5089d2;--crt-wait:#3d4b47;--crt-grid:#26332f;--crt-ink:#e6efec;--crt-mut:#93a6a1;--crt-surf:#16201e;--crt-bar:#5089d2;--crt-line:#cfe6ea}}
-:root[data-theme="dark"] .crt{--crt-ok:#33a361;--crt-bad:#e2683a;--crt-cond:#5089d2;--crt-wait:#3d4b47;--crt-grid:#26332f;--crt-ink:#e6efec;--crt-mut:#93a6a1;--crt-surf:#16201e;--crt-bar:#5089d2;--crt-line:#cfe6ea}
+.crt{--crt-ok:#178a48;--crt-bad:#cc5527;--crt-cond:#3069b0;--crt-wait:#c9d3d0;--crt-grid:#e6ebe9;--crt-ink:#1d2a27;--crt-mut:#5f716d;--crt-surf:#fff;--crt-bar:#3069b0;--crt-line:#12343b;--crt-m0:#6d4fd8;--crt-m1:#b07d0e;--crt-m2:#2a7fc9;--crt-m3:#c03d78;--crt-m4:#16917e;--crt-m5:#7f8a22;--crt-m6:#8c5a3c;--crt-m7:#4f6d8f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .crt{--crt-ok:#33a361;--crt-bad:#e2683a;--crt-cond:#5089d2;--crt-wait:#3d4b47;--crt-grid:#26332f;--crt-ink:#e6efec;--crt-mut:#93a6a1;--crt-surf:#16201e;--crt-bar:#5089d2;--crt-line:#cfe6ea;--crt-m0:#a08bff;--crt-m1:#e0b03c;--crt-m2:#5eaef0;--crt-m3:#ec6fa6;--crt-m4:#3fc7af;--crt-m5:#b4c04a;--crt-m6:#c99272;--crt-m7:#8fa9c9}}
+:root[data-theme="dark"] .crt{--crt-ok:#33a361;--crt-bad:#e2683a;--crt-cond:#5089d2;--crt-wait:#3d4b47;--crt-grid:#26332f;--crt-ink:#e6efec;--crt-mut:#93a6a1;--crt-surf:#16201e;--crt-bar:#5089d2;--crt-line:#cfe6ea;--crt-m0:#a08bff;--crt-m1:#e0b03c;--crt-m2:#5eaef0;--crt-m3:#ec6fa6;--crt-m4:#3fc7af;--crt-m5:#b4c04a;--crt-m6:#c99272;--crt-m7:#8fa9c9}
 .crt{color:var(--crt-ink)}
+.crt .crt-mleg{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:8px;font-size:12.5px}
+.crt .crt-mleg button{font:inherit;display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;border:1px solid transparent;background:none;color:var(--crt-ink);cursor:pointer}
+.crt .crt-mleg button[aria-pressed="true"]{border-color:var(--crt-grid);background:color-mix(in srgb,var(--crt-bar) 10%,transparent);font-weight:600}
+.crt .crt-mleg b{font-weight:500;color:var(--crt-mut);font-variant-numeric:tabular-nums}
+.crt .crt-dot{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none;margin-right:6px;vertical-align:-1px}
+.crt [data-pi]{transition:opacity .15s}
+.crt .crt-rb{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid var(--crt-bad);color:var(--crt-bad);white-space:nowrap;margin-left:6px}
+.crt tr.crt-rein>td{padding:4px 8px 12px 18px;background:color-mix(in srgb,var(--crt-bad) 5%,transparent)}
+.crt .crt-rt{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--crt-mut);margin:6px 0 8px}
+.crt .crt-rn{position:relative;border-left:3px solid var(--c);padding:7px 10px 7px 12px;margin-left:var(--ind);display:grid;gap:2px;min-width:0}
+.crt .crt-rn+.crt-rn{margin-top:6px}
+.crt .crt-rn.cur{background:color-mix(in srgb,var(--crt-bar) 8%,transparent);border-radius:0 6px 6px 0}
+.crt .crt-rn:not(.cur)::before{content:"↳";position:absolute;left:-20px;top:6px;color:var(--crt-mut)}
+.crt .crt-rn .l1{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:13px}
+.crt .crt-rn .gap{font-size:12px;font-weight:700;color:var(--crt-bad)}
+.crt .crt-rn .l2{font-size:12.5px;color:var(--crt-mut)}
+.crt .crt-rn q{font-size:12.5px;color:var(--crt-mut);font-style:italic}
+.crt .crt-rn button,.crt .crt-ra button{font:inherit;font-size:12px;padding:2px 10px;border-radius:999px;border:1px solid var(--crt-grid);background:var(--crt-surf);color:var(--crt-ink);cursor:pointer;justify-self:start}
+.crt .crt-ra{margin-top:10px;font-size:12.5px;padding:8px 10px;border-radius:6px;border-left:3px solid var(--crt-bad);background:color-mix(in srgb,var(--crt-bad) 8%,transparent);display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
 .crt .crt-ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 6px}
 .crt .crt-ctl button{font:inherit;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--crt-grid);background:var(--crt-surf);color:var(--crt-ink);cursor:pointer}
 .crt .crt-ctl button.on{background:var(--crt-bar);border-color:var(--crt-bar);color:#fff}
@@ -1574,6 +1593,10 @@ const CRT=(()=>{
     const mots=Object.values(MOT).map(m=>({...m,v:somaM(m.ots)})).sort((a,b)=>b.v-a.v||b.n-a.n);
     const top2=[...mots].sort((a,b)=>b.n-a.n).slice(0,2), ganhoN=top2.reduce((s,m)=>s+m.n,0), ganhoE=top2.reduce((s,m)=>s+m.e,0);
     const totNaoM=mots.reduce((s,m)=>s+m.v,0)||1;
+    // cor própria por motivo; reincidência (OT anterior no mesmo cliente) vem de op.rein(data,id) quando existe
+    const mCor=i=>`var(--crt-m${i%8})`, motIdx=k=>mots.findIndex(m=>m.k===k);
+    const reinOT=o=>{ if(!op.rein) return null; try{ return op.rein(o.data,o.id)||null; }catch(_){ return null; } };
+    const nRein=m=>m.ots.filter(reinOT).length;
     const fEur=v=>Math.round(v).toLocaleString("pt-PT")+" €";
     const SEL_N={prod:"Produtividade",nao:"Não realizadas · motivos",esp:"Espera por causa",int:"Maiores intervalos",hor:"A que horas se espera",opp:"Oportunidades"};
     const CHIPS=`<div class="crt-sel" role="group" aria-label="Paretos a mostrar">${Object.entries(SEL_N).map(([k,v])=>`<button data-psel="${k}" aria-pressed="${PSEL.includes(k)}">${v}</button>`).join("")}</div>`;
@@ -1587,9 +1610,10 @@ const CRT=(()=>{
                   {nome:"Não realizadas",v:somaM(NAO),rot:MD.r(somaM(NAO)),eixo:["Não realizadas"],cor:"var(--crt-bad)",pi:"nao",extra:`${NAO.length} OTs · toque para ver os motivos`}],{alto:240,semLinha:true})}
         <div class="crt-leg"><span>Toque em <b style="color:var(--crt-bad)">Não realizadas</b> para abrir o sub-Pareto dos motivos.</span></div></div>`:"";
     const SEC_NAO=NAO.length?`<div data-ps="nao"><div class="crt-h">Sub-Pareto · não realizadas por motivo · o que mais tira produtividade (${MD.l})</div>
-        ${pareto(mots.map((m,i)=>{ const ac=mots.slice(0,i).reduce((s,x)=>s+x.v,0)/totNaoM; return {nome:m.k,v:m.v,rot:MD.r(m.v),eixo:[m.k],cor:"var(--crt-bad)",fraco:ac>=.8,pi:"m"+i,extra:`${m.n} OT${m.n>1?"s":""} · ≈ ${fEur(m.e)} · ${fm(m.t)}`}; }))}
-        <div class="crt-leg"><span><i style="background:var(--crt-bad)"></i>causas que fazem os primeiros 80 %</span><span><i style="background:var(--crt-bad);opacity:.55"></i>restantes</span><span><i style="background:var(--crt-line);height:3px"></i>% acumulada</span></div>
-        <div class="crt-lista"><table><thead><tr><th>Motivo</th><th class="n">OTs</th><th class="n">€ por faturar</th><th class="n">Tempo perdido</th><th class="n">% (${MD.l})</th><th class="n">Acumulado</th><th class="n">Produtividade se resolvido</th></tr></thead><tbody>${(()=>{let a=0;return mots.map((m,i)=>{a+=m.v;return `<tr data-mot="${i}"><td>${e_(m.k)}</td><td class="n">${m.n}</td><td class="n">${fEur(m.e)}</td><td class="n">${fm(m.t)}</td><td class="n">${Math.round(100*m.v/totNaoM)} %</td><td class="n">${Math.round(100*a/totNaoM)} %</td><td class="n" style="color:var(--crt-ok)">${pPct(REA.length+m.n,nT).toLocaleString("pt-PT")} %</td></tr>`;}).join("");})()}</tbody></table></div>
+        ${pareto(mots.map((m,i)=>{ const ac=mots.slice(0,i).reduce((s,x)=>s+x.v,0)/totNaoM; return {nome:m.k,v:m.v,rot:MD.r(m.v),eixo:[m.k],cor:mCor(i),pi:"m"+i,extra:`${m.n} OT${m.n>1?"s":""} · ≈ ${fEur(m.e)} · ${fm(m.t)}${nRein(m)?` · 🔁 ${nRein(m)} reincidência${nRein(m)>1?"s":""}`:""}`}; }))}
+        <div class="crt-mleg" role="group" aria-label="Motivos">${mots.map((m,i)=>`<button type="button" data-mleg="${i}" aria-pressed="false"><i class="crt-dot" style="background:${mCor(i)};margin:0"></i>${e_(m.k)} <b>${m.n}</b></button>`).join("")}</div>
+        <div class="crt-leg"><span><i style="background:var(--crt-line);height:3px"></i>% acumulada</span><span>Causas até à linha dos 80 % são as que mais tiram produtividade. Toque num motivo para ver as OTs.</span></div>
+        <div class="crt-lista"><table><thead><tr><th>Motivo</th><th class="n">OTs</th><th class="n">€ por faturar</th><th class="n">Tempo perdido</th><th class="n">% (${MD.l})</th><th class="n">Acumulado</th><th class="n">Produtividade se resolvido</th></tr></thead><tbody>${(()=>{let a=0;return mots.map((m,i)=>{a+=m.v;return `<tr data-mot="${i}"><td><i class="crt-dot" style="background:${mCor(i)}"></i>${e_(m.k)}</td><td class="n">${m.n}</td><td class="n">${fEur(m.e)}</td><td class="n">${fm(m.t)}</td><td class="n">${Math.round(100*m.v/totNaoM)} %</td><td class="n">${Math.round(100*a/totNaoM)} %</td><td class="n" style="color:var(--crt-ok)">${pPct(REA.length+m.n,nT).toLocaleString("pt-PT")} %</td></tr>`;}).join("");})()}</tbody></table></div>
         <div class="crt-lista" id="crtMotLista"><span style="color:var(--crt-mut);font-size:12.5px">Toque num motivo (barra ou linha) para ver as OTs.</span></div></div>`
       :(nT?`<div data-ps="nao"><div class="crt-h">Sub-Pareto · não realizadas</div><div style="padding:8px 0;color:var(--crt-mut)">Sem OTs não realizadas neste período ✓</div></div>`:"");
     const motDica=k=>/ausente|comparecer/i.test(k)?["Confirmar o cliente antes de sair",`confirmar por telefone 30 min antes de sair para a OT (${MOT[k].ots.filter(o=>/IVR|sem registo/i.test(o.ag||"")).length} destas não tinham confirmação direta do cliente).`]
@@ -1606,11 +1630,35 @@ const CRT=(()=>{
       el.querySelectorAll("[data-psel]").forEach(b=>b.onclick=()=>{ const k=b.dataset.psel; PSEL=PSEL.includes(k)?PSEL.filter(x=>x!==k):[...PSEL,k];
         try{ localStorage.setItem("cr-paretos",JSON.stringify(PSEL)); }catch(_){} b.setAttribute("aria-pressed",PSEL.includes(k)); el.querySelectorAll(`[data-ps="${k}"]`).forEach(s=>s.hidden=!PSEL.includes(k)); });
       el.querySelectorAll("[data-pmed]").forEach(b=>b.onclick=()=>{ try{ localStorage.setItem("cr-paretos-med",b.dataset.pmed); }catch(_){} analise(el,dias,op); });
+      const dm=s=>String(s||"").slice(8,10)+"/"+String(s||"").slice(5,7), dDias=(a,b)=>Math.round((Date.parse(a)-Date.parse(b))/864e5);
+      const corDe=a=>a.ok?"var(--crt-ok)":(()=>{ const j=motIdx(motK(a)); return j>=0?mCor(j):"var(--crt-bad)"; })();
+      const reinHTML=(o,r,i)=>{
+        const nodo=(a,ind,cur,gap,ix)=>`<div class="crt-rn${cur?" cur":""}" style="--c:${corDe(a)};--ind:${ind}px">
+          <div class="l1"><b style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600">${e_(a.ot||"")}</b>${gap?`<span class="gap">${gap}</span>`:""}<span>${e_(rot(a.data))}${a.hora?` · ${e_(a.hora)}`:""}</span><span style="color:var(--crt-mut)">${e_(tC(a.tipo))}</span></div>
+          <div class="l2"><i class="crt-dot" style="background:${corDe(a)}"></i>${a.ok?"Realizada":e_(a.motivo&&!/sem motivo/i.test(a.motivo)?a.motivo:(a.estado&&!/^n[aã]o realizada$/i.test(a.estado)?a.estado+" · ":"")+"Sem motivo no Feed")}</div>
+          ${a.feed?`<q>${e_(a.feed.length>200?a.feed.slice(0,200)+"…":a.feed)}</q>`:""}
+          ${!cur&&op.onOT&&a.id!=null?`<button type="button" data-rabre="${ix}">Abrir esta OT</button>`:""}</div>`;
+        const ant=r.ant||[], ult=ant[ant.length-1], mesmo=ant.some(a=>!a.ok&&motK(a)===motK(o));
+        return `<tr class="crt-rein"><td colspan="7"><div class="crt-rt">🔁 Histórico de reincidência · mesmo cliente</div>
+          ${nodo({...o,ok:false,motivo:motK(o),hora:fh(o.ini)},0,true,"OT atual")}
+          ${ant.map((a,k)=>nodo(a,(k+1)*22,false,`${dDias(o.data,a.data)} dia${dDias(o.data,a.data)===1?"":"s"} antes`,k+1)).join("")}
+          <div class="crt-ra"><span>${ant.length?`<b>${ant.length+1}.ª deslocação</b> ao mesmo cliente em ${dDias(o.data,ult.data)} dias.${mesmo?" O motivo repete-se: a causa da visita anterior ficou por resolver.":ant[0]&&ant[0].ok?" A visita anterior foi realizada: verificar se o problema voltou.":""}`:"O Field Service marca este cliente como reincidente."}${(r.etq||[]).length?` · ${r.etq.map(e_).join(" · ")}`:""}</span>
+          ${op.onOT?`<button type="button" data-rabre="0">Abrir OT atual</button>`:""}</div></td></tr>`; };
       const abrirMot=i=>{ const m=mots[i]; if(!m) return; el.querySelectorAll("tr[data-mot]").forEach(r=>r.classList.toggle("sel",+r.dataset.mot===i));
+        el.querySelectorAll('[data-pi^="m"]').forEach(p=>p.style.opacity=p.dataset.pi==="m"+i?1:.3);
+        el.querySelectorAll("[data-mleg]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.mleg===i));
         const box=el.querySelector("#crtMotLista"); if(!box) return;
-        box.innerHTML=`<div class="crt-h" style="margin-top:10px">${e_(m.k)} · ${m.n} OT${m.n>1?"s":""}</div><table><thead><tr><th>Data</th><th>Hora</th><th>Nº OT</th><th>Cliente</th><th>Tipo</th><th style="min-width:260px">Feed</th><th class="n">€</th></tr></thead><tbody>${m.ots.map((o,j)=>`<tr data-oti="${j}"><td style="white-space:nowrap">${rot(o.data)}</td><td>${fh(o.ini)}</td><td style="white-space:nowrap">${e_(o.ot||"")}</td><td>${e_(o.cliente||"")}</td><td>${e_(tC(o.tipo))}</td><td class="crt-feed" ${o.feedAuto?'style="color:var(--crt-mut)"':""}>${o.feed?e_(o.feed):'<span style="color:var(--crt-mut)">Feed não recolhido</span>'}${o.feed?`<small>${e_(o.feedAuto?"só nota automática":(o.feedAutor||""))}${o.feedN>1?` · ${o.feedN} entradas no Feed`:""}</small>`:""}</td><td class="n">${fEur(vOT(o))}</td></tr>`).join("")}</tbody></table>${op.onOT?'<div style="font-size:12px;color:var(--crt-mut);margin-top:4px">Toque numa OT para a abrir.</div>':""}`;
-        if(op.onOT) box.querySelectorAll("tr[data-oti]").forEach(r=>r.onclick=()=>{ const o=m.ots[+r.dataset.oti]; op.onOT(dias.find(d=>d.data===o.data)||{data:o.data},o); });
+        const nr=nRein(m), abrirOT=(data,id)=>{ const dd=dias.find(d=>d.data===data)||{data}; const oo=(dd.ots||[]).find(x=>x.id===id)||{id,data}; op.onOT(dd,oo); };
+        box.innerHTML=`<div class="crt-h" style="margin-top:10px"><i class="crt-dot" style="background:${mCor(i)}"></i>${e_(m.k)} · ${m.n} OT${m.n>1?"s":""}${nr?` · <span style="color:var(--crt-bad)">🔁 ${nr} reincidência${nr>1?"s":""}</span>`:""}</div><table><thead><tr><th>Data</th><th>Hora</th><th>Nº OT</th><th>Cliente</th><th>Tipo</th><th style="min-width:260px">Feed</th><th class="n">€</th></tr></thead><tbody>${m.ots.map((o,j)=>{ const r=reinOT(o); return `<tr data-oti="${j}" style="box-shadow:inset 3px 0 0 ${mCor(i)}"><td style="white-space:nowrap">${rot(o.data)}</td><td>${fh(o.ini)}</td><td style="white-space:nowrap">${e_(o.ot||"")}${r?`<span class="crt-rb">🔁 ${r.ant&&r.ant.length?(r.ant.length+1)+".ª visita":"reincidente"} ▾</span>`:""}</td><td>${e_(o.cliente||"")}</td><td>${e_(tC(o.tipo))}</td><td class="crt-feed" ${o.feedAuto?'style="color:var(--crt-mut)"':""}>${o.feed?e_(o.feed):'<span style="color:var(--crt-mut)">Feed não recolhido</span>'}${o.feed?`<small>${e_(o.feedAuto?"só nota automática":(o.feedAutor||""))}${o.feedN>1?` · ${o.feedN} entradas no Feed`:""}</small>`:""}</td><td class="n">${fEur(vOT(o))}</td></tr>`; }).join("")}</tbody></table>${op.onOT?`<div style="font-size:12px;color:var(--crt-mut);margin-top:4px">Toque numa OT para a abrir.${nr?" Nas reincidências 🔁 abre primeiro o histórico com a OT anterior.":""}</div>`:""}`;
+        box.querySelectorAll("tr[data-oti]").forEach(r=>r.onclick=()=>{ const o=m.ots[+r.dataset.oti], rn=reinOT(o);
+          if(rn){ const nx=r.nextElementSibling, aberto=nx&&nx.classList.contains("crt-rein");
+            box.querySelectorAll("tr.crt-rein").forEach(x=>x.remove()); box.querySelectorAll("tr[data-oti]").forEach(x=>x.classList.remove("sel"));
+            if(aberto) return; r.classList.add("sel"); r.insertAdjacentHTML("afterend",reinHTML(o,rn,i));
+            r.nextElementSibling.querySelectorAll("[data-rabre]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const a=[o,...(rn.ant||[])][+b.dataset.rabre]; if(a&&op.onOT) abrirOT(a.data,a.id); });
+            return; }
+          if(op.onOT) op.onOT(dias.find(d=>d.data===o.data)||{data:o.data},o); });
         box.scrollIntoView({behavior:"smooth",block:"nearest"}); };
+      el.querySelectorAll("[data-mleg]").forEach(b=>b.onclick=()=>abrirMot(+b.dataset.mleg));
       el.querySelectorAll("[data-pi]").forEach(b=>b.addEventListener("click",()=>{ const k=b.dataset.pi;
         if(k==="nao"){ if(!PSEL.includes("nao")){ PSEL=[...PSEL,"nao"]; try{ localStorage.setItem("cr-paretos",JSON.stringify(PSEL)); }catch(_){} } ligar(); el.querySelector('[data-ps="nao"]')?.scrollIntoView({behavior:"smooth",block:"start"}); }
         else if(k.startsWith("m")) abrirMot(+k.slice(1)); }));
@@ -1664,11 +1712,16 @@ const CRT=(()=>{
   return {linhaTempo, analise, intervalos};
 })();
 
+// reincidência no formato do CRT: OTs anteriores do mesmo cliente (mais recente primeiro), para aninhar no sub-Pareto
+function reinParaCRT(data,id){ const d=DIAS.find(x=>x.data===data), o=d?.ots.find(x=>x.id===id), r=o&&reinDe(o); if(!r) return null;
+  return {etq:r.etq.filter(e=>!/visita$/.test(e)), ant:r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{};
+    return {data:v.d.data, id:v.o.id, ot:c["Nº OT"]||"", tipo:c["Tipo de OT"]||"", estado:c.Estado||"", ok:realizada(v.o), motivo:v.o.rel?.motivo||"",
+      hora:[c["Hora início"],c["Hora fim"]].filter(Boolean).join("–"), feed:(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||""}; })}; }
 function desenharGantt(){
   const dias=REL.porDia.map(d=>({data:d.data, ots:d.ots.map(o=>({...o}))}));
   CRT.linhaTempo($("#gantt"), dias, {onOT:(d,o)=>abrir(d.data,o.id)});
   const VO=(FINC&&FINC.por_mes&&Object.values(FINC.por_mes).find(x=>x.prod&&x.prod.referencia&&x.prod.referencia.valor_ot)?.prod.referencia.valor_ot)||undefined;
-  CRT.analise($("#rAnalise"), dias, {valorOT:VO, onOT:(d,o)=>{ abrir(d.data,o.id); const t=document.querySelector('#fTabs [data-t="feed"]'); if(t) t.click(); }});
+  CRT.analise($("#rAnalise"), dias, {valorOT:VO, rein:reinParaCRT, onOT:(d,o)=>{ abrir(d.data,o.id); const t=document.querySelector('#fTabs [data-t="feed"]'); if(t) t.click(); }});
 }
 function desenharAg(){
   const ordem=["Confirmado pelo cliente (TDS automático)","Contactado por IVR, sem confirmação","Cliente incontactável","Sem registo de agendamento prévio"];
