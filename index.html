@@ -699,6 +699,8 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .cpot{font:inherit;font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px;background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);cursor:pointer}
 .cpot-bar{display:flex;margin:0 0 10px}
 .cpot-mini{display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2,var(--surface));cursor:pointer;margin-left:6px}
+.rein-al .t .cprein{font:inherit;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--rei);background:transparent;color:var(--rei);cursor:pointer;flex:none;margin-left:auto}
+.rein-al .t span+.cprein{margin-left:0}
 </style>
 </head>
 <body class="sem-sessao">
@@ -1808,11 +1810,22 @@ function reinDica(r){ const u=r.ant[0]; if(!u) return "O Field Service marca est
   const p=[]; if(!realizada(u.o)) p.push(`<b>${esc(reinMotivo(u.o.rel?.motivo))}</b>`);
   if(r.etq.includes("Precisa 2 técnicos")) p.push("<b>precisava de 2 técnicos</b>"); if(r.etq.includes("Reagendada")) p.push("<b>foi reagendada</b>");
   return p.length?`💡 Da última vez: ${p.join(" e ")}. Confirme com o cliente antes de ir.`:"💡 Já esteve neste cliente: veja o que foi feito da última vez antes de ir."; }
+
+// 📋 Copiar o histórico da reincidência (texto completo do Feed, sem cortes)
+let REIN_TXT="";
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-cprein]"); if(!b||!REIN_TXT) return; e.preventDefault(); e.stopPropagation(); copiarDadosOT(REIN_TXT).then?.(()=>{}); },true);
+function reinTextoCopiar(cab, linhas, etq, dica){
+  return [cab, "", ...linhas.flatMap(l=>[l.l1, l.l2, ...(l.f?[`"${l.f}"`]:[]), ""]), ...(etq.length?["Situação: "+etq.join(" · ")]:[]),
+    String(dica||"").replace(/<[^>]+>/g,"").replace(/^💡\s*/,"")].join("\n").replace(/\n{3,}/g,"\n\n").trim(); }
 function reinFicha(r){
   const vis=r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o), f=(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||"";
     return `<div class="rv"><i class="${ok?"ok":""}"></i><div><div class="l1">${fdm(v.d.data)} · ${esc(c.Estado||(ok?"Realizada":"Não realizada"))}${!ok&&v.o.rel?.motivo?` · ${esc(v.o.rel.motivo)}`:""}</div>
       <div class="l2"><span class="mono">${esc(c["Nº OT"]||"")}</span> · ${esc(c["Tipo de OT"]||"")} · ${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}</div>${f?`<q>${esc(f.length>200?f.slice(0,200)+"…":f)}</q>`:""}</div></div>`; }).join("");
-  return `<div class="rein-al"><div class="t">🔁 Cliente REINCIDENTE ${r.ant.length?`<span>${r.ant.length+1}.ª visita</span>`:""}</div>
+  REIN_TXT=reinTextoCopiar(`Cliente REINCIDENTE${r.ant.length?` · ${r.ant.length+1}.ª visita`:""}`,
+    r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o); return {l1:`${fdm(v.d.data)} · ${c.Estado||(ok?"Realizada":"Não realizada")}${!ok&&v.o.rel?.motivo?` · ${v.o.rel.motivo}`:""}`,
+      l2:`${c["Nº OT"]||""} · ${c["Tipo de OT"]||""} · ${c["Hora início"]||""}–${c["Hora fim"]||""}`, f:(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||""}; }),
+    r.etq.filter(e=>!/visita$/.test(e)), reinDica(r));
+  return `<div class="rein-al"><div class="t">🔁 Cliente REINCIDENTE ${r.ant.length?`<span>${r.ant.length+1}.ª visita</span>`:""}<button class="cprein" data-cprein="1" type="button" title="Copiar estes detalhes">📋 Copiar</button></div>
     ${vis?`<div class="rh">${vis}</div>`:""}<div class="chips">${r.etq.filter(e=>!/visita$/.test(e)).map(e=>`<span class="chip rei">${esc(e)}</span>`).join("")}</div><div class="dica">${reinDica(r)}</div></div>`; }
 // ---------- ficha
 function abrir(data,id){
