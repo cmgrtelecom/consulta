@@ -701,6 +701,8 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .cpot-mini{display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2,var(--surface));cursor:pointer;margin-left:6px}
 .rein-al .t .cprein{font:inherit;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--rei);background:transparent;color:var(--rei);cursor:pointer;flex:none;margin-left:auto}
 .rein-al .t span+.cprein{margin-left:0}
+.pwver{font:inherit;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;margin-left:6px}
+.pwver:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body class="sem-sessao">
@@ -2485,7 +2487,7 @@ function desenharFicha(){
     { const pc=plcCliente(c); if(pc.dist&&!c["Distância PLC–cliente"]) c["Distância PLC–cliente"]=pc.dist; }
     if(!c["Coordenadas cliente"]&&c.Latitude&&c.Longitude){ const f=v=>String(+parseFloat(String(v).replace(",",".")).toFixed(6)); c["Coordenadas cliente"]=f(c.Latitude)+", "+f(c.Longitude); }
     h+=`<div class="bloco"><h4>Detalhes da OT</h4><dl>`+CAMPOS.filter(k=>c[k]).map(k=>{ const prot=PROTEGIDOS.has(k);
-      return `<dt>${esc(k)}</dt><dd>${prot?`<span class="mono">******</span> <span style="font-size:12px;color:var(--muted)">🔒 só no PC</span>`:`<span class="${MONO.has(k)?"mono":""}">${esc(c[k])}</span>${COPIAVEIS.has(k)?`<button class="copiar" data-v="${esc(c[k])}">Copiar</button>`:""}`}</dd>`; }).join("")+`</dl></div>`;
+      return `<dt>${esc(k)}</dt><dd>${prot?(PWL.n.has(c["Nº OT"])?`<span class="mono pwval">******</span><button class="pwver" type="button" data-pwn="${esc(c["Nº OT"])}" title="Ver com a impressão digital ou o PIN deste telemóvel">👁 Ver</button>`:`<span class="mono">******</span> <span style="font-size:12px;color:var(--muted)">🔒 só no PC</span>`):`<span class="${MONO.has(k)?"mono":""}">${esc(c[k])}</span>${COPIAVEIS.has(k)?`<button class="copiar" data-v="${esc(c[k])}">Copiar</button>`:""}`}</dd>`; }).join("")+`</dl></div>`;
   } else if(TAB==="eq"){
     const it=o.equip_v>=2?(o.equip||[]).map(e=>({...e,"Equipamento / Serviço":eqNome(e["Equipamento / Serviço"])})):eqLimpar(o.equip), ctl=foAnalisar(o).ctl;
     h+=ctl.antiga?`<div class="bloco" style="padding:10px 12px;color:var(--bad);font-weight:600">⚠ Recolha antiga, sem contagem do Field Service. Refaça a recolha antes de entregar a folha de obra.</div>`
@@ -3207,8 +3209,51 @@ function kmExcel(dias,rot){
 // ---------- dados (Supabase: login + leitura protegida por RLS; sem bibliotecas externas)
 // ---------- Password ONT cifrada para o PC (RSA-OAEP/SHA-256). A chave privada está só no PC; a nuvem guarda só "_pwc".
 const PW_JWK=(()=>{ try{ return JSON.parse(atob("eyJrdHkiOiJSU0EiLCJuIjoiMGt4eTVfOHBhNFVIcnJiWnFPYTc2VlBMQXVQR015UmY0dkVlRm1DQ0ExZUpZeDFzczI2UDBWWFpkUXJnTjZTUG03SmZjbmRyLVkwY3IzUEJMRHFMeFdUX0NxZ0R6dXZ0ai1qRm9PT1lmZUdneXRHSDlaeWZRZ1VDSnJoTWtTTGRfdWlFVGRwY215WF9nY25PaVdRWE1ZcXoyZ1phUTVOWnVCR1ZQR2lGdkZSOGNEM3pUYVRQZzFPS3BBc2xjSGd5WUN6dTkyZkl5RFlHNnlUdVVNSW1VOGlVaTFUeWp1LWFzXzQ4WHlFUm1EbFBFWi1kS0xWTlZzQkRKU1l2Sl9GU3JueVVzQ2oyb2pwVjFuZlF0TnhFWVlDd3pFaC1iRmJST1hhbHhNUjUtSWJLaWhnTWlnWkhreE83ZmExZjBhRDZkQUwwS3hEOGN6X3RNSWRwclZZdGlRIiwiZSI6IkFRQUIiLCJhbGciOiJSU0EtT0FFUC0yNTYiLCJleHQiOnRydWV9")); }catch(_){ return null; } })(); let PW_CHAVE=null;
+
+// ---------- Password ONT só neste telemóvel. Quando a macro lê uma OT, a password fica guardada cifrada (AES-GCM) NESTE aparelho
+// (IndexedDB, chave não exportável); nunca vai para a nuvem em claro. Para ver: impressão digital / PIN do telemóvel (WebAuthn).
+const PWL={db:null, n:new Set(), aberto:0, DIAS:120, ABERTO_MS:5*60e3, MOSTRA_MS:30e3};
+function pwlDB(){ return PWL.db||(PWL.db=new Promise((ok,er)=>{ const r=indexedDB.open("cr-pw-local",1);
+  r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore("cfg"); d.createObjectStore("pw"); }; r.onsuccess=()=>ok(r.result); r.onerror=()=>er(r.error); })); }
+async function pwlOp(st,modo,fn){ const d=await pwlDB(); return new Promise((ok,er)=>{ const t=d.transaction(st,modo), q=fn(t.objectStore(st)); t.oncomplete=()=>ok(q&&q.result); t.onerror=()=>er(t.error); t.onabort=()=>er(t.error); }); }
+const pwlGet=(st,k)=>pwlOp(st,"readonly",x=>x.get(k)), pwlPut=(st,k,v)=>pwlOp(st,"readwrite",x=>x.put(v,k));
+async function pwlChave(){ let k=await pwlGet("cfg","aes"); if(!k){ k=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]); await pwlPut("cfg","aes",k); } return k; }
+async function pwlGuardar(n,v){ if(!n||!v||!window.indexedDB||!crypto?.subtle) return;
+  try{ const k=await pwlChave(), iv=crypto.getRandomValues(new Uint8Array(12));
+    const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(v));
+    await pwlPut("pw",n,{iv,ct,em:Date.now()}); PWL.n.add(n); }catch(_){ } }
+async function pwlListar(){ try{ const lim=Date.now()-PWL.DIAS*864e5;
+    await pwlOp("pw","readwrite",x=>{ const r=x.openCursor(); r.onsuccess=()=>{ const c=r.result; if(!c) return; if((c.value?.em||0)<lim) c.delete(); else PWL.n.add(c.key); c.continue(); }; return null; });
+  }catch(_){ } }
+async function pwlDesbloquear(){
+  if(Date.now()-PWL.aberto<PWL.ABERTO_MS) return;
+  if(!window.PublicKeyCredential||!navigator.credentials) throw new Error("Este navegador não permite desbloquear com a impressão digital ou o PIN.");
+  const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+  let id=await pwlGet("cfg","cred");
+  if(!id){   // 1.ª vez neste telemóvel: regista o desbloqueio do aparelho (impressão digital / PIN / padrão)
+    const c=await navigator.credentials.create({publicKey:{rp:{name:"CR Telecom Consulta"},user:{id:rnd(16),name:"cr-tecnico",displayName:"Técnico CR Telecom"},
+      challenge:rnd(32),pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],timeout:60000,attestation:"none",
+      authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"discouraged"}}});
+    await pwlPut("cfg","cred",new Uint8Array(c.rawId)); PWL.aberto=Date.now(); return; }
+  const a=await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:"public-key",id}],userVerification:"required",timeout:60000}});
+  if(!(new Uint8Array(a.response.authenticatorData)[32]&4)) throw new Error("O telemóvel não confirmou a impressão digital / PIN.");
+  PWL.aberto=Date.now(); }
+async function pwlVer(n){ const v=await pwlGet("pw",n); if(!v) throw new Error("Esta password não foi lida neste telemóvel.");
+  await pwlDesbloquear(); const k=await pwlGet("cfg","aes");
+  return new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:v.iv},k,v.ct)); }
+document.addEventListener("click",async e=>{ const b=e.target.closest("[data-pwn]"); if(!b) return; e.preventDefault(); e.stopPropagation();
+  const alvo=b.parentElement.querySelector(".pwval"); if(!alvo) return;
+  if(b.dataset.vis){ alvo.textContent="******"; delete b.dataset.vis; b.textContent="👁 Ver"; return; }
+  b.disabled=true;
+  try{ const pw=await pwlVer(b.dataset.pwn); alvo.textContent=pw; b.dataset.vis="1"; b.textContent="🙈 Esconder";
+    let cp=b.nextElementSibling; if(!cp||!cp.classList.contains("pwcp")){ cp=document.createElement("button"); cp.className="copiar pwcp"; cp.textContent="Copiar"; b.after(cp); }
+    cp.hidden=false; cp.onclick=async ev=>{ ev.stopPropagation(); try{ await navigator.clipboard.writeText(pw); toast("Password copiada"); }catch(_){ toast("Não consegui copiar"); } };
+    clearTimeout(b._t); b._t=setTimeout(()=>{ alvo.textContent="******"; delete b.dataset.vis; b.textContent="👁 Ver"; cp.hidden=true; },PWL.MOSTRA_MS);
+  }catch(err){ toast(err?.name==="NotAllowedError"?"Desbloqueio cancelado":(err?.message||"Não consegui desbloquear")); }
+  finally{ b.disabled=false; } },true);
+pwlListar().then(()=>{ try{ if(PWL.n.size&&typeof ABERTA!=="undefined"&&ABERTA&&TAB==="det") desenharFicha(); }catch(_){ } });
 async function cifrarPw(ots){
-  for(const o of ots||[]){ const c=o.campos||{}, v=c._pw_claro; delete c._pw_claro; if(!v||!PW_JWK) continue;
+  for(const o of ots||[]){ const c=o.campos||{}, v=c._pw_claro; delete c._pw_claro; if(v) await pwlGuardar(c["Nº OT"],v); if(!v||!PW_JWK) continue;
     try{ PW_CHAVE=PW_CHAVE||await crypto.subtle.importKey("jwk",PW_JWK,{name:"RSA-OAEP",hash:"SHA-256"},false,["encrypt"]);
       const b=new Uint8Array(await crypto.subtle.encrypt({name:"RSA-OAEP"},PW_CHAVE,new TextEncoder().encode(v)));
       c._pwc="rsa1:"+btoa(String.fromCharCode(...b)); }catch(_){ } }
