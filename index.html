@@ -1857,11 +1857,11 @@ function reinCalcular(){
     const txt=ant.map(v=>reinTexto(v.o)).join(" \n ")+" "+obs;
     if(REIN_2TEC.test(txt)) etq.push("Precisa 2 técnicos");
     if(ant.some(v=>v.o.rel?.reagendada)||REIN_REAG.test(txt)) etq.push("Reagendada");
-    if(manut) etq.push("Reincidente Manut."); if(rgu) etq.push("Reincidente RGU");
+    if(manut) etq.push("Reincidente Manut."); if(rgu) etq.push("Reincidente RGU"); if(manut||rgu){ if(!ant.length) etq.push("Reincidência de outro técnico"); }
     mapa.set(o, {ant, etq, porExecutar:!realizada(o)&&!/n[aã]o realizada|cancel|anulad/i.test(c.Estado||"")}); }
   REIN_CACHE={sig,mapa}; return mapa; }
 const reinDe=o=>reinCalcular().get(o)||null;
-function reinDica(r){ const u=r.ant[0]; if(!u) return "O Field Service marca este cliente como reincidente. Veja o Feed antes de ir.";
+function reinDica(r){ const u=r.ant[0]; if(!u) return r.etq.includes("Reincidência de outro técnico")?"💡 O Field Service marca como reincidente, mas não há OT sua neste cliente nos últimos 90 dias: a visita anterior foi de outro técnico. Conta como serviço seu.":"O Field Service marca este cliente como reincidente. Veja o Feed antes de ir.";
   const p=[]; if(!realizada(u.o)) p.push(`<b>${esc(reinMotivo(u.o.rel?.motivo))}</b>`);
   if(r.etq.includes("Precisa 2 técnicos")) p.push("<b>precisava de 2 técnicos</b>"); if(r.etq.includes("Reagendada")) p.push("<b>foi reagendada</b>");
   return p.length?`💡 Da última vez: ${p.join(" e ")}. Confirme com o cliente antes de ir.`:"💡 Já esteve neste cliente: veja o que foi feito da última vez antes de ir."; }
