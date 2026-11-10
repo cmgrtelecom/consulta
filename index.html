@@ -703,6 +703,13 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .rein-al .t span+.cprein{margin-left:0}
 .pwver{font:inherit;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;margin-left:6px}
 .pwver:disabled{opacity:.6;cursor:wait}
+.rein-al .t .cpimg{font:inherit;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--rei);background:var(--rei);color:var(--rei-ink);cursor:pointer;flex:none}
+.rein-al .t{flex-wrap:wrap}.rein-al .t .cpimg{margin-left:auto}.rein-al .t span+.cpimg,.rein-al .t .cpimg+.cprein{margin-left:0}
+.rimg-fundo{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:4000;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px}
+.rimg-cx{background:var(--surface);border:1px solid var(--line);border-radius:16px;max-width:560px;width:100%;max-height:100%;display:flex;flex-direction:column;gap:10px;padding:12px}
+.rimg-cx img{width:100%;height:auto;border-radius:10px;overflow:auto;min-height:0;object-fit:contain;flex:1 1 auto}
+.rimg-bt{display:flex;gap:8px;flex-wrap:wrap}.rimg-bt button{font:inherit;font-weight:700;font-size:14px;padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer;flex:1 1 auto}
+.rimg-bt button.p{background:var(--rei);border-color:var(--rei);color:var(--rei-ink)}
 </style>
 </head>
 <body class="sem-sessao">
@@ -1872,6 +1879,75 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-cprein]")
 function reinTextoCopiar(cab, linhas, etq, dica){
   return [cab, "", ...linhas.flatMap(l=>[l.l1, l.l2, ...(l.f?[`"${l.f}"`]:[]), ""]), ...(etq.length?["Situação: "+etq.join(" · ")]:[]),
     String(dica||"").replace(/<[^>]+>/g,"").replace(/^💡\s*/,"")].join("\n").replace(/\n{3,}/g,"\n\n").trim(); }
+
+// 🖼 Imagem do cartão de reincidência (com as cores), para partilhar no WhatsApp / colar como anexo — desenhada num canvas
+let REIN_TIT="", REIN_DADOS=null;
+function reinCor(n,def){ const v=getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v||def; }
+function reinImagem(){
+  const D=REIN_DADOS; if(!D) throw new Error("Sem dados para a imagem");
+  const W=1080, P=44, cx=document.createElement("canvas").getContext("2d");
+  const C={bg:reinCor("--bg","#101615"),sur:reinCor("--surface","#18211f"),line:reinCor("--line","#2b3836"),fg:reinCor("--fg",reinCor("--text","#e8eeec")),
+    mut:reinCor("--muted","#9aa8a4"),rei:reinCor("--rei","#f08ad6"),reiBg:reinCor("--rei-bg","#3b1631"),reiInk:reinCor("--rei-ink","#2a0b22"),ok:reinCor("--ok","#5cc08a"),bad:reinCor("--bad","#f0806a")};
+  const FB="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
+  const fnt=(w,px,it)=>`${it?"italic ":""}${w} ${px}px ${FB}`;
+  const wrap=(t,font,maxW)=>{ cx.font=font; const out=[]; for(const par of String(t).split("\n")){ let l=""; for(const w of par.split(/\s+/)){ const x=l?l+" "+w:w; if(cx.measureText(x).width>maxW&&l){ out.push(l); l=w; } else l=x; } out.push(l); } return out; };
+  // 1) medir
+  const iw=W-2*P, cardIn=iw-2*30, rowIn=cardIn-2*26-34;
+  const L=[]; let y=P;
+  const add=(o)=>{ L.push({...o,y}); y+=o.h; };
+  if(REIN_TIT){ const ls=wrap(REIN_TIT,fnt(800,34),iw); add({k:"tit",ls,h:ls.length*44+18}); }
+  const top=y; y+=30;
+  add({k:"cab",h:70});
+  y+=8; const rowsTop=y;
+  for(const r of D.linhas){ const l1=wrap(r.l1,fnt(800,31),rowIn), l2=wrap(r.l2,fnt(500,27),rowIn), f=r.f?wrap("“"+r.f+"”",fnt(500,28,1),rowIn):[];
+    add({k:"row",r,l1,l2,f,h:28+l1.length*40+l2.length*36+(f.length?10+f.length*38:0)+28}); }
+  const rowsBot=y; y+=22;
+  cx.font=fnt(700,28); let chx=0, chRows=1; const CH=[]; for(const e of D.etq){ const w=cx.measureText(e).width+44; if(chx+w>cardIn&&chx){ chRows++; chx=0; } CH.push({e,w,row:chRows-1,x:chx}); chx+=w+14; }
+  if(CH.length){ add({k:"chips",h:chRows*64}); y+=10; }
+  const dl=wrap("💡 "+D.dica,fnt(500,29),cardIn); add({k:"dica",ls:dl,h:dl.length*40+6});
+  y+=30; const bot=y; y+=P;
+  // 2) desenhar
+  const cv=document.createElement("canvas"); cv.width=W; cv.height=y; const g=cv.getContext("2d");
+  const rr=(x,yy,w,h,r)=>{ g.beginPath(); g.roundRect?g.roundRect(x,yy,w,h,r):g.rect(x,yy,w,h); };
+  g.fillStyle=C.bg; g.fillRect(0,0,W,y);
+  rr(P,top,iw,bot-top,34); g.fillStyle=C.reiBg; g.fill(); g.lineWidth=5; g.strokeStyle=C.rei; g.stroke();
+  const X=P+30;
+  for(const o of L){
+    if(o.k==="tit"){ g.fillStyle=C.fg; g.font=fnt(800,34); o.ls.forEach((t,i)=>g.fillText(t,P,o.y+34+i*44)); }
+    if(o.k==="cab"){ g.font=fnt(800,38); g.fillStyle=C.rei; g.fillText("🔁 Cliente REINCIDENTE",X,o.y+48);
+      if(D.visita){ g.font=fnt(700,30); const w=g.measureText(D.visita).width+40, bx=P+iw-30-w; rr(bx,o.y+6,w,58,29); g.fillStyle=C.rei; g.fill(); g.fillStyle=C.reiInk; g.fillText(D.visita,bx+20,o.y+46); } }
+    if(o.k==="row"){ const first=o.y===rowsTop, last=o.y+o.h===rowsBot;
+      if(first){ rr(X,rowsTop,cardIn,rowsBot-rowsTop,26); g.fillStyle=C.sur; g.fill(); g.lineWidth=2; g.strokeStyle=C.line; g.stroke(); }
+      else { g.fillStyle=C.line; g.fillRect(X,o.y,cardIn,2); }
+      let yy=o.y+28; g.beginPath(); g.arc(X+26+12,yy+20,12,0,7); g.fillStyle=o.r.ok?C.ok:C.bad; g.fill();
+      const tx=X+26+34+12;
+      g.fillStyle=C.fg; g.font=fnt(800,31); o.l1.forEach(t=>{ g.fillText(t,tx,yy+31); yy+=40; });
+      g.fillStyle=C.mut; g.font=fnt(500,27); o.l2.forEach(t=>{ g.fillText(t,tx,yy+28); yy+=36; });
+      if(o.f.length){ yy+=10; g.fillStyle=C.fg; g.font=fnt(500,28,1); o.f.forEach(t=>{ g.fillText(t,tx,yy+29); yy+=38; }); } }
+    if(o.k==="chips"){ g.font=fnt(700,28); for(const c of CH){ const cy=o.y+c.row*64; rr(X+c.x,cy,c.w,52,26); g.fillStyle=C.sur; g.fill(); g.lineWidth=2.5; g.strokeStyle=C.rei; g.stroke(); g.fillStyle=C.rei; g.fillText(c.e,X+c.x+22,cy+36); } }
+    if(o.k==="dica"){ g.fillStyle=C.fg; g.font=fnt(500,29); o.ls.forEach((t,i)=>g.fillText(t,X,o.y+30+i*40)); }
+  }
+  return new Promise((ok,er)=>cv.toBlob(b=>{ if(!b) return er(new Error("Não consegui gerar a imagem"));
+    const nome=("Reincidencia_"+(REIN_TIT.split(" · ")[0]||"cliente")).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^\w-]+/g,"_").slice(0,60)+".png";
+    ok({blob:b,nome,url:URL.createObjectURL(b)}); },"image/png"));
+}
+function reinImgModal(im){
+  const f=document.createElement("div"); f.className="rimg-fundo";
+  f.innerHTML=`<div class="rimg-cx" role="dialog" aria-label="Imagem do cartão de reincidência"><img alt="Cartão de reincidência"><div class="rimg-bt">
+    <button class="p" data-a="share">📤 Partilhar</button><button data-a="copy">📋 Copiar imagem</button><button data-a="save">⬇ Guardar</button><button data-a="x">Fechar</button></div></div>`;
+  f.querySelector("img").src=im.url; document.body.appendChild(f);
+  const fechar=()=>{ f.remove(); URL.revokeObjectURL(im.url); };
+  f.onclick=async e=>{ if(e.target===f) return fechar(); const a=e.target.closest("[data-a]")?.dataset.a; if(!a) return;
+    if(a==="x") return fechar();
+    const file=new File([im.blob],im.nome,{type:"image/png"});
+    if(a==="share"){ try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:REIN_TIT}); return; } }catch(err){ if(err?.name==="AbortError") return; }
+      toast("Este navegador não partilha imagens: use Copiar ou Guardar"); return; }
+    if(a==="copy"){ try{ await navigator.clipboard.write([new ClipboardItem({"image/png":im.blob})]); toast("✓ Imagem copiada — cole no WhatsApp / email"); }catch(_){ toast("Não consegui copiar a imagem: use Partilhar ou Guardar"); } return; }
+    if(a==="save"){ const l=document.createElement("a"); l.href=im.url; l.download=im.nome; document.body.appendChild(l); l.click(); l.remove(); toast("Imagem guardada"); } };
+}
+document.addEventListener("click",async e=>{ const b=e.target.closest("[data-cpimg]"); if(!b) return; e.preventDefault(); e.stopPropagation();
+  const el=b.closest(".rein-al"); if(!el) return; b.disabled=true; const t0=b.textContent; b.textContent="⏳";
+  try{ reinImgModal(await reinImagem()); }catch(err){ toast(err?.message||"Não consegui gerar a imagem"); } finally{ b.disabled=false; b.textContent=t0; } },true);
 function reinFicha(r){
   const vis=r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o), f=(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||"";
     return `<div class="rv"><i class="${ok?"ok":""}"></i><div><div class="l1">${fdm(v.d.data)} · ${esc(c.Estado||(ok?"Realizada":"Não realizada"))}${!ok&&v.o.rel?.motivo?` · ${esc(v.o.rel.motivo)}`:""}</div>
@@ -1880,13 +1956,17 @@ function reinFicha(r){
     r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o); return {l1:`${fdm(v.d.data)} · ${c.Estado||(ok?"Realizada":"Não realizada")}${!ok&&v.o.rel?.motivo?` · ${v.o.rel.motivo}`:""}`,
       l2:`${c["Nº OT"]||""} · ${c["Tipo de OT"]||""} · ${c["Hora início"]||""}–${c["Hora fim"]||""}`, f:(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||""}; }),
     r.etq.filter(e=>!/visita$/.test(e)), reinDica(r));
-  return `<div class="rein-al"><div class="t">🔁 Cliente REINCIDENTE ${r.ant.length?`<span>${r.ant.length+1}.ª visita</span>`:""}<button class="cprein" data-cprein="1" type="button" title="Copiar estes detalhes">📋 Copiar</button></div>
+  REIN_DADOS={visita:r.ant.length?`${r.ant.length+1}.ª visita`:"", etq:r.etq.filter(e=>!/visita$/.test(e)), dica:String(reinDica(r)).replace(/<[^>]+>/g,"").replace(/^💡\s*/,""),
+    linhas:r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o); return {ok, l1:`${fdm(v.d.data)} · ${c.Estado||(ok?"Realizada":"Não realizada")}${!ok&&v.o.rel?.motivo?` · ${v.o.rel.motivo}`:""}`,
+      l2:`${c["Nº OT"]||""} · ${c["Tipo de OT"]||""} · ${c["Hora início"]||""}–${c["Hora fim"]||""}`, f:(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||""}; })};
+  return `<div class="rein-al"><div class="t">🔁 Cliente REINCIDENTE ${r.ant.length?`<span>${r.ant.length+1}.ª visita</span>`:""}<button class="cpimg" data-cpimg="1" type="button" title="Imagem do cartão com as cores, para partilhar">🖼 Imagem</button><button class="cprein" data-cprein="1" type="button" title="Copiar estes detalhes">📋 Copiar</button></div>
     ${vis?`<div class="rh">${vis}</div>`:""}<div class="chips">${r.etq.filter(e=>!/visita$/.test(e)).map(e=>`<span class="chip rei">${esc(e)}</span>`).join("")}</div><div class="dica">${reinDica(r)}</div></div>`; }
 // ---------- ficha
 function abrir(data,id){
   const d=DIAS.find(x=>x.data===data), o=d?.ots.find(x=>x.id===id); if(!o) return;
   ABERTA={d,o}; TAB="det";
   const c=o.campos;
+  REIN_TIT=[c["Nome de cliente"],fData(d.data)+" "+(c["Hora início"]||""),c["Nº OT"]].filter(Boolean).join(" · ");
   $("#fTitulo").textContent=c["Nome de cliente"]||c["Nº OT"];
   $("#fChips").innerHTML=`<span class="chip">${fSem(d.data)}, ${fData(d.data)}</span><span class="chip">${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}${o.rel?.duracao!=null?` · ${fMin(o.rel.duracao)}`:""}</span><span class="chip ${realizada(o)?"ok":"bad"}">${esc(c.Estado||"")}</span>${confirmada(o)?'<span class="chip acc">TDS confirmado</span>':`<span class="chip warn">${esc(o.rel?.agendamento||"Sem confirmação")}</span>`}${reinDe(o)?'<span class="chip rei">🔁 Reincidência</span>':""}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}${o.plcFeed?'<span class="chip">📡 PLC da lista do Feed</span>':""}`;
   $("#fundo").hidden=false; $("#ficha").hidden=false; desenharFicha(); $("#fFechar").focus();
