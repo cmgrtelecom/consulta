@@ -2619,11 +2619,24 @@ function finComTelemovel(M0){
       const t=tC(o.campos["Tipo de OT"]||""), val=VO[t]||0; mix[t]=(mix[t]||0)+1; v+=val; k++;
       (M.ots=M.ots||[]).push({ot:o.campos["Nº OT"],data:d.data,tipo:t,cliente:o.campos["Nome de cliente"]||"",estado:"telemóvel · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true}); }
     if(!k) continue;
-    Object.assign(x,{ots:k,valor:v,previsto:v,mix,estim:true,passado:true,pct:P.meta_dia?Math.round(v/P.meta_dia*100):null}); n+=k; soma+=v;
+    Object.assign(x,{ots:k,valor:v,previsto:v,mix,estim:true,_add:v,passado:true,pct:P.meta_dia?Math.round(v/P.meta_dia*100):null}); n+=k; soma+=v;
+  }
+  // OTs que o telemóvel já tem como Realizadas mas o PC ainda tem como não realizadas (ex.: o dia foi recolhido antes de a OT ser fechada)
+  const pcPor={}; for(const o of (M.ots||[])) pcPor[String(o.ot||"").toUpperCase()]=o;
+  for(const d of (DIAS||[]).filter(d=>!d.rapida&&d.data.replace(/-/g,"").slice(0,6)===mes)){
+    const x=P.dias.find(z=>z.data===d.data); if(!x) continue;
+    for(const o of d.ots.filter(real)){ const nOT=String(o.campos["Nº OT"]||"").toUpperCase(), pc=pcPor[nOT];
+      if(pc&&pc.estado!=="não realizada") continue;   // o PC já conta esta OT
+      const t=tC(o.campos["Tipo de OT"]||""), val=VO[t]||0; if(!val) continue;
+      const linha={ot:o.campos["Nº OT"],data:d.data,tipo:t,cliente:o.campos["Nome de cliente"]||"",estado:"realizada no telemóvel · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true};
+      if(pc) Object.assign(pc,linha); else (M.ots=M.ots||[]).push(linha);
+      x.valor=Math.round(((x.valor||0)+val)*100)/100; x.previsto=Math.round(((x.previsto||0)+val)*100)/100; x.ots=(x.ots||0)+1;
+      x.mix={...(x.mix||{})}; x.mix[t]=(x.mix[t]||0)+1; x._add=(x._add||0)+val; x.passado=true;
+      if(x.trabalho&&P.meta_dia) x.pct=Math.round(x.valor/P.meta_dia*100); n++; soma+=val; }
   }
   if(!n) return M0;
   let ac=0, corte=P.corte;
-  for(const x of P.dias){ ac+=x.valor||0; x.acum=Math.round(ac*100)/100; if(x.estim&&(!corte||x.data>corte)) corte=x.data; }
+  for(const x of P.dias){ ac+=x.valor||0; x.acum=Math.round(ac*100)/100; if((x.estim||x._add)&&(!corte||x.data>corte)) corte=x.data; }
   const ic=P.dias.findIndex(x=>x.data===corte), dc=P.dias[ic]||{};
   P.corte=corte; P.feito=Math.round((dc.acum||0)*100)/100;
   P.pct_ate_hoje=dc.acum_meta?Math.round(P.feito/dc.acum_meta*100):P.pct_ate_hoje;
@@ -2632,8 +2645,8 @@ function finComTelemovel(M0){
   P.projecao=Math.round((P.feito+(P.ritmo||0)*resto)*100)/100;
   const corte0=M0.prod.corte||"";
   for(const b of [...(P.semanas||[]),...(P.quinzenas||[])]){
-    const ds=P.dias.filter(x=>x.estim&&x.data>=b.de&&x.data<=b.ate);
-    const add=ds.reduce((s,x)=>s+x.valor,0);
+    const ds=P.dias.filter(x=>x._add&&x.data>=b.de&&x.data<=b.ate);
+    const add=ds.reduce((s,x)=>s+x._add,0);
     const metaAdd=ds.filter(x=>x.trabalho&&x.data>corte0).length*(P.meta_dia||0);   // dias novos também entram na meta "até hoje"
     if(add){ b.feito=Math.round(((b.feito||0)+add)*100)/100; b.meta_ate_hoje=(b.meta_ate_hoje||0)+metaAdd; if(b.meta_ate_hoje) b.pct=Math.round(b.feito/b.meta_ate_hoje*100); }
   }
