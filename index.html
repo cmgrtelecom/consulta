@@ -2610,14 +2610,15 @@ function finComTelemovel(M0){
   const VO=(P.referencia&&P.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
   const tC=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":t;
   const real=o=>/realizada|validada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
-  const jaPC=new Set((M.ots||[]).map(o=>String(o.ot||"").toUpperCase()));
+  const jaPC=new Set((M.ots||[]).filter(o=>o.estado!=="não realizada").map(o=>String(o.ot||"").toUpperCase()));   // OT que o PC só tem como não realizada (ex.: devolvida e feita noutro dia) conta quando o telemóvel a tem realizada
   let n=0, soma=0;
   for(const d of (DIAS||[]).filter(d=>d.rapida&&d.data.replace(/-/g,"").slice(0,6)===mes)){
     const x=P.dias.find(z=>z.data===d.data); if(!x||(x.ots&&!x.estim)) continue;   // o PC já tem este dia: manda o PC
     const mix={}; let v=0, k=0;
     for(const o of d.ots.filter(real)){ const nOT=String(o.campos["Nº OT"]||"").toUpperCase(); if(jaPC.has(nOT)) continue;
       const t=tC(o.campos["Tipo de OT"]||""), val=VO[t]||0; mix[t]=(mix[t]||0)+1; v+=val; k++;
-      (M.ots=M.ots||[]).push({ot:o.campos["Nº OT"],data:d.data,tipo:t,cliente:o.campos["Nome de cliente"]||"",estado:"telemóvel · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true}); }
+      const lin={ot:o.campos["Nº OT"],data:d.data,tipo:t,cliente:o.campos["Nome de cliente"]||"",estado:"telemóvel · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true};
+      const velha=(M.ots||[]).find(z=>String(z.ot||"").toUpperCase()===nOT&&z.estado==="não realizada"); if(velha) Object.assign(velha,lin); else (M.ots=M.ots||[]).push(lin); jaPC.add(nOT); }
     if(!k) continue;
     Object.assign(x,{ots:k,valor:v,previsto:v,mix,estim:true,_add:v,passado:true,pct:P.meta_dia?Math.round(v/P.meta_dia*100):null}); n+=k; soma+=v;
   }
