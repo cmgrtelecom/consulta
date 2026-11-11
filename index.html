@@ -2610,34 +2610,39 @@ function finComTelemovel(M0){
   const VO=(P.referencia&&P.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
   const tC=t=>/instal/i.test(t)?"Instalação":/manuten/i.test(t)?"Manutenção":/altera/i.test(t)?"Alteração de serviço":/restabel/i.test(t)?"Restabelecimento":t;
   const real=o=>/realizada|validada/i.test(o.campos?.Estado||"")&&!/n[aã]o/i.test(o.campos?.Estado||"");
-  const jaPC=new Set((M.ots||[]).filter(o=>o.estado!=="não realizada").map(o=>String(o.ot||"").toUpperCase()));   // OT que o PC só tem como não realizada (ex.: devolvida e feita noutro dia) conta quando o telemóvel a tem realizada
-  let n=0, soma=0;
-  for(const d of (DIAS||[]).filter(d=>d.rapida&&d.data.replace(/-/g,"").slice(0,6)===mes)){
-    const x=P.dias.find(z=>z.data===d.data); if(!x||(x.ots&&!x.estim)) continue;   // o PC já tem este dia: manda o PC
-    const mix={}; let v=0, k=0;
-    for(const o of d.ots.filter(real)){ const nOT=String(o.campos["Nº OT"]||"").toUpperCase(); if(jaPC.has(nOT)) continue;
-      const t=tC(o.campos["Tipo de OT"]||""), val=VO[t]||0; mix[t]=(mix[t]||0)+1; v+=val; k++;
-      const lin={ot:o.campos["Nº OT"],data:d.data,tipo:t,cliente:o.campos["Nome de cliente"]||"",estado:"telemóvel · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true};
-      const velha=(M.ots||[]).find(z=>String(z.ot||"").toUpperCase()===nOT&&z.estado==="não realizada"); if(velha) Object.assign(velha,lin); else (M.ots=M.ots||[]).push(lin); jaPC.add(nOT); }
-    if(!k) continue;
-    Object.assign(x,{ots:k,valor:v,previsto:v,mix,estim:true,_add:v,passado:true,pct:P.meta_dia?Math.round(v/P.meta_dia*100):null}); n+=k; soma+=v;
+  // A CONSULTA DECIDE: o estado de cada OT é o que a Consulta mostra (dados recolhidos no telemóvel, juntos com os do PC).
+  // O PC / Auto_Envio só dão os valores; o que já vem pago/debitado no Auto não se mexe.
+  const up=s=>String(s||"").toUpperCase();
+  const EST={};   // Nº OT -> visita que conta: a realizada tem prioridade; senão a mais recente
+  for(const d of (DIAS||[]).filter(d=>d.data.replace(/-/g,"").slice(0,6)===mes)) for(const o of (d.ots||[])){
+    const k=up(o.campos?.["Nº OT"]); if(!k) continue; const r=real(o), a=EST[k];
+    if(!a||(r&&!a.r)||(r===a.r&&d.data>a.data)) EST[k]={r,data:d.data,o}; }
+  const AUTO=/^pago|garantia|estorno|debitada/i;
+  const dia=data=>P.dias.find(z=>z.data===data);
+  const mexe=(x,val,t,sinal)=>{ if(!x||!val) return;
+    x.valor=Math.round(((x.valor||0)+sinal*val)*100)/100; x.previsto=Math.round(((x.previsto||0)+sinal*val)*100)/100;
+    x.ots=Math.max(0,(x.ots||0)+sinal); x.mix={...(x.mix||{})}; x.mix[t]=Math.max(0,(x.mix[t]||0)+sinal); if(!x.mix[t]) delete x.mix[t];
+    x._add=Math.round(((x._add||0)+sinal*val)*100)/100; if(sinal>0){ x.passado=true; x.estim=true; }
+    if(x.trabalho&&P.meta_dia) x.pct=Math.round(x.valor/P.meta_dia*100); };
+  let n=0, soma=0, tira=0;
+  for(const [k,e] of Object.entries(EST)){
+    const pc=(M.ots||[]).find(z=>up(z.ot)===k), conta=!!pc&&pc.estado!=="não realizada"&&pc.total!=null;
+    if(pc&&AUTO.test(pc.estado||"")) continue;
+    const c=e.o.campos||{}, t=tC(c["Tipo de OT"]||"");
+    if(e.r){
+      if(conta&&pc.data===e.data) continue;   // o PC já conta esta OT neste dia
+      const val=VO[t]||0; if(!val) continue;
+      if(conta) mexe(dia(pc.data),pc.total,pc.tipo||t,-1);   // estava contada noutro dia: passa para o dia em que a Consulta a tem realizada
+      const lin={ot:c["Nº OT"],data:e.data,tipo:t,cliente:c["Nome de cliente"]||"",estado:"realizada na Consulta · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true};
+      if(pc) Object.assign(pc,lin); else (M.ots=M.ots||[]).push(lin);
+      mexe(dia(e.data),val,t,1); n++; soma+=val;
+    } else if(conta&&pc.previsto){   // o PC conta-a como feita, mas a Consulta tem-na como não realizada
+      mexe(dia(pc.data),pc.total,pc.tipo||t,-1); tira++;
+      Object.assign(pc,{estado:"não realizada (Consulta)",total:null,mo:null,mat:null,previsto:false}); }
   }
-  // OTs que o telemóvel já tem como Realizadas mas o PC ainda tem como não realizadas (ex.: o dia foi recolhido antes de a OT ser fechada)
-  const pcPor={}; for(const o of (M.ots||[])) pcPor[String(o.ot||"").toUpperCase()]=o;
-  for(const d of (DIAS||[]).filter(d=>!d.rapida&&d.data.replace(/-/g,"").slice(0,6)===mes)){
-    const x=P.dias.find(z=>z.data===d.data); if(!x) continue;
-    for(const o of d.ots.filter(real)){ const nOT=String(o.campos["Nº OT"]||"").toUpperCase(), pc=pcPor[nOT];
-      if(pc&&pc.estado!=="não realizada") continue;   // o PC já conta esta OT
-      const t=tC(o.campos["Tipo de OT"]||""), val=VO[t]||0; if(!val) continue;
-      const linha={ot:o.campos["Nº OT"],data:d.data,tipo:t,cliente:o.campos["Nome de cliente"]||"",estado:"realizada no telemóvel · estimativa",total:val,mo:val,mat:0,previsto:true,coleta:true,estim:true};
-      if(pc) Object.assign(pc,linha); else (M.ots=M.ots||[]).push(linha);
-      x.valor=Math.round(((x.valor||0)+val)*100)/100; x.previsto=Math.round(((x.previsto||0)+val)*100)/100; x.ots=(x.ots||0)+1;
-      x.mix={...(x.mix||{})}; x.mix[t]=(x.mix[t]||0)+1; x._add=(x._add||0)+val; x.passado=true;
-      if(x.trabalho&&P.meta_dia) x.pct=Math.round(x.valor/P.meta_dia*100); n++; soma+=val; }
-  }
-  if(!n) return M0;
+  if(!n&&!tira) return M0;
   let ac=0, corte=P.corte;
-  for(const x of P.dias){ ac+=x.valor||0; x.acum=Math.round(ac*100)/100; if((x.estim||x._add)&&(!corte||x.data>corte)) corte=x.data; }
+  for(const x of P.dias){ ac+=x.valor||0; x.acum=Math.round(ac*100)/100; if(x.estim&&x.ots&&(!corte||x.data>corte)) corte=x.data; }
   const ic=P.dias.findIndex(x=>x.data===corte), dc=P.dias[ic]||{};
   P.corte=corte; P.feito=Math.round((dc.acum||0)*100)/100;
   P.pct_ate_hoje=dc.acum_meta?Math.round(P.feito/dc.acum_meta*100):P.pct_ate_hoje;
@@ -2652,7 +2657,7 @@ function finComTelemovel(M0){
     if(add){ b.feito=Math.round(((b.feito||0)+add)*100)/100; b.meta_ate_hoje=(b.meta_ate_hoje||0)+metaAdd; if(b.meta_ate_hoje) b.pct=Math.round(b.feito/b.meta_ate_hoje*100); }
   }
   if(M.ots_resumo) M.ots_resumo.telemovel=n;
-  M.estimativa={ots:n,valor:Math.round(soma*100)/100};
+  M.estimativa={ots:n,valor:Math.round(soma*100)/100,retiradas:tira};
   return M;
 }
 function renderFin(){
@@ -2663,7 +2668,7 @@ function renderFin(){
   const top=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <select id="finMes" style="font:inherit;padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)">${FINC.meses.map(m=>`<option value="${m}" ${m===FIN_MES?"selected":""}>${fmesNome(m)}${FINC.por_mes[m].tem_auto?"":" · só coleta"}</option>`).join("")}</select>
     <div class="seg" role="group">${[["resumo","Resumo"],["ots","OTs"],["prod","🎯 Produtividade"],["custos","⛽ Custos"]].map(([k,l])=>`<button data-fs="${k}" aria-pressed="${FIN_SUB===k}">${l}</button>`).join("")}</div></div>
-    <div class="fmut">Dados do painel do PC · atualizado ${FINC.gerado?new Date(FINC.gerado).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—"} · valores sem IVA</div>${M.estimativa?`<div style="font-size:13.5px;line-height:1.45;background:var(--warn-bg);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;margin:8px 0">≈ Inclui <b>${M.estimativa.ots} OT${M.estimativa.ots>1?"s":""} realizada${M.estimativa.ots>1?"s":""} recolhida${M.estimativa.ots>1?"s":""} no telemóvel</b> (≈ ${feur(M.estimativa.valor)}), ainda por confirmar no PC. Valor médio por tipo de OT; os números certos chegam quando o painel do PC atualizar.</div>`:""}`;
+    <div class="fmut">Dados do painel do PC · atualizado ${FINC.gerado?new Date(FINC.gerado).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—"} · valores sem IVA</div>${M.estimativa?`<div style="font-size:13.5px;line-height:1.45;background:var(--warn-bg);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;margin:8px 0">📱 A Consulta decide o estado das OTs.${M.estimativa.ots?` ≈ Inclui <b>${M.estimativa.ots} OT${M.estimativa.ots>1?"s":""} realizada${M.estimativa.ots>1?"s":""} na Consulta</b> que o PC ainda não contava (≈ ${feur(M.estimativa.valor)}, valor médio por tipo de OT).`:""}${M.estimativa.retiradas?` Retirada${M.estimativa.retiradas>1?"s":""} <b>${M.estimativa.retiradas} OT${M.estimativa.retiradas>1?"s":""}</b> que o PC contava mas a Consulta tem como não realizada${M.estimativa.retiradas>1?"s":""}.`:""} Os valores certos chegam com o Auto da PROEF.</div>`:""}`;
   let corpo="";
   if(M.erro) corpo=`<div class="vazio">Erro neste mês: ${esc(M.erro)}</div>`;
   else if(FIN_SUB==="resumo") corpo=finResumoHtml(M);
