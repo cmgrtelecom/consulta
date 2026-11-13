@@ -710,6 +710,7 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .rimg-cx img{width:100%;height:auto;border-radius:10px;overflow:auto;min-height:0;object-fit:contain;flex:1 1 auto}
 .rimg-bt{display:flex;gap:8px;flex-wrap:wrap}.rimg-bt button{font:inherit;font-weight:700;font-size:14px;padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer;flex:1 1 auto}
 .rimg-bt button.p{background:var(--rei);border-color:var(--rei);color:var(--rei-ink)}
+.feed .fd-top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.feed .fd-top .fdcp{flex:none;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;font-size:12px;padding:2px 8px;color:inherit;cursor:pointer}
 </style>
 </head>
 <body class="sem-sessao">
@@ -2544,9 +2545,9 @@ function textoDadosOT(c, equip){
   return lin.join("\n")+"\n\nEquipamentos retirados:"+(ret.length?"\n"+ret.join("\n"):" nenhum");
 }
 async function copiarDadosOT(txt){
-  try{ await navigator.clipboard.writeText(txt); toast("✓ Dados da OT copiados"); return; }catch(_){}
+  try{ await navigator.clipboard.writeText(txt); toast("✓ Copiado"); return; }catch(_){}
   const t=document.createElement("textarea"); t.value=txt; t.style.cssText="position:fixed;top:0;left:0;opacity:0"; document.body.appendChild(t); t.select();
-  let ok=false; try{ ok=document.execCommand("copy"); }catch(_){} t.remove(); toast(ok?"✓ Dados da OT copiados":"Não consegui copiar");
+  let ok=false; try{ ok=document.execCommand("copy"); }catch(_){} t.remove(); toast(ok?"✓ Copiado":"Não consegui copiar");
 }
 function cpOT(o){ return textoDadosOT(o.campos,o.equip_v>=2?(o.equip||[]).map(e=>({...e,"Equipamento / Serviço":eqNome(e["Equipamento / Serviço"])})):eqLimpar(o.equip)); }
 function desenharFicha(){
@@ -2579,9 +2580,13 @@ function desenharFicha(){
     h=it.length?`<div class="bloco">`+it.map(e=>`<div class="item"><b>${esc(e["Material / Tarefa"])}</b><div class="m"><span class="mono">${esc(e["Código"]||"")}</span> · quantidade ${esc(e.Quantidade||"–")} ${esc(e.Unidade||"")}</div></div>`).join("")+`</div>`:`<div class="vazio">Sem não seriados registados.</div>`;
   } else {
     const it=o.feed||[];
-    h=it.length?`<div class="bloco feed">`+it.map(e=>`<div class="item"><span class="autor">${esc(e.Autor)}</span> <span class="q">(${esc(e.Perfil||"")}) · ${esc(e.Quando||"")}</span><p>${esc(e.Texto||"")}</p></div>`).join("")+`</div>`:`<div class="vazio">Sem publicações no Feed.</div>`;
+    h=it.length?`<div class="cpot-bar"><button class="cpot" type="button" data-cpfeed="all">📋 Copiar Feed</button></div><div class="bloco feed">`+it.map((e,i)=>`<div class="item"><div class="fd-top"><span><span class="autor">${esc(e.Autor)}</span> <span class="q">(${esc(e.Perfil||"")}) · ${esc(e.Quando||"")}</span></span><button class="fdcp" type="button" data-cpfeed="${i}" title="Copiar esta publicação">Copiar</button></div><p>${esc(e.Texto||"")}</p></div>`).join("")+`</div>`:`<div class="vazio">Sem publicações no Feed.</div>`;
   }
   $("#fCorpo").innerHTML=h; $("#fCorpo").scrollTop=0; if(TAB==="det") axLigar();
+  $("#fCorpo").querySelectorAll("[data-cpfeed]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const it=o.feed||[], c=o.campos||{};
+    const um=e=>`${e.Autor||""}${e.Perfil?` (${e.Perfil})`:""}${e.Quando?` · ${e.Quando}`:""}\n${e.Texto||""}`;
+    const t=b.dataset.cpfeed==="all"?[`Feed · ${c["Nº OT"]||""} · ${c["Nome de cliente"]||""}`,"",...it.map(um).flatMap(x=>[x,""])].join("\n").trim():(it[+b.dataset.cpfeed]?.Texto||"");
+    copiarDadosOT(t).then?.(()=>{}); });
   { const bc=$("#btnCpot"); if(bc) bc.onclick=()=>copiarDadosOT(cpOT(o)); }
   $("#fCorpo").querySelectorAll(".copiar").forEach(b=>b.onclick=async()=>{
     try{ await navigator.clipboard.writeText(b.dataset.v); toast("Copiado: "+b.dataset.v); }
