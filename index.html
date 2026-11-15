@@ -140,6 +140,7 @@ mark{background:var(--warn-bg);color:inherit;border-radius:3px;padding:0 1px}
 .fcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:10px}
 .fcal .h{font-size:10.5px;color:var(--muted);text-align:center}
 .fcal .d{border:1px solid var(--line);border-radius:7px;padding:3px 4px;min-height:44px;font-size:10.5px;overflow:hidden;overflow-wrap:anywhere}
+.fcal .d[data-fd]{cursor:pointer}.fcal .d[data-fd]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .fcal .d b{font-size:11px} .fcal .d .v{font-weight:600;font-size:11px;white-space:nowrap}
 .fcal .d.ok{background:var(--ok-bg);border-color:transparent} .fcal .d.warn{background:var(--warn-bg);border-color:transparent} .fcal .d.err{background:var(--bad-bg);border-color:transparent}
 .fcal .d.desc{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 4px,transparent 4px,transparent 8px);color:var(--muted)} .fcal .d.fut{opacity:.55} .fcal .d.vz{visibility:hidden}
@@ -2609,7 +2610,40 @@ const FTIPO={"Instalação":"Inst","Manutenção":"Manut","Alteração de servi�
 const fmix=m=>Object.entries(m||{}).map(([t,n])=>`${n} ${FTIPO[t]||t.slice(0,4)}`).join(" · ");
 // ---------- Finanças + OTs recolhidas no telemóvel: estimativa até o PC confirmar
 // Dias lidos no telemóvel (⚡) que o PC ainda não tem entram como "≈ estimativa", com o valor médio de cada tipo de OT.
+// ---------- Folgas marcadas na Consulta: ficam na conta (Supabase Auth, user_metadata.cr_folgas = {"2026-11":["2026-11-14",…]})
+// e mandam sobre o calendário do PC. As metas, semanas, quinzenas e projeção refazem-se aqui com as mesmas regras do painel.
+let FOLGAS=null;
+try{ FOLGAS=JSON.parse(localStorage.getItem("cr-folgas")||"null"); }catch(_){}
+async function folgasCarregar(){ try{ const t=await token(); if(!t) return;
+  const r=await fetch(`${SUPA_URL}/auth/v1/user`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}}); if(!r.ok) return;
+  const f=(await r.json())?.user_metadata?.cr_folgas; if(f&&typeof f==="object"){ FOLGAS=f; try{ localStorage.setItem("cr-folgas",JSON.stringify(f)); }catch(_){} } }catch(_){} }
+async function folgasGuardar(mesIso,lista){
+  const novo={...(FOLGAS||{}),[mesIso]:[...new Set(lista)].sort()}, t=await token(); if(!t) throw new Error("Sessão terminada. Entre de novo.");
+  const r=await fetch(`${SUPA_URL}/auth/v1/user`,{method:"PUT",headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify({data:{cr_folgas:novo}})});
+  if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.msg||j.error_description||j.message||("erro "+r.status)); }
+  FOLGAS=novo; try{ localStorage.setItem("cr-folgas",JSON.stringify(novo)); }catch(_){} }
+function finRecalc(P){
+  const mesIso=String(P.mes||"").slice(0,4)+"-"+String(P.mes||"").slice(4,6), r2=v=>Math.round(v*100)/100, meta=+P.meta_dia||0;
+  const desc=FOLGAS&&Array.isArray(FOLGAS[mesIso])?new Set(FOLGAS[mesIso]):null;
+  if(desc){ for(const x of P.dias) x.trabalho=!desc.has(x.data); P.folgas_consulta=true; }
+  let ac=0, am=0; for(const x of P.dias){ ac+=x.valor||0; if(x.trabalho) am+=meta; x.acum=r2(ac); x.acum_meta=r2(am); x.pct=x.trabalho&&meta?Math.round((x.valor||0)/meta*100):null; }
+  const corte=P.corte||"", trab=P.dias.filter(x=>x.trabalho), pas=trab.filter(x=>x.data<=corte), rest=trab.filter(x=>x.data>corte);
+  P.dias_trabalho=trab.length; P.descanso=P.dias.filter(x=>!x.trabalho).map(x=>x.data);
+  P.meta_mes=r2(meta*trab.length); P.meta_semana_ref=r2(P.meta_mes/4); P.meta_quinzena_ref=r2(P.meta_mes/2);
+  P.feito=r2(ac); P.meta_ate_hoje=r2(meta*pas.length); P.pct_ate_hoje=P.meta_ate_hoje?Math.round(P.feito/P.meta_ate_hoje*100):null;
+  P.ritmo=pas.length?r2(P.feito/pas.length):0; P.dias_restantes=rest.length; P.falta=r2(Math.max(0,P.meta_mes-P.feito));
+  P.precisa_dia=rest.length?r2(P.falta/rest.length):0; P.projecao=r2(P.feito+P.ritmo*rest.length);
+  const bloco=(nome,xs)=>{ const t=xs.filter(x=>x.trabalho), f=r2(xs.reduce((s,x)=>s+(x.valor||0),0)), mt=r2(meta*t.length), mp=r2(meta*t.filter(x=>x.data<=corte).length);
+    return {nome,de:xs[0].data,ate:xs[xs.length-1].data,dias:t.length,meta:mt,feito:f,meta_ate_hoje:mp,pct:mp?Math.round(f/mp*100):null,dif:r2(f-mp)}; };
+  const sem=[]; let at=[]; for(const x of P.dias){ if(at.length&&x.dow===0){ sem.push(at); at=[]; } at.push(x); } if(at.length) sem.push(at);
+  P.semanas=sem.map((xs,i)=>bloco(`Semana ${i+1}`,xs)); P.quinzenas=[bloco("1.ª quinzena",P.dias.slice(0,15)),bloco("2.ª quinzena",P.dias.slice(15))];
+  return P;
+}
 function finComTelemovel(M0){
+  const M=finComTelemovel0(M0); if(!M||M.erro||!M.prod||!(M.prod.dias||[]).length) return M;
+  const C=M===M0?JSON.parse(JSON.stringify(M0)):M; finRecalc(C.prod); return C;
+}
+function finComTelemovel0(M0){
   if(!M0||M0.erro||!M0.prod) return M0;
   const mes=String(M0.mes), M=JSON.parse(JSON.stringify(M0)), P=M.prod;
   const VO=(P.referencia&&P.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
@@ -2684,7 +2718,13 @@ function renderFin(){
   $("#finMes").onchange=e=>{ FIN_MES=e.target.value; FIN_FILTRO=""; renderFin(); };
   el.querySelectorAll("[data-fs]").forEach(b=>b.onclick=()=>{ FIN_SUB=b.dataset.fs; renderFin(); });
   el.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{ FIN_FILTRO=FIN_FILTRO===b.dataset.ff?"":b.dataset.ff; renderFin(); });
-  if(FIN_SUB==="prod"&&M.prod){ finGrafDias($("#fG1"),M.prod); finGrafAcum($("#fG2"),M.prod); }
+  if(FIN_SUB==="prod"&&M.prod){ finGrafDias($("#fG1"),M.prod); finGrafAcum($("#fG2"),M.prod);
+    const P=M.prod, mesIso=String(P.mes).slice(0,4)+"-"+String(P.mes).slice(4,6);
+    el.querySelectorAll(".fcal .d[data-fd]").forEach(c=>{ const go=async()=>{ if(c.dataset.ocupado) return; c.dataset.ocupado="1"; c.style.opacity=".5";
+      const d=c.dataset.fd, set=new Set(P.dias.filter(x=>!x.trabalho).map(x=>x.data)); const folga=!set.has(d); folga?set.add(d):set.delete(d);
+      try{ await folgasGuardar(mesIso,[...set]); toast(`${fdm(d)}: ${folga?"folga":"dia de trabalho"} ✓`); renderFin(); }
+      catch(e){ toast("⚠ "+(e.message||"Não consegui guardar")); c.style.opacity=""; delete c.dataset.ocupado; } };
+      c.onclick=go; c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }; }); }
   if(FIN_SUB==="custos") (FIN_ADD?finCustoFormEventos:finCustosEventos)();
 }
 // ---------- Custos da operação (lista do mês + enviar fatura do telemóvel; o PC regista e guarda o documento)
@@ -2786,8 +2826,8 @@ function finProdHtml(M){
     <div><b>${feur(P.ritmo)}</b>ritmo médio por dia</div></div>`;
   const pad=P.dias[0].dow;
   const cls=x=>!x.trabalho?"desc":(!x.passado&&!x.ots)?"fut":fst(x.pct||0);
-  const cal=`<div class="bloco"><h4>Calendário · meta ${fnum(P.meta_dia)} €/dia · ${P.dias_trabalho} dias</h4><div class="fcal">${["S","T","Q","Q","S","S","D"].map(d=>`<div class="h">${d}</div>`).join("")}${Array(pad).fill('<div class="d vz"></div>').join("")}${P.dias.map(x=>`<div class="d ${cls(x)}"><b>${+x.data.slice(8)}</b>${x.ots?`<div class="v">${x.previsto>0?"≈":""}${Math.round(x.valor)}€</div><div>${fmix(x.mix)}</div>`:(x.trabalho?"":"<div>folga</div>")}</div>`).join("")}</div>
-    <div class="fleg"><span><i style="background:var(--ok-bg);border:1px solid var(--ok)"></i>meta</span><span><i style="background:var(--warn-bg);border:1px solid var(--warn)"></i>80–99%</span><span><i style="background:var(--bad-bg);border:1px solid var(--bad)"></i>&lt;80%</span><span>folgas marcam-se no painel do PC</span></div></div>`;
+  const cal=`<div class="bloco"><h4>Calendário · meta ${fnum(P.meta_dia)} €/dia · ${P.dias_trabalho} dias</h4><div class="fcal">${["S","T","Q","Q","S","S","D"].map(d=>`<div class="h">${d}</div>`).join("")}${Array(pad).fill('<div class="d vz"></div>').join("")}${P.dias.map(x=>`<div class="d ${cls(x)}" data-fd="${x.data}" role="button" tabindex="0" title="Toque para marcar ${x.trabalho?"folga":"dia de trabalho"}"><b>${+x.data.slice(8)}</b>${x.ots?`<div class="v">${x.previsto>0?"≈":""}${Math.round(x.valor)}€</div><div>${fmix(x.mix)}</div>`:(x.trabalho?"":"<div>folga</div>")}</div>`).join("")}</div>
+    <div class="fleg"><span><i style="background:var(--ok-bg);border:1px solid var(--ok)"></i>meta</span><span><i style="background:var(--warn-bg);border:1px solid var(--warn)"></i>80–99%</span><span><i style="background:var(--bad-bg);border:1px solid var(--bad)"></i>&lt;80%</span><span>toque num dia para marcar folga / trabalho</span></div></div>`;
   const tab=(t,l)=>`<div class="bloco"><h4>${t}</h4>${l.map(b=>`<div class="flin"><span>${esc(b.nome)} <span class="fmut">${fdm(b.de)}–${fdm(b.ate)} · meta ${fnum(b.meta)}</span></span><span class="n" style="text-align:right"><b>${fnum(b.feito)}</b> ${b.meta_ate_hoje?`<span class="ftg ${fst(b.pct)}" title="Cor = ritmo: feito ${fnum(b.feito)} € para ${fnum(b.meta_ate_hoje)} € esperados até hoje">${b.meta?Math.round(b.feito/b.meta*100):0}% da meta</span><br><span class="fmut">esperado até hoje ${fnum(b.meta_ate_hoje)} · ritmo ${b.pct}%</span>`:'<span class="fmut">por fazer</span>'}</span></div>`).join("")}</div>`;
   const ref=`<div class="bloco"><h4>Referência</h4><div class="flin"><span>Meta semana / quinzena</span><span class="n">${fnum(P.meta_semana_ref)} / ${fnum(P.meta_quinzena_ref)}</span></div><div class="flin"><span>Seu histórico: média / dia bom</span><span class="n">${fnum(R.media)} / ${fnum(R.bom)}</span></div>
     <div class="flin"><span class="fmut">${(P.combos||[]).filter(c=>c.inst+c.manut>0).slice(0,4).map(c=>`${c.inst} Inst + ${c.manut} Manut ≈ ${fnum(c.valor)}`).join(" · ")}</span></div></div>`;
@@ -3394,6 +3434,7 @@ async function carregar(silencioso){
     const data=await r.json(); if(!r.ok) throw new Error(data.message||("erro "+r.status));
     GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[]; arrumarGuias();
     FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
+    folgasCarregar().then(()=>{ try{ if(VISTA==="fin") renderFin(); if(VISTA==="ini") renderIni(); }catch(_){} });
     CENTRADA=((data.find(x=>x.pacote&&x.pacote.tipo==="custos_entrada")||{}).pacote||{}).itens||[];
     AGR=((data.find(x=>x.pacote&&x.pacote.tipo==="agenda_rapida")||{}).pacote||{}).dias||{};
     COMB=(data.find(x=>x.pacote&&x.pacote.tipo==="combustivel")||{}).pacote||null;
