@@ -712,6 +712,15 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .rimg-bt{display:flex;gap:8px;flex-wrap:wrap}.rimg-bt button{font:inherit;font-weight:700;font-size:14px;padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer;flex:1 1 auto}
 .rimg-bt button.p{background:var(--rei);border-color:var(--rei);color:var(--rei-ink)}
 .feed .fd-top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.feed .fd-top .fdcp{flex:none;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;font-size:12px;padding:2px 8px;color:inherit;cursor:pointer}
+.fot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.fot label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0;flex:1 1 140px}
+.fot select{font:inherit;font-size:14px;padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2,var(--surface));color:var(--fg);width:100%}
+.fot .sem{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;font-size:12px;color:var(--muted)}
+.fot .sem button{font:inherit;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:inherit;cursor:pointer}
+.fot .sem button[aria-pressed="true"]{background:var(--bad-bg);border-color:var(--bad);color:var(--bad);text-decoration:line-through}
+.fot .lim{font:inherit;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.cpot.sec{background:transparent;color:var(--bad);border-color:var(--bad);margin-left:8px}
+.excl-l{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
 </style>
 </head>
 <body class="sem-sessao">
@@ -767,6 +776,7 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
     <div class="kpi"><div class="l">Execução / km</div><div class="v" id="kExec">–</div><div class="s" id="kExecS">&nbsp;</div></div>
     <div class="kpi bad"><div class="l">Sem confirmação TDS</div><div class="v" id="kTds">–</div><div class="s" id="kTdsS">&nbsp;</div></div>
   </section>
+  <div class="fot" id="fOt" aria-label="Filtrar OTs"></div>
 
   <div id="dias">
     <div class="vazio" id="msgInicial"><b>A carregar as suas OTs…</b><br>Os dias aparecem aqui depois de cada coleta no PC.</div>
@@ -1303,6 +1313,7 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-agr]"); i
 // ---------- Início: o dia num relance
 function hojeISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function renderIni(){
+  aplicarExcluidas();
   const el=$("#vIni"); if(!el) return;
   const hoje=hojeISO(), mesK=hoje.slice(0,4)+hoje.slice(5,7);
   const dia=(DIAS||[]).find(d=>d.data===hoje), ultimo=(DIAS||[])[0];
@@ -1360,13 +1371,61 @@ function textoOt(o){
 }
 function realce(t,q){ if(!q) return esc(t); const i=norm(t).indexOf(q); if(i<0) return esc(t); return esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); }
 
+// ---------- Filtro da lista (dia + tipo de serviço + esconder tipos) e OTs excluídas (ficam na conta: user_metadata.cr_excluidas = ["AAAA-MM-DD|Nº OT",…])
+let FOT={dia:"",tipo:"",sem:[]}; try{ FOT={...FOT,...JSON.parse(sessionStorage.getItem("cr-fot")||"{}")}; }catch(_){}
+const tipoCurto=t=>/instal/i.test(t||"")?"Instalação":/manuten/i.test(t||"")?"Manutenção":/altera/i.test(t||"")?"Alteração de serviço":/restabel/i.test(t||"")?"Restabelecimento":/remo|recolh|desinst/i.test(t||"")?"Remoção":(t||"Outro");
+let EXCL=null; try{ EXCL=JSON.parse(localStorage.getItem("cr-excl")||"null"); }catch(_){}
+const exclChave=(data,o)=>`${data}|${String(o?.campos?.["Nº OT"]||o?.id||"").toUpperCase()}`;
+function aplicarExcluidas(){ if(!EXCL||!EXCL.length) return; const S=new Set(EXCL);
+  for(const d of (DIAS||[])) if(d.ots) d.ots=d.ots.filter(o=>!S.has(exclChave(d.data,o))); }
+async function contaGuardar(extra){
+  const t=await token(); if(!t) throw new Error("Sessão terminada. Entre de novo.");
+  const r=await fetch(`${SUPA_URL}/auth/v1/user`,{method:"PUT",headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t,"Content-Type":"application/json"},
+    body:JSON.stringify({data:{cr_folgas:FOLGAS||{},cr_excluidas:EXCL||[],...extra}})});
+  if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.msg||j.error_description||j.message||("erro "+r.status)); } }
+async function exclGuardar(lista){ const ant=EXCL; EXCL=[...new Set(lista)]; try{ await contaGuardar({}); try{ localStorage.setItem("cr-excl",JSON.stringify(EXCL)); }catch(_){} }catch(e){ EXCL=ant; throw e; } }
+function fotDesenhar(dias){
+  const el=$("#fOt"); if(!el) return;
+  const datas=dias.map(d=>d.data), tipos=[...new Set(dias.flatMap(d=>(d.ots||[]).map(o=>tipoCurto(o.campos?.["Tipo de OT"]))))].sort();
+  if(FOT.dia&&!datas.includes(FOT.dia)) FOT.dia="";
+  const nEx=(EXCL||[]).length;
+  el.innerHTML=`<label>Dia<select id="fotDia"><option value="">Todos os dias</option>${datas.map(x=>`<option value="${x}" ${x===FOT.dia?"selected":""}>${fSem(x)}, ${fData(x)}</option>`).join("")}</select></label>
+    <label>Tipo de serviço<select id="fotTipo"><option value="">Todos os tipos</option>${tipos.map(x=>`<option ${x===FOT.tipo?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+    <div class="sem">Esconder: ${tipos.map(x=>`<button type="button" data-fsem="${esc(x)}" aria-pressed="${FOT.sem.includes(x)}">${esc(x)}</button>`).join("")}
+      ${FOT.dia||FOT.tipo||FOT.sem.length?`<button type="button" class="lim" id="fotLimpar">Limpar filtro</button>`:""}
+      ${nEx?`<button type="button" class="lim" id="fotExcl">🗑 ${nEx} excluída${nEx>1?"s":""}</button>`:""}</div>`;
+  const guardar=()=>{ try{ sessionStorage.setItem("cr-fot",JSON.stringify(FOT)); }catch(_){} render(); };
+  $("#fotDia").onchange=e=>{ FOT.dia=e.target.value; guardar(); };
+  $("#fotTipo").onchange=e=>{ FOT.tipo=e.target.value; guardar(); };
+  el.querySelectorAll("[data-fsem]").forEach(b=>b.onclick=()=>{ const t=b.dataset.fsem; FOT.sem=FOT.sem.includes(t)?FOT.sem.filter(x=>x!==t):[...FOT.sem,t]; guardar(); });
+  const lp=$("#fotLimpar"); if(lp) lp.onclick=()=>{ FOT={dia:"",tipo:"",sem:[]}; guardar(); };
+  const ex=$("#fotExcl"); if(ex) ex.onclick=exclLista;
+}
+function exclLista(){
+  const f=document.createElement("div"); f.className="rimg-fundo";
+  f.innerHTML=`<div class="rimg-cx" role="dialog" aria-label="OTs excluídas"><b>OTs excluídas</b><div style="overflow:auto;max-height:60vh">${(EXCL||[]).map(k=>{ const [d,n]=k.split("|"); return `<div class="excl-l"><span>${fData(d)} · <span class="mono">${esc(n)}</span></span><button class="lim" data-rep="${esc(k)}" style="font:inherit;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent)">Repor</button></div>`; }).join("")}</div>
+    <div class="rimg-bt"><button data-a="x">Fechar</button></div></div>`;
+  document.body.appendChild(f);
+  f.onclick=async e=>{ if(e.target===f||e.target.closest('[data-a="x"]')) return f.remove(); const b=e.target.closest("[data-rep]"); if(!b) return;
+    try{ await exclGuardar((EXCL||[]).filter(k=>k!==b.dataset.rep)); f.remove(); toast("OT reposta ✓ — a recarregar"); setTimeout(()=>location.reload(),600); }catch(err){ toast("⚠ "+err.message); } };
+}
+async function exclOT(){
+  if(!ABERTA) return; const {d,o}=ABERTA, c=o.campos||{};
+  if(!confirm(`Excluir a OT ${c["Nº OT"]||""} (${c["Nome de cliente"]||"sem nome"}) de ${fData(d.data)}?\n\nSai da lista, dos relatórios e das contas da Consulta. Pode repor depois em OTs → "excluídas".`)) return;
+  try{ await exclGuardar([...(EXCL||[]),exclChave(d.data,o)]); aplicarExcluidas(); fechar(); toast("OT excluída ✓"); render(); try{ if(VISTA==="ini") renderIni(); }catch(_){} }
+  catch(e){ toast("⚠ "+e.message); }
+}
 function render(){
+  aplicarExcluidas();
   const q=norm($("#q").value.trim()), cont=$("#dias");
-  const dias=q.length>=2?DIAS:diasNoPeriodo();
+  const dias0=q.length>=2?DIAS:diasNoPeriodo();
+  fotDesenhar(dias0);
+  const dias=dias0.filter(d=>!FOT.dia||d.data===FOT.dia);
   let tot=0, ok=0, exec=0, km=0, semTds=0, semTdsFalh=0, falh=0;
   const blocos=[];
   for(const d of dias){
-    const ots=(d.ots||[]).filter(o=>(ESTADO==="todas"||(ESTADO==="ok")===realizada(o)) && (q.length<2||textoOt(o).includes(q)));
+    const ots=(d.ots||[]).filter(o=>(ESTADO==="todas"||(ESTADO==="ok")===realizada(o)) && (q.length<2||textoOt(o).includes(q))
+      && (()=>{ const t=tipoCurto(o.campos?.["Tipo de OT"]); return (!FOT.tipo||t===FOT.tipo)&&!FOT.sem.includes(t); })());
     if(!ots.length) continue;
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
@@ -1381,7 +1440,7 @@ function render(){
           <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}${o.plcFeed?'<span class="chip">📡 PLC da lista do Feed</span>':""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
-  $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${dias.length} dia${dias.length===1?"":"s"}`;
+  $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${blocos.length} dia${blocos.length===1?"":"s"}${FOT.dia||FOT.tipo||FOT.sem.length?" · filtrado":""}`;
   $("#kProd").textContent=tot?Math.round(100*ok/tot)+"%":"–"; $("#kProdS").textContent=`${ok} realizadas · ${falh} não`;
   $("#kExec").textContent=fMin(exec); $("#kExecS").textContent=`${km.toLocaleString("pt-PT",{maximumFractionDigits:1})} km estimados`;
   $("#kTds").textContent=`${semTds}`; $("#kTdsS").textContent=`${semTdsFalh} delas não realizadas`;
@@ -1424,6 +1483,7 @@ function calcularRel(dias){
   return {porDia, linhas, tot, ag, mot};
 }
 function renderRel(){
+  aplicarExcluidas();
   const dias=diasNoPeriodo();
   REL=calcularRel(dias);
   const t=REL.tot;
@@ -2562,7 +2622,7 @@ function desenharFicha(){
   if(TAB==="det"){
     const loc = r.lat&&r.lng ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : (c.Morada?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.Morada)}`:null);
     { const rn=reinDe(o); if(rn) h+=reinFicha(rn); }
-    h+=`<div class="cpot-bar"><button class="cpot" id="btnCpot" type="button">📋 Copiar dados</button></div>`;
+    h+=`<div class="cpot-bar"><button class="cpot" id="btnCpot" type="button">📋 Copiar dados</button><button class="cpot sec" id="btnExcl" type="button" title="Retirar esta OT da lista e das contas">🗑 Excluir OT</button></div>`;
     h+=acoesOT(d,o,loc);
     if(!realizada(o)||r.reagendada) h+=`<div class="bloco"><h4>Improdutividade</h4><dl><dt>Motivo</dt><dd>${esc(r.motivo||"—")}</dd>${r.reagendada?`<dt>Reagendada para</dt><dd>${esc(r.reagendada)}</dd>`:""}</dl></div>`;
     h+=`<div class="bloco"><h4>Agendamento prévio</h4><dl><dt>Situação</dt><dd>${esc(r.agendamento||"—")}</dd><dt>Evidência</dt><dd>${esc(r.evidencia||"—")}</dd>${r.km_estrada!=null?`<dt>Desde a OT anterior</dt><dd>${r.km_estrada} km · ≈${fMin(r.min_conducao)} de condução</dd>`:""}</dl></div>`;
@@ -2588,7 +2648,7 @@ function desenharFicha(){
     const um=e=>`${e.Autor||""}${e.Perfil?` (${e.Perfil})`:""}${e.Quando?` · ${e.Quando}`:""}\n${e.Texto||""}`;
     const t=b.dataset.cpfeed==="all"?[`Feed · ${c["Nº OT"]||""} · ${c["Nome de cliente"]||""}`,"",...it.map(um).flatMap(x=>[x,""])].join("\n").trim():(it[+b.dataset.cpfeed]?.Texto||"");
     copiarDadosOT(t).then?.(()=>{}); });
-  { const bc=$("#btnCpot"); if(bc) bc.onclick=()=>copiarDadosOT(cpOT(o)); }
+  { const bc=$("#btnCpot"); if(bc) bc.onclick=()=>copiarDadosOT(cpOT(o)); const bx=$("#btnExcl"); if(bx) bx.onclick=exclOT; }
   $("#fCorpo").querySelectorAll(".copiar").forEach(b=>b.onclick=async()=>{
     try{ await navigator.clipboard.writeText(b.dataset.v); toast("Copiado: "+b.dataset.v); }
     catch{ const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents(b.previousElementSibling||b); s.removeAllRanges(); s.addRange(rg); toast("Texto selecionado — copie com Ctrl+C"); }
@@ -2616,11 +2676,11 @@ let FOLGAS=null;
 try{ FOLGAS=JSON.parse(localStorage.getItem("cr-folgas")||"null"); }catch(_){}
 async function folgasCarregar(){ try{ const t=await token(); if(!t) return;
   const r=await fetch(`${SUPA_URL}/auth/v1/user`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}}); if(!r.ok) return;
-  const f=(await r.json())?.user_metadata?.cr_folgas; if(f&&typeof f==="object"){ FOLGAS=f; try{ localStorage.setItem("cr-folgas",JSON.stringify(f)); }catch(_){} } }catch(_){} }
+  const um=(await r.json())?.user_metadata||{}, f=um.cr_folgas; if(f&&typeof f==="object"){ FOLGAS=f; try{ localStorage.setItem("cr-folgas",JSON.stringify(f)); }catch(_){} }
+  if(Array.isArray(um.cr_excluidas)){ EXCL=um.cr_excluidas; try{ localStorage.setItem("cr-excl",JSON.stringify(EXCL)); }catch(_){} } }catch(_){} }
 async function folgasGuardar(mesIso,lista){
-  const novo={...(FOLGAS||{}),[mesIso]:[...new Set(lista)].sort()}, t=await token(); if(!t) throw new Error("Sessão terminada. Entre de novo.");
-  const r=await fetch(`${SUPA_URL}/auth/v1/user`,{method:"PUT",headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify({data:{cr_folgas:novo}})});
-  if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.msg||j.error_description||j.message||("erro "+r.status)); }
+  const novo={...(FOLGAS||{}),[mesIso]:[...new Set(lista)].sort()};
+  await contaGuardar({cr_folgas:novo});
   FOLGAS=novo; try{ localStorage.setItem("cr-folgas",JSON.stringify(novo)); }catch(_){} }
 function finRecalc(P){
   const mesIso=String(P.mes||"").slice(0,4)+"-"+String(P.mes||"").slice(4,6), r2=v=>Math.round(v*100)/100, meta=+P.meta_dia||0;
@@ -2644,6 +2704,7 @@ function finComTelemovel(M0){
   const C=M===M0?JSON.parse(JSON.stringify(M0)):M; finRecalc(C.prod); return C;
 }
 function finComTelemovel0(M0){
+  aplicarExcluidas();
   if(!M0||M0.erro||!M0.prod) return M0;
   const mes=String(M0.mes), M=JSON.parse(JSON.stringify(M0)), P=M.prod;
   const VO=(P.referencia&&P.referencia.valor_ot)||{"Instalação":62.33,"Manutenção":19.85,"Alteração de serviço":16.32,"Restabelecimento":55.32};
@@ -2664,6 +2725,11 @@ function finComTelemovel0(M0){
     x._add=Math.round(((x._add||0)+sinal*val)*100)/100; if(sinal>0){ x.passado=true; x.estim=true; }
     if(x.trabalho&&P.meta_dia) x.pct=Math.round(x.valor/P.meta_dia*100); };
   let n=0, soma=0, tira=0;
+  aplicarExcluidas();
+  for(const ch of (EXCL||[])){ const [dt,nOT]=ch.split("|"); if(!dt.replace(/-/g,"").startsWith(mes)) continue;
+    const pc=(M.ots||[]).find(z=>up(z.ot)===nOT&&(!z.data||z.data===dt));
+    if(pc&&!AUTO.test(pc.estado||"")&&pc.estado!=="não realizada"&&pc.total!=null&&pc.previsto){ mexe(dia(pc.data||dt),pc.total,pc.tipo||"Outro",-1); tira++;
+      Object.assign(pc,{estado:"excluída na Consulta",total:null,mo:null,mat:null,previsto:false}); } }
   for(const [k,e] of Object.entries(EST)){
     const pc=(M.ots||[]).find(z=>up(z.ot)===k), conta=!!pc&&pc.estado!=="não realizada"&&pc.total!=null;
     if(pc&&AUTO.test(pc.estado||"")) continue;
@@ -3434,7 +3500,7 @@ async function carregar(silencioso){
     const data=await r.json(); if(!r.ok) throw new Error(data.message||("erro "+r.status));
     GUIAS=(data.find(x=>x.pacote&&x.pacote.tipo==="guias")||{pacote:{guias:[]}}).pacote.guias||[]; arrumarGuias();
     FINC=(data.find(x=>x.pacote&&x.pacote.tipo==="financas")||{}).pacote||null;
-    folgasCarregar().then(()=>{ try{ if(VISTA==="fin") renderFin(); if(VISTA==="ini") renderIni(); }catch(_){} });
+    folgasCarregar().then(()=>{ try{ aplicarExcluidas(); render(); if(VISTA==="fin") renderFin(); if(VISTA==="ini") renderIni(); }catch(_){} });
     CENTRADA=((data.find(x=>x.pacote&&x.pacote.tipo==="custos_entrada")||{}).pacote||{}).itens||[];
     AGR=((data.find(x=>x.pacote&&x.pacote.tipo==="agenda_rapida")||{}).pacote||{}).dias||{};
     COMB=(data.find(x=>x.pacote&&x.pacote.tipo==="combustivel")||{}).pacote||null;
