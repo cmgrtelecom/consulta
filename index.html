@@ -1396,7 +1396,8 @@ async function exclGuardar(lista){ const ant=EXCL; EXCL=[...new Set(lista)]; try
 function fotDesenhar(){
   const el=$("#fOt"); if(!el) return;
   const {de,ate,ult,menos}=fotIntervalo(), dias=diasNoPeriodo(true);
-  const tipos=[...new Set([...dias.flatMap(d=>(d.ots||[]).map(o=>tipoCurto(o.campos?.["Tipo de OT"]))),...FOT.sem])].sort();
+  const BASE=["Manutenção","Instalação","Alteração de serviço"];   // sempre na lista; os outros tipos aparecem quando houver OTs deles
+  const tipos=[...BASE,...[...new Set([...(DIAS||[]).flatMap(d=>(d.ots||[]).map(o=>tipoCurto(o.campos?.["Tipo de OT"]))),...FOT.sem])].filter(x=>!BASE.includes(x)).sort()];
   const nEx=(EXCL||[]).length, mes=ult.slice(0,8)+"01", um=de===ate;
   const atalhos=[["Hoje",hojeISO(),hojeISO()],["7 dias",menos(ult,6),ult],["30 dias",menos(ult,29),ult],["Este mês",mes,ult],["Tudo",(DIAS[DIAS.length-1]||{}).data||ult,ult]];
   el.innerHTML=`<div class="fot-datas"><label>De<input type="date" id="fotDe" value="${de}"></label><label>Até<input type="date" id="fotAte" value="${ate}"></label></div>
@@ -1411,14 +1412,12 @@ function fotDesenhar(){
   $("#fotTipos").onclick=()=>{
     const f=document.createElement("div"); f.className="rimg-fundo";
     const sel=new Set(tipos.filter(x=>!FOT.sem.includes(x)));
-    const lista=()=>`<label class="tp-l"><input type="checkbox" data-tall ${sel.size===tipos.length?"checked":""}><b>Todos os tipos</b></label>`+
-      tipos.map(x=>`<label class="tp-l"><input type="checkbox" data-tp="${esc(x)}" ${sel.has(x)?"checked":""}>${esc(x)}</label>`).join("");
+    const lista=()=>tipos.map(x=>`<label class="tp-l"><input type="checkbox" data-tp="${esc(x)}" ${sel.has(x)?"checked":""}>${esc(x)}</label>`).join("");
     f.innerHTML=`<div class="rimg-cx" role="dialog" aria-label="Tipos de serviço"><b style="font-size:16px">Que serviços quer ver?</b><div class="tp-box">${lista()}</div>
       <div class="rimg-bt"><button data-a="x">Cancelar</button><button class="p ac" data-a="ok">Aplicar</button></div></div>`;
     document.body.appendChild(f);
     f.addEventListener("change",e=>{ const c=e.target;
-      if(c.hasAttribute("data-tall")){ if(c.checked) tipos.forEach(x=>sel.add(x)); else sel.clear(); }
-      else if(c.dataset.tp){ c.checked?sel.add(c.dataset.tp):sel.delete(c.dataset.tp); }
+      if(c.dataset.tp){ c.checked?sel.add(c.dataset.tp):sel.delete(c.dataset.tp); }
       f.querySelector(".tp-box").innerHTML=lista(); });
     f.onclick=e=>{ if(e.target===f) return f.remove(); const a=e.target.closest("[data-a]")?.dataset.a; if(!a) return;
       if(a==="ok"){ if(!sel.size) return toast("Escolha pelo menos um tipo"); FOT.sem=tipos.filter(x=>!sel.has(x)); f.remove(); aplicar(); } else f.remove(); };
