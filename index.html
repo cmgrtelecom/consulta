@@ -2010,17 +2010,20 @@ function reinImgModal(im){
 document.addEventListener("click",async e=>{ const b=e.target.closest("[data-cpimg]"); if(!b) return; e.preventDefault(); e.stopPropagation();
   const el=b.closest(".rein-al"); if(!el) return; b.disabled=true; const t0=b.textContent; b.textContent="⏳";
   try{ reinImgModal(await reinImagem()); }catch(err){ toast(err?.message||"Não consegui gerar a imagem"); } finally{ b.disabled=false; b.textContent=t0; } },true);
+// todas as publicações do Feed da visita anterior (autor: texto), não só a primeira
+const reinFeeds=o=>(o.feed||[]).filter(x=>(x.Texto||"").trim()).map(x=>({a:String(x.Autor||"").trim(),t:String(x.Texto).trim()}));
+const reinFeedTxt=o=>reinFeeds(o).map(x=>x.a?`${x.a}: ${x.t}`:x.t).join("\n");
 function reinFicha(r){
-  const vis=r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o), f=(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||"";
+  const vis=r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o), fs=reinFeeds(v.o);
     return `<div class="rv"><i class="${ok?"ok":""}"></i><div><div class="l1">${fdm(v.d.data)} · ${esc(c.Estado||(ok?"Realizada":"Não realizada"))}${!ok&&v.o.rel?.motivo?` · ${esc(v.o.rel.motivo)}`:""}</div>
-      <div class="l2"><span class="mono">${esc(c["Nº OT"]||"")}</span> · ${esc(c["Tipo de OT"]||"")} · ${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}</div>${f?`<q>${esc(f.length>200?f.slice(0,200)+"…":f)}</q>`:""}</div></div>`; }).join("");
+      <div class="l2"><span class="mono">${esc(c["Nº OT"]||"")}</span> · ${esc(c["Tipo de OT"]||"")} · ${esc(c["Hora início"]||"")}–${esc(c["Hora fim"]||"")}</div>${fs.map(x=>`<q>${x.a?`<b style="font-style:normal">${esc(x.a)}:</b> `:""}${esc(x.t)}</q>`).join("")}</div></div>`; }).join("");
   REIN_TXT=reinTextoCopiar(`Cliente REINCIDENTE${r.ant.length?` · ${r.ant.length+1}.ª visita`:""}`,
     r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o); return {l1:`${fdm(v.d.data)} · ${c.Estado||(ok?"Realizada":"Não realizada")}${!ok&&v.o.rel?.motivo?` · ${v.o.rel.motivo}`:""}`,
-      l2:`${c["Nº OT"]||""} · ${c["Tipo de OT"]||""} · ${c["Hora início"]||""}–${c["Hora fim"]||""}`, f:(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||""}; }),
+      l2:`${c["Nº OT"]||""} · ${c["Tipo de OT"]||""} · ${c["Hora início"]||""}–${c["Hora fim"]||""}`, f:reinFeedTxt(v.o)}; }),
     r.etq.filter(e=>!/visita$/.test(e)), reinDica(r));
   REIN_DADOS={visita:r.ant.length?`${r.ant.length+1}.ª visita`:"", etq:r.etq.filter(e=>!/visita$/.test(e)), dica:String(reinDica(r)).replace(/<[^>]+>/g,"").replace(/^💡\s*/,""),
     linhas:r.ant.slice(0,5).map(v=>{ const c=v.o.campos||{}, ok=realizada(v.o); return {ok, l1:`${fdm(v.d.data)} · ${c.Estado||(ok?"Realizada":"Não realizada")}${!ok&&v.o.rel?.motivo?` · ${v.o.rel.motivo}`:""}`,
-      l2:`${c["Nº OT"]||""} · ${c["Tipo de OT"]||""} · ${c["Hora início"]||""}–${c["Hora fim"]||""}`, f:(v.o.feed||[]).map(x=>x.Texto).filter(Boolean)[0]||""}; })};
+      l2:`${c["Nº OT"]||""} · ${c["Tipo de OT"]||""} · ${c["Hora início"]||""}–${c["Hora fim"]||""}`, f:reinFeedTxt(v.o)}; })};
   return `<div class="rein-al"><div class="t">🔁 Cliente REINCIDENTE ${r.ant.length?`<span>${r.ant.length+1}.ª visita</span>`:""}<button class="cpimg" data-cpimg="1" type="button" title="Imagem do cartão com as cores, para partilhar">🖼 Imagem</button><button class="cprein" data-cprein="1" type="button" title="Copiar estes detalhes">📋 Copiar</button></div>
     ${vis?`<div class="rh">${vis}</div>`:""}<div class="chips">${r.etq.filter(e=>!/visita$/.test(e)).map(e=>`<span class="chip rei">${esc(e)}</span>`).join("")}</div><div class="dica">${reinDica(r)}</div></div>`; }
 // ---------- ficha
