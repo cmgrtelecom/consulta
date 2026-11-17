@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CR Telecom · Área da contabilista</title>
+<meta name="robots" content="noindex">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f5f8;--sf:#fff;--sf2:#f8f9fb;--ln:#e3e6ec;--tx:#1d2330;--mu:#667085;--br:#1f7f8c;--brs:#e3f2f4;
+  --ok:#1e7a46;--okb:#e3f4ea;--wr:#b26b00;--wrb:#fff4d6;--er:#b42318;--erb:#fde8e6}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1218;--sf:#171b23;--sf2:#1d222c;--ln:#2a303c;--tx:#e6e9ef;--mu:#98a2b3;--br:#5cc3cf;--brs:#17333a;
+  --ok:#5fd08f;--okb:#163223;--wr:#f5b84a;--wrb:#3a2e12;--er:#ff8a7f;--erb:#3a1a17}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 "Segoe UI",system-ui,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer;border-radius:8px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);padding:8px 14px}
+button:hover{border-color:var(--br)} button.pri{background:var(--br);border-color:var(--br);color:#fff;font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+input{width:100%;padding:10px 12px;border:1px solid var(--ln);border-radius:8px;background:var(--sf);color:var(--tx)}
+header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--sf);border-bottom:1px solid var(--ln);position:sticky;top:0;z-index:2}
+header b{font-size:16px;letter-spacing:.5px} header span{color:var(--mu);font-size:13px} .grow{flex:1}
+.cartao{background:var(--sf);border:1px solid var(--ln);border-radius:12px}
+#login{max-width:380px;margin:12vh auto;padding:26px}
+#login h1{font-size:19px;margin:0 0 4px} #login p{color:var(--mu);margin:0 0 18px;font-size:13.5px}
+#login label{display:block;font-size:13px;color:var(--mu);margin:12px 0 4px}
+.erro{color:var(--er);font-size:13px;margin-top:10px}
+main{display:grid;grid-template-columns:300px 1fr;gap:16px;padding:16px 18px;max-width:1300px;margin:0 auto}
+@media(max-width:850px){main{grid-template-columns:1fr}}
+.meses{padding:6px}
+.mes{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid transparent;background:none;padding:10px 12px;border-radius:10px}
+.mes.on{background:var(--brs);border-color:var(--br)} .mes small{display:block;color:var(--mu);font-size:12px}
+.tg{font-size:11.5px;padding:2px 9px;border-radius:99px;white-space:nowrap;background:var(--sf2);color:var(--mu)}
+.tg.ok{background:var(--okb);color:var(--ok)} .tg.wr{background:var(--wrb);color:var(--wr)} .tg.in{background:var(--brs);color:var(--br)}
+.det{padding:16px 18px}
+.det h2{margin:0;font-size:18px} .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+@media(max-width:600px){.kp{grid-template-columns:repeat(2,1fr)}}
+.kp div{background:var(--sf2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--mu)} .kp b{display:block;font-size:19px;color:var(--tx)}
+table{width:100%;border-collapse:collapse;font-size:13.5px} th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--ln);vertical-align:top}
+th{font-size:12px;color:var(--mu);font-weight:600} .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+td.falta{color:var(--wr)} .sec{margin:18px 0 6px;font-size:12px;font-weight:700;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}
+.tab{overflow:auto}
+dialog{border:none;border-radius:12px;padding:22px;max-width:380px;width:92vw;background:var(--sf);color:var(--tx)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+<div id="login" class="cartao" hidden>
+  <h1>🌵 CR Telecom</h1>
+  <p>Área da contabilista · faturas de cada mês</p>
+  <form id="fLogin">
+    <label for="lEmail">Email</label><input id="lEmail" type="email" autocomplete="username" required>
+    <label for="lPass">Palavra-passe</label><input id="lPass" type="password" autocomplete="current-password" required>
+    <p style="margin:16px 0 0"><button class="pri" style="width:100%">Entrar</button></p>
+    <div class="erro" id="lErro"></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header><b>🌵 CR TELECOM</b><span>Área da contabilista</span><span class="grow"></span>
+    <span id="quem"></span><button id="bPass">Trocar palavra-passe</button><button id="bSair">Sair</button></header>
+  <main>
+    <div class="cartao meses" id="lista"></div>
+    <div class="cartao det" id="det"><p style="color:var(--mu)">A carregar…</p></div>
+  </main>
+</div>
+
+<dialog id="dPass"><form id="fPass">
+  <h3 style="margin:0 0 10px">Trocar palavra-passe</h3>
+  <label style="font-size:13px;color:var(--mu)" for="p1">Nova palavra-passe (mínimo 8 caracteres)</label><input id="p1" type="password" autocomplete="new-password" minlength="8" required>
+  <label style="font-size:13px;color:var(--mu);display:block;margin-top:10px" for="p2">Repetir</label><input id="p2" type="password" autocomplete="new-password" minlength="8" required>
+  <div class="erro" id="pErro"></div>
+  <p style="display:flex;gap:8px;justify-content:flex-end;margin:16px 0 0"><button type="button" id="pCanc">Cancelar</button><button class="pri">Guardar</button></p>
+</form></dialog>
+
+<script>
+const sb = supabase.createClient("https://bkgcidryvwafdbiagata.supabase.co", "sb_publishable_H1EabITuWmtxVq9U0ddx6Q_D2MpwMYb");
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const eur = v => v==null ? "—" : Number(v).toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+const MES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const nomeMes = m => MES[+m.slice(5,7)-1]+" "+m.slice(0,4);
+const dt = s => s ? s.slice(8,10)+"/"+s.slice(5,7)+"/"+s.slice(0,4) : "—";
+const EST = {entregue:["✓ entregue","ok"], pronto:["completo","in"], falta:["faltam documentos","wr"], "em curso":["mês em curso",""], vazio:["sem faturas",""]};
+let MESES = [], SEL = null;
+
+async function inicio(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ $("#login").hidden=false; $("#app").hidden=true; return; }
+  $("#login").hidden=true; $("#app").hidden=false; $("#quem").textContent=session.user.email;
+  const { data, error } = await sb.from("contabilista").select("mes,dados,atualizado").order("mes",{ascending:false});
+  if(error){ $("#det").innerHTML=`<p class="erro">Não foi possível ler os dados: ${esc(error.message)}</p>`; return; }
+  MESES = data || [];
+  if(!MESES.length){ $("#lista").innerHTML=""; $("#det").innerHTML=`<p style="color:var(--mu)">Ainda não há meses disponíveis.</p>`; return; }
+  if(!SEL || !MESES.some(m=>m.mes===SEL)) SEL = MESES[0].mes;
+  lista(); detalhe();
+}
+function lista(){
+  $("#lista").innerHTML = MESES.map(x=>{ const d=x.dados, e=EST[d.estado]||[d.estado,""];
+    return `<button class="mes ${x.mes===SEL?"on":""}" data-m="${x.mes}"><span><b>${nomeMes(x.mes)}</b><small>${d.faturas+d.proef} documentos · ${eur(d.total)}</small></span><span class="tg ${e[1]}">${e[0]}</span></button>`; }).join("");
+  document.querySelectorAll(".mes").forEach(b=>b.onclick=()=>{ SEL=b.dataset.m; lista(); detalhe(); if(innerWidth<850) $("#det").scrollIntoView({behavior:"smooth"}); });
+}
+function detalhe(){
+  const x = MESES.find(m=>m.mes===SEL); if(!x) return; const d = x.dados, e = EST[d.estado]||[d.estado,""];
+  const linha = f => `<tr><td>${dt(f.data)}</td><td>${esc(f.fornecedor)}${f.nif?`<div class="mono" style="color:var(--mu)">${esc(f.nif)}</div>`:""}</td><td class="mono">${esc(f.doc)}</td><td>${esc(f.categoria||"")}</td>
+     <td class="n">${eur(f.base)}</td><td class="n">${eur(f.iva)}</td><td class="n"><b>${eur(f.total)}</b></td>
+     <td>${f.caminho?`<button data-f="${esc(f.caminho)}" style="padding:4px 10px">Abrir</button>${f.original==="papel"?' <span class="tg" title="O original em papel está guardado">papel</span>':""}`:'<span class="tg wr">em falta</span>'}</td></tr>`;
+  const tab = l => l.length ? `<div class="tab"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>Documento</th><th>Categoria</th><th class="n">Base</th><th class="n">IVA</th><th class="n">Total</th><th></th></tr></thead><tbody>${l.map(linha).join("")}</tbody></table></div>` : `<p style="color:var(--mu)">—</p>`;
+  const custos = d.docs.filter(f=>f.tipo!=="proef"), proef = d.docs.filter(f=>f.tipo==="proef");
+  $("#det").innerHTML = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2>${nomeMes(x.mes)}</h2><span class="tg ${e[1]}">${e[0]}</span><span class="grow"></span>
+      ${d.zip?`<button class="pri" id="bZip">⬇ Descarregar o mês (ZIP + Excel)</button>`:""}</div>
+    ${d.nota?`<p style="margin:8px 0 0;color:var(--mu)">📝 ${esc(d.nota)}</p>`:""}
+    <div class="kp"><div><b>${d.faturas}</b>faturas de custos</div><div><b>${d.com_doc}</b>com PDF ou foto</div><div><b style="color:${d.falta_doc?"var(--wr)":"inherit"}">${d.falta_doc}</b>documentos em falta</div><div><b>${d.proef}</b>faturas da PROEF</div></div>
+    <div class="sec">Faturas de custos</div>${tab(custos)}
+    <div class="sec">Faturas da PROEF</div>${tab(proef)}
+    <p style="color:var(--mu);font-size:12.5px;margin-top:14px">Atualizado ${new Date(x.atualizado).toLocaleString("pt-PT")}. "Papel" = o original é em papel e está guardado na empresa.</p>`;
+  document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>abrir(b.dataset.f, false));
+  const z=$("#bZip"); if(z) z.onclick=()=>abrir(d.zip, true);
+}
+async function abrir(caminho, descarregar){
+  const w = descarregar ? null : window.open("", "_blank");
+  const { data, error } = await sb.storage.from("contabilista").createSignedUrl(caminho, 300, descarregar?{download:true}:undefined);
+  if(error){ if(w) w.close(); alert("Não foi possível abrir: "+error.message); return; }
+  if(w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+$("#fLogin").onsubmit = async ev => { ev.preventDefault(); $("#lErro").textContent="";
+  const { error } = await sb.auth.signInWithPassword({ email:$("#lEmail").value.trim(), password:$("#lPass").value });
+  if(error){ $("#lErro").textContent = "Email ou palavra-passe errados."; return; } inicio(); };
+$("#bSair").onclick = async()=>{ await sb.auth.signOut(); location.reload(); };
+$("#bPass").onclick = ()=>{ $("#pErro").textContent=""; $("#fPass").reset(); $("#dPass").showModal(); };
+$("#pCanc").onclick = ()=>$("#dPass").close();
+$("#fPass").onsubmit = async ev => { ev.preventDefault();
+  if($("#p1").value!==$("#p2").value){ $("#pErro").textContent="As palavras-passe não são iguais."; return; }
+  const { error } = await sb.auth.updateUser({ password:$("#p1").value });
+  if(error){ $("#pErro").textContent=error.message; return; }
+  $("#dPass").close(); alert("Palavra-passe alterada."); };
+inicio();
+</script>
+</body>
+</html>
