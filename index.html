@@ -2710,8 +2710,14 @@ function folgasGuardar(mesIso,lista){
   return Promise.race([contaGuardar({cr_folgas:novo}).then(()=>true),new Promise((_,er)=>setTimeout(()=>er(new Error("sem resposta do servidor")),15000))])
     .catch(e=>{ FOLGAS_ERRO=e.message||String(e); return false; }); }   // não conseguiu guardar na conta: fica só neste telemóvel
 let FOLGAS_ERRO="";
+// mês AAAA-MM do bloco de produtividade (o pacote do PC não traz 'mes': tira-se das datas dos dias)
+const finMesIso=P=>String((P.dias&&P.dias[0]&&P.dias[0].data)||"").slice(0,7)||(String(P.mes||"").slice(0,4)+"-"+String(P.mes||"").slice(4,6));
+function folgasNorm(){   // folgas gravadas com a chave errada (antes desta correção): passam para o mês das próprias datas
+  if(!FOLGAS) return; for(const k of Object.keys(FOLGAS)){ if(/^\d{4}-\d{2}$/.test(k)) continue; const v=FOLGAS[k]; delete FOLGAS[k];
+    for(const d of (Array.isArray(v)?v:[])){ const m=String(d).slice(0,7); if(!/^\d{4}-\d{2}$/.test(m)) continue; if(!FOLGAS[m]) FOLGAS[m]=[]; if(!FOLGAS[m].includes(d)) FOLGAS[m].push(d); } } }
 function finRecalc(P){
-  const mesIso=String(P.mes||"").slice(0,4)+"-"+String(P.mes||"").slice(4,6), r2=v=>Math.round(v*100)/100, meta=+P.meta_dia||0;
+  folgasNorm();
+  const mesIso=finMesIso(P), r2=v=>Math.round(v*100)/100, meta=+P.meta_dia||0;
   const desc=FOLGAS&&Array.isArray(FOLGAS[mesIso])?new Set(FOLGAS[mesIso]):null;
   if(desc){ for(const x of P.dias) x.trabalho=!desc.has(x.data); P.folgas_consulta=true; }
   let ac=0, am=0; for(const x of P.dias){ ac+=x.valor||0; if(x.trabalho) am+=meta; x.acum=r2(ac); x.acum_meta=r2(am); x.pct=x.trabalho&&meta?Math.round((x.valor||0)/meta*100):null; }
@@ -2813,7 +2819,7 @@ function renderFin(){
   el.querySelectorAll("[data-fs]").forEach(b=>b.onclick=()=>{ FIN_SUB=b.dataset.fs; renderFin(); });
   el.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{ FIN_FILTRO=FIN_FILTRO===b.dataset.ff?"":b.dataset.ff; renderFin(); });
   if(FIN_SUB==="prod"&&M.prod){ finGrafDias($("#fG1"),M.prod); finGrafAcum($("#fG2"),M.prod);
-    const P=M.prod, mesIso=String(P.mes).slice(0,4)+"-"+String(P.mes).slice(4,6);
+    const P=M.prod, mesIso=finMesIso(P);
     el.querySelectorAll(".fcal .d[data-fd]").forEach(c=>{ const go=async()=>{ if(c.dataset.ocupado) return; c.dataset.ocupado="1"; c.style.opacity=".5";
       const d=c.dataset.fd, set=new Set(P.dias.filter(x=>!x.trabalho).map(x=>x.data)); const folga=!set.has(d); folga?set.add(d):set.delete(d);
       try{ const p=folgasGuardar(mesIso,[...set]); renderFin(); toast(`${fdm(d)}: ${folga?"folga":"dia de trabalho"}`);
