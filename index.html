@@ -2703,10 +2703,13 @@ async function folgasCarregar(){ try{ const t=await token(); if(!t) return;
   const r=await fetch(`${SUPA_URL}/auth/v1/user`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+t}}); if(!r.ok) return;
   const um=(await r.json())?.user_metadata||{}, f=um.cr_folgas; if(f&&typeof f==="object"){ FOLGAS=f; try{ localStorage.setItem("cr-folgas",JSON.stringify(f)); }catch(_){} }
   if(Array.isArray(um.cr_excluidas)){ EXCL=um.cr_excluidas; try{ localStorage.setItem("cr-excl",JSON.stringify(EXCL)); }catch(_){} } }catch(_){} }
-async function folgasGuardar(mesIso,lista){
+function folgasGuardar(mesIso,lista){
   const novo={...(FOLGAS||{}),[mesIso]:[...new Set(lista)].sort()};
-  await contaGuardar({cr_folgas:novo});
-  FOLGAS=novo; try{ localStorage.setItem("cr-folgas",JSON.stringify(novo)); }catch(_){} }
+  FOLGAS=novo; try{ localStorage.setItem("cr-folgas",JSON.stringify(novo)); }catch(_){}   // fica já marcada neste telemóvel
+  // a conta é atualizada em segundo plano (com limite de 15 s): o calendário muda logo, mesmo sem rede
+  return Promise.race([contaGuardar({cr_folgas:novo}).then(()=>true),new Promise((_,er)=>setTimeout(()=>er(new Error("sem resposta do servidor")),15000))])
+    .catch(e=>{ FOLGAS_ERRO=e.message||String(e); return false; }); }   // não conseguiu guardar na conta: fica só neste telemóvel
+let FOLGAS_ERRO="";
 function finRecalc(P){
   const mesIso=String(P.mes||"").slice(0,4)+"-"+String(P.mes||"").slice(4,6), r2=v=>Math.round(v*100)/100, meta=+P.meta_dia||0;
   const desc=FOLGAS&&Array.isArray(FOLGAS[mesIso])?new Set(FOLGAS[mesIso]):null;
@@ -2813,7 +2816,8 @@ function renderFin(){
     const P=M.prod, mesIso=String(P.mes).slice(0,4)+"-"+String(P.mes).slice(4,6);
     el.querySelectorAll(".fcal .d[data-fd]").forEach(c=>{ const go=async()=>{ if(c.dataset.ocupado) return; c.dataset.ocupado="1"; c.style.opacity=".5";
       const d=c.dataset.fd, set=new Set(P.dias.filter(x=>!x.trabalho).map(x=>x.data)); const folga=!set.has(d); folga?set.add(d):set.delete(d);
-      try{ await folgasGuardar(mesIso,[...set]); toast(`${fdm(d)}: ${folga?"folga":"dia de trabalho"} ✓`); renderFin(); }
+      try{ const p=folgasGuardar(mesIso,[...set]); renderFin(); toast(`${fdm(d)}: ${folga?"folga":"dia de trabalho"}`);
+        p.then(ok=>toast(ok?`${fdm(d)}: ${folga?"folga":"dia de trabalho"} ✓ guardado`:`${fdm(d)}: ${folga?"folga":"dia de trabalho"} — só neste telemóvel (${FOLGAS_ERRO})`)); }
       catch(e){ toast("⚠ "+(e.message||"Não consegui guardar")); c.style.opacity=""; delete c.dataset.ocupado; } };
       c.onclick=go; c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }; }); }
   if(FIN_SUB==="custos") (FIN_ADD?finCustoFormEventos:finCustosEventos)();
