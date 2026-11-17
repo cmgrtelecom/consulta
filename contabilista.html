@@ -33,9 +33,10 @@ main{display:grid;grid-template-columns:300px 1fr;gap:16px;padding:16px 18px;max
 .tg{font-size:11.5px;padding:2px 9px;border-radius:99px;white-space:nowrap;background:var(--sf2);color:var(--mu)}
 .tg.ok{background:var(--okb);color:var(--ok)} .tg.wr{background:var(--wrb);color:var(--wr)} .tg.in{background:var(--brs);color:var(--br)}
 .det{padding:16px 18px}
-.det h2{margin:0;font-size:18px} .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-@media(max-width:600px){.kp{grid-template-columns:repeat(2,1fr)}}
-.kp div{background:var(--sf2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--mu)} .kp b{display:block;font-size:19px;color:var(--tx)}
+.det h2{margin:0;font-size:18px} .kp{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0}
+@media(max-width:700px){.kp{grid-template-columns:repeat(2,1fr)}}
+.kp button{background:var(--sf2);border:2px solid transparent;border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--mu);text-align:left}
+.kp button.on{border-color:var(--br);background:var(--brs);color:var(--br)} .kp b{display:block;font-size:19px;color:var(--tx)}
 table{width:100%;border-collapse:collapse;font-size:13.5px} th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--ln);vertical-align:top}
 th{font-size:12px;color:var(--mu);font-weight:600} .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
@@ -83,7 +84,7 @@ const MES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agos
 const nomeMes = m => MES[+m.slice(5,7)-1]+" "+m.slice(0,4);
 const dt = s => s ? s.slice(8,10)+"/"+s.slice(5,7)+"/"+s.slice(0,4) : "—";
 const EST = {entregue:["✓ entregue","ok"], pronto:["completo","in"], falta:["faltam documentos","wr"], "em curso":["mês em curso",""], vazio:["sem faturas",""]};
-let MESES = [], SEL = null;
+let MESES = [], SEL = null, FILTRO = "todos";
 
 async function inicio(){
   const { data:{ session } } = await sb.auth.getSession();
@@ -111,10 +112,15 @@ function detalhe(){
   $("#det").innerHTML = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2>${nomeMes(x.mes)}</h2><span class="tg ${e[1]}">${e[0]}</span><span class="grow"></span>
       ${d.zip?`<button class="pri" id="bZip">⬇ Descarregar o mês (ZIP + Excel)</button>`:""}</div>
     ${d.nota?`<p style="margin:8px 0 0;color:var(--mu)">📝 ${esc(d.nota)}</p>`:""}
-    <div class="kp"><div><b>${d.faturas}</b>faturas de custos</div><div><b>${d.com_doc}</b>com PDF ou foto</div><div><b style="color:${d.falta_doc?"var(--wr)":"inherit"}">${d.falta_doc}</b>documentos em falta</div><div><b>${d.proef}</b>faturas da PROEF</div></div>
-    <div class="sec">Faturas de custos</div>${tab(custos)}
-    <div class="sec">Faturas da PROEF</div>${tab(proef)}
+    <div class="kp" role="group" aria-label="Mostrar">${[["todos",custos.length+proef.length,"todos os documentos"],["custos",d.faturas,"faturas de custos"],["com",d.com_doc,"com PDF ou foto"],["falta",d.falta_doc,"documentos em falta"],["proef",d.proef,"faturas da PROEF"]]
+      .map(([k,n,t])=>`<button data-filtro="${k}" class="${FILTRO===k?"on":""}" aria-pressed="${FILTRO===k}"><b style="${k==="falta"&&n?"color:var(--wr)":""}">${n}</b>${t}</button>`).join("")}</div>
+    ${FILTRO==="todos"?`<div class="sec">Faturas de custos</div>${tab(custos)}<div class="sec">Faturas da PROEF</div>${tab(proef)}`
+      :FILTRO==="custos"?`<div class="sec">Faturas de custos</div>${tab(custos)}`
+      :FILTRO==="com"?`<div class="sec">Faturas de custos com PDF ou foto</div>${tab(custos.filter(f=>f.caminho))}`
+      :FILTRO==="falta"?`<div class="sec">Documentos em falta</div>${tab(custos.filter(f=>!f.caminho))}`
+      :`<div class="sec">Faturas da PROEF</div>${tab(proef)}`}
     <p style="color:var(--mu);font-size:12.5px;margin-top:14px">Atualizado ${new Date(x.atualizado).toLocaleString("pt-PT")}. "Papel" = o original é em papel e está guardado na empresa.</p>`;
+  document.querySelectorAll("[data-filtro]").forEach(b=>b.onclick=()=>{ FILTRO=b.dataset.filtro; detalhe(); });
   document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>abrir(b.dataset.f, false));
   const z=$("#bZip"); if(z) z.onclick=()=>abrir(d.zip, true);
 }
