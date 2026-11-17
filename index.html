@@ -718,7 +718,11 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .fot-at,.fot-tipos{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .fot-at button,.fot-tipos button{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
 .fot-at button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.fot-tipos>span{font-size:12px;color:var(--muted);width:100%}
+.fot-tsel{flex:1 1 100%;display:grid!important;grid-template-columns:1fr auto;align-items:center;text-align:left;gap:2px 8px;border-radius:12px!important;padding:8px 12px!important;color:var(--fg)!important}
+.fot-tsel span{grid-column:1;font-size:12px;font-weight:500;color:var(--muted)}.fot-tsel b{grid-column:1;font-size:14.5px;overflow-wrap:anywhere}.fot-tsel i{grid-column:2;grid-row:1/3;font-style:normal;color:var(--muted)}
+.tp-box{display:flex;flex-direction:column;overflow:auto}.tp-l{display:flex;gap:12px;align-items:center;padding:12px 4px;border-top:1px solid var(--line);font-size:15px;cursor:pointer}.tp-l:first-child{border-top:0}
+.rimg-bt button.p.ac{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tp-l input{width:22px;height:22px;accent-color:var(--accent);flex:none}
 .fot-tipos button[aria-pressed="true"]{background:var(--accent-bg,transparent);border-color:var(--accent);color:var(--accent)}
 .fot-tipos button[aria-pressed="false"]{text-decoration:line-through;opacity:.65}
 .fot-res{font-size:12.5px;color:var(--muted)}
@@ -1397,14 +1401,28 @@ function fotDesenhar(){
   const atalhos=[["Hoje",hojeISO(),hojeISO()],["7 dias",menos(ult,6),ult],["30 dias",menos(ult,29),ult],["Este mês",mes,ult],["Tudo",(DIAS[DIAS.length-1]||{}).data||ult,ult]];
   el.innerHTML=`<div class="fot-datas"><label>De<input type="date" id="fotDe" value="${de}"></label><label>Até<input type="date" id="fotAte" value="${ate}"></label></div>
     <div class="fot-at">${atalhos.map(([n,a,b])=>`<button type="button" data-fat="${a}|${b}" aria-pressed="${a===de&&b===ate}">${n}</button>`).join("")}</div>
-    <div class="fot-tipos"><span>Tipo de serviço</span>${tipos.map(x=>`<button type="button" data-ftipo="${esc(x)}" aria-pressed="${!FOT.sem.includes(x)}">${FOT.sem.includes(x)?"":"✓ "}${esc(x)}</button>`).join("")}
+    <div class="fot-tipos"><button type="button" class="fot-tsel" id="fotTipos" aria-haspopup="dialog"><span>Tipo de serviço</span><b>${!FOT.sem.length?"Todos os tipos":`${tipos.filter(x=>!FOT.sem.includes(x)).length} de ${tipos.length}: ${esc(tipos.filter(x=>!FOT.sem.includes(x)).join(", ")||"nenhum")}`}</b><i>▾</i></button>
       ${nEx?`<button type="button" class="lim" id="fotExcl">🗑 ${nEx} excluída${nEx>1?"s":""}</button>`:""}</div>
     <div class="fot-res">${um?`${fSem(de)}, ${fData(de)}`:`${fData(de)} a ${fData(ate)}`}${FOT.sem.length?` · sem ${FOT.sem.join(", ")}`:""}</div>`;
   const aplicar=()=>{ try{ sessionStorage.setItem("cr-fot",JSON.stringify(FOT)); }catch(_){} render(); try{ if(VISTA==="rel") renderRel(); }catch(_){} };
   $("#fotDe").onchange=e=>{ FOT.de=e.target.value||""; if(!FOT.ate||FOT.ate<FOT.de) FOT.ate=FOT.de; aplicar(); };
   $("#fotAte").onchange=e=>{ FOT.ate=e.target.value||""; if(!FOT.de||FOT.de>FOT.ate) FOT.de=FOT.ate; aplicar(); };
   el.querySelectorAll("[data-fat]").forEach(b=>b.onclick=()=>{ const [a,z]=b.dataset.fat.split("|"); FOT.de=a; FOT.ate=z; aplicar(); });
-  el.querySelectorAll("[data-ftipo]").forEach(b=>b.onclick=()=>{ const t=b.dataset.ftipo; FOT.sem=FOT.sem.includes(t)?FOT.sem.filter(x=>x!==t):[...FOT.sem,t]; aplicar(); });
+  $("#fotTipos").onclick=()=>{
+    const f=document.createElement("div"); f.className="rimg-fundo";
+    const sel=new Set(tipos.filter(x=>!FOT.sem.includes(x)));
+    const lista=()=>`<label class="tp-l"><input type="checkbox" data-tall ${sel.size===tipos.length?"checked":""}><b>Todos os tipos</b></label>`+
+      tipos.map(x=>`<label class="tp-l"><input type="checkbox" data-tp="${esc(x)}" ${sel.has(x)?"checked":""}>${esc(x)}</label>`).join("");
+    f.innerHTML=`<div class="rimg-cx" role="dialog" aria-label="Tipos de serviço"><b style="font-size:16px">Que serviços quer ver?</b><div class="tp-box">${lista()}</div>
+      <div class="rimg-bt"><button data-a="x">Cancelar</button><button class="p ac" data-a="ok">Aplicar</button></div></div>`;
+    document.body.appendChild(f);
+    f.addEventListener("change",e=>{ const c=e.target;
+      if(c.hasAttribute("data-tall")){ if(c.checked) tipos.forEach(x=>sel.add(x)); else sel.clear(); }
+      else if(c.dataset.tp){ c.checked?sel.add(c.dataset.tp):sel.delete(c.dataset.tp); }
+      f.querySelector(".tp-box").innerHTML=lista(); });
+    f.onclick=e=>{ if(e.target===f) return f.remove(); const a=e.target.closest("[data-a]")?.dataset.a; if(!a) return;
+      if(a==="ok"){ if(!sel.size) return toast("Escolha pelo menos um tipo"); FOT.sem=tipos.filter(x=>!sel.has(x)); f.remove(); aplicar(); } else f.remove(); };
+  };
   const ex=$("#fotExcl"); if(ex) ex.onclick=exclLista;
 }
 function exclLista(){
