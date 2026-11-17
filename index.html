@@ -712,7 +712,16 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
 .rimg-bt{display:flex;gap:8px;flex-wrap:wrap}.rimg-bt button{font:inherit;font-weight:700;font-size:14px;padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer;flex:1 1 auto}
 .rimg-bt button.p{background:var(--rei);border-color:var(--rei);color:var(--rei-ink)}
 .feed .fd-top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.feed .fd-top .fdcp{flex:none;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;font-size:12px;padding:2px 8px;color:inherit;cursor:pointer}
-.fot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.fot{flex:1 1 100%;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.fot-datas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fot input[type=date]{font:inherit;font-size:15px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2,var(--surface));color:var(--fg);width:100%;min-width:0;color-scheme:inherit}
+.fot-at,.fot-tipos{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fot-at button,.fot-tipos button{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.fot-at button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fot-tipos>span{font-size:12px;color:var(--muted);width:100%}
+.fot-tipos button[aria-pressed="true"]{background:var(--accent-bg,transparent);border-color:var(--accent);color:var(--accent)}
+.fot-tipos button[aria-pressed="false"]{text-decoration:line-through;opacity:.65}
+.fot-res{font-size:12.5px;color:var(--muted)}
 .fot label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0;flex:1 1 140px}
 .fot select{font:inherit;font-size:14px;padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2,var(--surface));color:var(--fg);width:100%}
 .fot .sem{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;font-size:12px;color:var(--muted)}
@@ -756,17 +765,12 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
   </div>
 
   <div class="filtros">
-    <div class="seg" role="group" aria-label="Período">
-      <button data-p="7" aria-pressed="false">7 dias</button>
-      <button data-p="30" aria-pressed="true">30 dias</button>
-      <button data-p="mes" aria-pressed="false">Este mês</button>
-      <button data-p="tudo" aria-pressed="false">Tudo</button>
-    </div>
     <div class="seg" role="group" aria-label="Estado" id="segEstado">
       <button data-e="todas" aria-pressed="true">Todas</button>
       <button data-e="ok" aria-pressed="false">Realizadas</button>
       <button data-e="nao" aria-pressed="false">Não realizadas</button>
     </div>
+    <div class="fot" id="fOt" aria-label="Filtrar OTs"></div>
   </div>
 
   <div id="vOts" style="display:flex;flex-direction:column;gap:16px">
@@ -776,7 +780,6 @@ body:not(.v-zz):not(.v-zy) .busca.tr-busca,body:not(.v-zz):not(.v-zy) .busca.pv-
     <div class="kpi"><div class="l">Execução / km</div><div class="v" id="kExec">–</div><div class="s" id="kExecS">&nbsp;</div></div>
     <div class="kpi bad"><div class="l">Sem confirmação TDS</div><div class="v" id="kTds">–</div><div class="s" id="kTdsS">&nbsp;</div></div>
   </section>
-  <div class="fot" id="fOt" aria-label="Filtrar OTs"></div>
 
   <div id="dias">
     <div class="vazio" id="msgInicial"><b>A carregar as suas OTs…</b><br>Os dias aparecem aqui depois de cada coleta no PC.</div>
@@ -870,7 +873,7 @@ const realizada=o=>o.rel?.realizada ?? (/realizada|validada/i.test(o.campos.Esta
 const confirmada=o=>(o.rapida&&!o.completa)||(o.rel?.agendamento||"").startsWith("Confirmado");
 
 // ---------- filtros
-document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{PERIODO=b.dataset.p;document.querySelectorAll("[data-p]").forEach(x=>x.setAttribute("aria-pressed",x===b));render();if(VISTA==="rel")renderRel();});
+
 document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{ESTADO=b.dataset.e;document.querySelectorAll("[data-e]").forEach(x=>x.setAttribute("aria-pressed",x===b));render();});
 let tq=null; $("#q").oninput=()=>{clearTimeout(tq);tq=setTimeout(()=>{ if(VISTA==="rel"&&$("#q").value.trim().length>=2) mudarVista("ots"); render(); },150);};
 let VISTA="ini";
@@ -1356,13 +1359,15 @@ function renderIni(){
 }
 function dt0(s){ return s?String(s).slice(8,10)+"/"+String(s).slice(5,7):""; }
 
-function diasNoPeriodo(){
+function fotIntervalo(){
+  const ult=(DIAS[0]||{}).data||hojeISO(), menos=(iso,n)=>{ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+  let de=FOT.de||menos(ult,29), ate=FOT.ate||ult; if(ate<de) [de,ate]=[ate,de]; return {de,ate,ult,menos};
+}
+function diasNoPeriodo(semTipo){
   if(!DIAS.length) return [];
-  const ult=DIAS[0].data;
-  if(PERIODO==="tudo") return DIAS;
-  if(PERIODO==="mes") return DIAS.filter(d=>d.data.slice(0,7)===ult.slice(0,7));
-  const lim=new Date(ult+"T12:00:00"); lim.setDate(lim.getDate()-(+PERIODO-1));
-  const l=lim.toISOString().slice(0,10); return DIAS.filter(d=>d.data>=l);
+  const {de,ate}=fotIntervalo(), ds=DIAS.filter(d=>d.data>=de&&d.data<=ate);
+  if(semTipo||!FOT.sem.length) return ds;
+  return ds.map(d=>({...d,ots:(d.ots||[]).filter(o=>!FOT.sem.includes(tipoCurto(o.campos?.["Tipo de OT"])))}));
 }
 function textoOt(o){
   const p=[...Object.values(o.campos||{})];
@@ -1372,7 +1377,7 @@ function textoOt(o){
 function realce(t,q){ if(!q) return esc(t); const i=norm(t).indexOf(q); if(i<0) return esc(t); return esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); }
 
 // ---------- Filtro da lista (dia + tipo de serviço + esconder tipos) e OTs excluídas (ficam na conta: user_metadata.cr_excluidas = ["AAAA-MM-DD|Nº OT",…])
-let FOT={dia:"",tipo:"",sem:[]}; try{ FOT={...FOT,...JSON.parse(sessionStorage.getItem("cr-fot")||"{}")}; }catch(_){}
+let FOT={de:"",ate:"",sem:[]}; try{ const g=JSON.parse(sessionStorage.getItem("cr-fot")||"{}"); FOT={de:g.de||"",ate:g.ate||"",sem:Array.isArray(g.sem)?g.sem:[]}; }catch(_){}
 const tipoCurto=t=>/instal/i.test(t||"")?"Instalação":/manuten/i.test(t||"")?"Manutenção":/altera/i.test(t||"")?"Alteração de serviço":/restabel/i.test(t||"")?"Restabelecimento":/remo|recolh|desinst/i.test(t||"")?"Remoção":(t||"Outro");
 let EXCL=null; try{ EXCL=JSON.parse(localStorage.getItem("cr-excl")||"null"); }catch(_){}
 const exclChave=(data,o)=>`${data}|${String(o?.campos?.["Nº OT"]||o?.id||"").toUpperCase()}`;
@@ -1384,21 +1389,22 @@ async function contaGuardar(extra){
     body:JSON.stringify({data:{cr_folgas:FOLGAS||{},cr_excluidas:EXCL||[],...extra}})});
   if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.msg||j.error_description||j.message||("erro "+r.status)); } }
 async function exclGuardar(lista){ const ant=EXCL; EXCL=[...new Set(lista)]; try{ await contaGuardar({}); try{ localStorage.setItem("cr-excl",JSON.stringify(EXCL)); }catch(_){} }catch(e){ EXCL=ant; throw e; } }
-function fotDesenhar(dias){
+function fotDesenhar(){
   const el=$("#fOt"); if(!el) return;
-  const datas=dias.map(d=>d.data), tipos=[...new Set(dias.flatMap(d=>(d.ots||[]).map(o=>tipoCurto(o.campos?.["Tipo de OT"]))))].sort();
-  if(FOT.dia&&!datas.includes(FOT.dia)) FOT.dia="";
-  const nEx=(EXCL||[]).length;
-  el.innerHTML=`<label>Dia<select id="fotDia"><option value="">Todos os dias</option>${datas.map(x=>`<option value="${x}" ${x===FOT.dia?"selected":""}>${fSem(x)}, ${fData(x)}</option>`).join("")}</select></label>
-    <label>Tipo de serviço<select id="fotTipo"><option value="">Todos os tipos</option>${tipos.map(x=>`<option ${x===FOT.tipo?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
-    <div class="sem">Esconder: ${tipos.map(x=>`<button type="button" data-fsem="${esc(x)}" aria-pressed="${FOT.sem.includes(x)}">${esc(x)}</button>`).join("")}
-      ${FOT.dia||FOT.tipo||FOT.sem.length?`<button type="button" class="lim" id="fotLimpar">Limpar filtro</button>`:""}
-      ${nEx?`<button type="button" class="lim" id="fotExcl">🗑 ${nEx} excluída${nEx>1?"s":""}</button>`:""}</div>`;
-  const guardar=()=>{ try{ sessionStorage.setItem("cr-fot",JSON.stringify(FOT)); }catch(_){} render(); };
-  $("#fotDia").onchange=e=>{ FOT.dia=e.target.value; guardar(); };
-  $("#fotTipo").onchange=e=>{ FOT.tipo=e.target.value; guardar(); };
-  el.querySelectorAll("[data-fsem]").forEach(b=>b.onclick=()=>{ const t=b.dataset.fsem; FOT.sem=FOT.sem.includes(t)?FOT.sem.filter(x=>x!==t):[...FOT.sem,t]; guardar(); });
-  const lp=$("#fotLimpar"); if(lp) lp.onclick=()=>{ FOT={dia:"",tipo:"",sem:[]}; guardar(); };
+  const {de,ate,ult,menos}=fotIntervalo(), dias=diasNoPeriodo(true);
+  const tipos=[...new Set([...dias.flatMap(d=>(d.ots||[]).map(o=>tipoCurto(o.campos?.["Tipo de OT"]))),...FOT.sem])].sort();
+  const nEx=(EXCL||[]).length, mes=ult.slice(0,8)+"01", um=de===ate;
+  const atalhos=[["Hoje",hojeISO(),hojeISO()],["7 dias",menos(ult,6),ult],["30 dias",menos(ult,29),ult],["Este mês",mes,ult],["Tudo",(DIAS[DIAS.length-1]||{}).data||ult,ult]];
+  el.innerHTML=`<div class="fot-datas"><label>De<input type="date" id="fotDe" value="${de}"></label><label>Até<input type="date" id="fotAte" value="${ate}"></label></div>
+    <div class="fot-at">${atalhos.map(([n,a,b])=>`<button type="button" data-fat="${a}|${b}" aria-pressed="${a===de&&b===ate}">${n}</button>`).join("")}</div>
+    <div class="fot-tipos"><span>Tipo de serviço</span>${tipos.map(x=>`<button type="button" data-ftipo="${esc(x)}" aria-pressed="${!FOT.sem.includes(x)}">${FOT.sem.includes(x)?"":"✓ "}${esc(x)}</button>`).join("")}
+      ${nEx?`<button type="button" class="lim" id="fotExcl">🗑 ${nEx} excluída${nEx>1?"s":""}</button>`:""}</div>
+    <div class="fot-res">${um?`${fSem(de)}, ${fData(de)}`:`${fData(de)} a ${fData(ate)}`}${FOT.sem.length?` · sem ${FOT.sem.join(", ")}`:""}</div>`;
+  const aplicar=()=>{ try{ sessionStorage.setItem("cr-fot",JSON.stringify(FOT)); }catch(_){} render(); try{ if(VISTA==="rel") renderRel(); }catch(_){} };
+  $("#fotDe").onchange=e=>{ FOT.de=e.target.value||""; if(!FOT.ate||FOT.ate<FOT.de) FOT.ate=FOT.de; aplicar(); };
+  $("#fotAte").onchange=e=>{ FOT.ate=e.target.value||""; if(!FOT.de||FOT.de>FOT.ate) FOT.de=FOT.ate; aplicar(); };
+  el.querySelectorAll("[data-fat]").forEach(b=>b.onclick=()=>{ const [a,z]=b.dataset.fat.split("|"); FOT.de=a; FOT.ate=z; aplicar(); });
+  el.querySelectorAll("[data-ftipo]").forEach(b=>b.onclick=()=>{ const t=b.dataset.ftipo; FOT.sem=FOT.sem.includes(t)?FOT.sem.filter(x=>x!==t):[...FOT.sem,t]; aplicar(); });
   const ex=$("#fotExcl"); if(ex) ex.onclick=exclLista;
 }
 function exclLista(){
@@ -1418,14 +1424,13 @@ async function exclOT(){
 function render(){
   aplicarExcluidas();
   const q=norm($("#q").value.trim()), cont=$("#dias");
-  const dias0=q.length>=2?DIAS:diasNoPeriodo();
-  fotDesenhar(dias0);
-  const dias=dias0.filter(d=>!FOT.dia||d.data===FOT.dia);
+  fotDesenhar();
+  const dias=q.length>=2?DIAS:diasNoPeriodo(true);
   let tot=0, ok=0, exec=0, km=0, semTds=0, semTdsFalh=0, falh=0;
   const blocos=[];
   for(const d of dias){
     const ots=(d.ots||[]).filter(o=>(ESTADO==="todas"||(ESTADO==="ok")===realizada(o)) && (q.length<2||textoOt(o).includes(q))
-      && (()=>{ const t=tipoCurto(o.campos?.["Tipo de OT"]); return (!FOT.tipo||t===FOT.tipo)&&!FOT.sem.includes(t); })());
+      && !FOT.sem.includes(tipoCurto(o.campos?.["Tipo de OT"])));
     if(!ots.length) continue;
     ots.sort((a,b)=>(a.campos["Hora início"]||"").localeCompare(b.campos["Hora início"]||""));
     for(const o of ots){ tot++; if(realizada(o)){ok++;exec+=o.rel?.duracao||0;} else falh++; km+=o.rel?.km_estrada||0; if(!confirmada(o)){semTds++; if(!realizada(o)) semTdsFalh++;} }
@@ -1440,7 +1445,7 @@ function render(){
           <div class="chips"><span class="chip ${ok?"ok":"bad"}">${esc(c.Estado||"—")}</span>${o.rapida?(o.completa?'<span class="chip ok">📋 recolhida</span>':'<span class="chip">só agenda</span>'):(confirmada(o)?'<span class="chip acc">TDS confirmado</span>':'<span class="chip warn">Sem confirmação</span>')}${distExcessiva(c)?`<span class="chip dx">📏 Distância excessiva · ${esc(distExcessiva(c))}</span>`:""}${semCoordCli(o)?'<span class="chip dx">📍 sem coord. cliente</span>':""}${polChip(o)}${plcmSemCoord(o)?'<span class="chip plcsc">📡 PLC sem coordenadas</span>':""}${o.plcManual?'<span class="chip">📡 PLC marcado à mão</span>':""}${o.plcFeed?'<span class="chip">📡 PLC da lista do Feed</span>':""}${o.saiu?'<span class="chip bad">saiu da Agenda</span>':""}${o.nova?'<span class="chip warn">nova na Agenda</span>':""}${o.tel&&!o.nova?`<span class="chip">📲 ${esc(o.tel)}</span>`:""}${rn?rn.etq.map(e=>`<span class="chip rei">${esc(e)}</span>`).join(""):""}${q.length>=2&&!norm(c["Nome de cliente"]+c["Nº OT"]).includes(q)?'<span class="chip">encontrado nos detalhes</span>':""}</div>
         </button>`;}).join("")+`</div></section>`);
   }
-  $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${blocos.length} dia${blocos.length===1?"":"s"}${FOT.dia||FOT.tipo||FOT.sem.length?" · filtrado":""}`;
+  $("#kOts").textContent=tot||"0"; $("#kOtsS").textContent=`${blocos.length} dia${blocos.length===1?"":"s"}${FOT.sem.length?" · filtrado":""}`;
   $("#kProd").textContent=tot?Math.round(100*ok/tot)+"%":"–"; $("#kProdS").textContent=`${ok} realizadas · ${falh} não`;
   $("#kExec").textContent=fMin(exec); $("#kExecS").textContent=`${km.toLocaleString("pt-PT",{maximumFractionDigits:1})} km estimados`;
   $("#kTds").textContent=`${semTds}`; $("#kTdsS").textContent=`${semTdsFalh} delas não realizadas`;
@@ -1483,7 +1488,7 @@ function calcularRel(dias){
   return {porDia, linhas, tot, ag, mot};
 }
 function renderRel(){
-  aplicarExcluidas();
+  aplicarExcluidas(); fotDesenhar();
   const dias=diasNoPeriodo();
   REL=calcularRel(dias);
   const t=REL.tot;
